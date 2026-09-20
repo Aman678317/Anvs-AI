@@ -141,12 +141,12 @@ class RedisStreamBus:
         for _stream_name, messages in response:
             for message_id, data in messages:
                 raw_payload = data.get("payload", "{}")
-                if event_class is not None:
-                    parsed_event = event_class.model_validate_json(raw_payload)
-                    results.append((message_id, parsed_event))
-                else:
-                    parsed_dict = json.loads(raw_payload)
-                    results.append((message_id, parsed_dict))
+                parsed_item = (
+                    event_class.model_validate_json(raw_payload)
+                    if event_class is not None
+                    else json.loads(raw_payload)
+                )
+                results.append((message_id, parsed_item))
 
         return results
 

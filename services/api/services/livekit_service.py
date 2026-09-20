@@ -114,13 +114,15 @@ class LiveKitService:
 
         # Verify body hash if present in claims
         expected_sha = claims.get("sha256")
-        if expected_sha:
-            computed_sha = base64.b64encode(hashlib.sha256(raw_body).digest()).decode("utf-8")
-            if expected_sha != computed_sha:
-                raise ValueError("LiveKit webhook payload sha256 mismatch")
+        computed_sha = (
+            base64.b64encode(hashlib.sha256(raw_body).digest()).decode("utf-8")
+            if expected_sha
+            else ""
+        )
+        if expected_sha and expected_sha != computed_sha:
+            raise ValueError("LiveKit webhook payload sha256 mismatch")
 
-        event_data: dict[str, Any] = json.loads(raw_body.decode("utf-8"))
-        return event_data
+        return json.loads(raw_body.decode("utf-8"))
 
 
 livekit_service = LiveKitService()
