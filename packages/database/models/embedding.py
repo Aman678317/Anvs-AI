@@ -8,7 +8,7 @@ from sqlalchemy import DateTime, ForeignKey, Text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from packages.database import Base
+from packages.database.base import Base
 
 if TYPE_CHECKING:
     from .transcript import TranscriptSegment
@@ -18,14 +18,16 @@ try:
 except ImportError:
     from sqlalchemy.types import UserDefinedType
 
-    class Vector(UserDefinedType):  # type: ignore[no-redef]
+    class _FallbackVector(UserDefinedType):
         """Fallback Vector type for environments without pgvector-python."""
 
         def __init__(self, dim: int = 1536) -> None:
             self.dim = dim
 
-        def get_col_spec(self, **kw: Any) -> str:
+        def get_col_spec(self, **_kw: Any) -> str:
             return f"vector({self.dim})"
+
+    Vector = _FallbackVector  # type: ignore[misc, assignment]
 
 
 class TranscriptEmbedding(Base):

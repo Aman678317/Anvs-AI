@@ -8,7 +8,7 @@ from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Integer, String, Te
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from packages.database import Base
+from packages.database.base import Base
 
 if TYPE_CHECKING:
     from .embedding import TranscriptEmbedding
