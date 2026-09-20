@@ -2,8 +2,8 @@
 
 import json
 
-from fastapi.testclient import TestClient
 import pytest
+from fastapi.testclient import TestClient
 from starlette.websockets import WebSocketDisconnect
 
 from packages.auth.models import AuthenticatedUser

@@ -99,6 +99,7 @@ def test_room_state_to_frame_conversion() -> None:
     )
 
     frame = room_state_to_frame(event)
+    assert isinstance(frame, WSServerRoomStateFrame)
     assert frame.type == WSServerMessageType.ROOM_STATE
     assert frame.state_version == 5
     assert frame.status == MeetingStatus.ACTIVE
@@ -118,6 +119,7 @@ def test_assistant_response_to_frame_conversion() -> None:
     )
 
     frame = assistant_response_to_frame(event)
+    assert isinstance(frame, WSServerAssistantFrame)
     assert frame.type == WSServerMessageType.ASSISTANT_RESPONSE
     assert frame.query_id == "query-abc-123"
     assert frame.answer == "The project roadmap was approved in Q1."

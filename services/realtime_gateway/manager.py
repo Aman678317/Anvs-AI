@@ -1,9 +1,9 @@
 """Realtime Gateway Connection and Session State Manager."""
 
 import asyncio
-from dataclasses import dataclass, field
 import logging
 import time
+from dataclasses import dataclass, field
 from typing import Any
 
 from packages.contracts import BaseWSFrame, ParticipantRole, WSServerCaptionFrame
