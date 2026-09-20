@@ -1,0 +1,103 @@
+version: "3.9"
+
+services:
+  # ============================================================================
+  # Primary Database: PostgreSQL 16 with pgvector extension
+  # ============================================================================
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: meeting_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: meeting_platform
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgrespassword
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./infrastructure/docker/postgres-init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d meeting_platform"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - meeting_net
+
+  # ============================================================================
+  # High-Throughput Event Streaming & Cache: Redis 7.2
+  # ============================================================================
+  redis:
+    image: redis:7.2-alpine
+    container_name: meeting_redis
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes", "--maxmemory", "512mb", "--maxmemory-policy", "noeviction"]
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks:
+      - meeting_net
+
+  # ============================================================================
+  # WebRTC Selective Forwarding Unit (SFU): LiveKit Server
+  # ============================================================================
+  livekit:
+    image: livekit/livekit-server:v1.6
+    container_name: meeting_livekit
+    restart: unless-stopped
+    command: --config /etc/livekit.yaml
+    ports:
+      - "7880:7880"         # HTTP / Signaling WebSocket
+      - "7881:7881/tcp"     # WebRTC TCP fallback
+      - "7882:7882/udp"     # WebRTC UDP media
+    volumes:
+      - ./infrastructure/livekit/livekit.yaml:/etc/livekit.yaml:ro
+    networks:
+      - meeting_net
+
+  # ============================================================================
+  # Distributed Tracing & Observability: Jaeger All-In-One
+  # ============================================================================
+  jaeger:
+    image: jaegertracing/all-in-one:1.56
+    container_name: meeting_jaeger
+    restart: unless-stopped
+    environment:
+      - COLLECTOR_OTLP_ENABLED=true
+    ports:
+      - "16686:16686"       # Jaeger Web UI
+      - "4317:4317"         # OTLP gRPC receiver
+      - "4318:4318"         # OTLP HTTP receiver
+    networks:
+      - meeting_net
+
+  # ============================================================================
+  # Metrics Aggregation: Prometheus (Local Dev)
+  # ============================================================================
+  prometheus:
+    image: prom/prometheus:v2.51.0
+    container_name: meeting_prometheus
+    restart: unless-stopped
+    volumes:
+      - ./infrastructure/monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    ports:
+      - "9090:9090"
+    networks:
+      - meeting_net
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+
+networks:
+  meeting_net:
+    driver: bridge
