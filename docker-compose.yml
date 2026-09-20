@@ -52,11 +52,11 @@ services:
     image: livekit/livekit-server:v1.6
     container_name: meeting_livekit
     restart: unless-stopped
-    command: --config /etc/livekit.yaml
+    command: ["--config", "/etc/livekit.yaml"]
     ports:
-      - "7880:7880"         # HTTP / Signaling WebSocket
-      - "7881:7881/tcp"     # WebRTC TCP fallback
-      - "7882:7882/udp"     # WebRTC UDP media
+      - "7880:7880" # HTTP / Signaling WebSocket
+      - "7881:7881/tcp" # WebRTC TCP fallback
+      - "7882:7882/udp" # WebRTC UDP media
     volumes:
       - ./infrastructure/livekit/livekit.yaml:/etc/livekit.yaml:ro
     networks:
@@ -72,9 +72,9 @@ services:
     environment:
       - COLLECTOR_OTLP_ENABLED=true
     ports:
-      - "16686:16686"       # Jaeger Web UI
-      - "4317:4317"         # OTLP gRPC receiver
-      - "4318:4318"         # OTLP HTTP receiver
+      - "16686:16686" # Jaeger Web UI
+      - "4317:4317" # OTLP gRPC receiver
+      - "4318:4318" # OTLP HTTP receiver
     networks:
       - meeting_net
 

@@ -70,19 +70,19 @@ flowchart TD
 
 ## 3. Technology Stack
 
-| Layer | Technology | Key Capabilities |
-| :--- | :--- | :--- |
-| **Web Frontend** | Next.js 14 (App Router), TypeScript, TailwindCSS, Zustand | Server components, LiveKit Client SDK, optimistic UI updates |
-| **Control Plane** | FastAPI 0.111+, Python 3.11, Pydantic v2, SQLAlchemy 2.0 | Async IO, OpenAPI schemas, Supabase Auth integration |
-| **Media Server** | LiveKit SFU (Go), WebRTC | Selective Forwarding Unit, simulcast, adaptive bitrate |
-| **Realtime Gateway**| WebSocket, Redis Pub/Sub, asyncio | Sub-50ms caption distribution, presence, room events |
-| **Database** | PostgreSQL 16 (Supabase), pgvector, pg_stat_statements | RLS, vector semantic search for meeting transcripts |
-| **Event Bus & Cache**| Redis 7.2 (Redis Streams, Pub/Sub, Sentinel) | High-throughput durable audio and text event streaming |
-| **Speech-to-Text** | Faster-Whisper, Conformer, Silero VAD | Chunked streaming transcription, Voice Activity Detection |
-| **Translation** | Meta NLLB-200-distilled-600M, vLLM | 200+ language support, contextual sliding window |
-| **Text-to-Speech** | Coqui XTTS-v2, MeloTTS | Low-latency voice cloning, emotion preservation |
-| **Diarization** | PyAnnote Audio 3.1 | Real-time speaker embedding clustering and identification |
-| **Observability** | OpenTelemetry 1.44, Prometheus, Grafana, Jaeger | Distributed tracing across WebRTC, API, Redis, and AI workers |
+| Layer                 | Technology                                                | Key Capabilities                                              |
+| :-------------------- | :-------------------------------------------------------- | :------------------------------------------------------------ |
+| **Web Frontend**      | Next.js 14 (App Router), TypeScript, TailwindCSS, Zustand | Server components, LiveKit Client SDK, optimistic UI updates  |
+| **Control Plane**     | FastAPI 0.111+, Python 3.11, Pydantic v2, SQLAlchemy 2.0  | Async IO, OpenAPI schemas, Supabase Auth integration          |
+| **Media Server**      | LiveKit SFU (Go), WebRTC                                  | Selective Forwarding Unit, simulcast, adaptive bitrate        |
+| **Realtime Gateway**  | WebSocket, Redis Pub/Sub, asyncio                         | Sub-50ms caption distribution, presence, room events          |
+| **Database**          | PostgreSQL 16 (Supabase), pgvector, pg_stat_statements     | RLS, vector semantic search for meeting transcripts           |
+| **Event Bus & Cache** | Redis 7.2 (Redis Streams, Pub/Sub, Sentinel)              | High-throughput durable audio and text event streaming        |
+| **Speech-to-Text**    | Faster-Whisper, Conformer, Silero VAD                     | Chunked streaming transcription, Voice Activity Detection     |
+| **Translation**       | Meta NLLB-200-distilled-600M, vLLM                        | 200+ language support, contextual sliding window              |
+| **Text-to-Speech**    | Coqui XTTS-v2, MeloTTS                                    | Low-latency voice cloning, emotion preservation               |
+| **Diarization**       | PyAnnote Audio 3.1                                        | Real-time speaker embedding clustering and identification     |
+| **Observability**     | OpenTelemetry 1.44, Prometheus, Grafana, Jaeger           | Distributed tracing across WebRTC, API, Redis, and AI workers |
 
 ---
 
@@ -147,12 +147,14 @@ This monorepo is organized according to the **Document 14 Production Implementat
 ## 5. Quickstart & Local Development
 
 ### Prerequisites
+
 - **Node.js**: `v20.x+` (LTS) & **pnpm**: `v9.x+`
 - **Python**: `3.11.x+` & **uv** or **poetry**
 - **Docker**: `24.x+` and Docker Compose
 - **Git** with SSH configured
 
 ### 1. Clone & Configure Environment
+
 ```bash
 git clone git@github.com:Aman678317/Anvs-AI.git
 cd Anvs-AI
@@ -162,25 +164,31 @@ cp .env.example .env
 ```
 
 ### 2. Start Supporting Infrastructure
+
 Launch PostgreSQL 16 (pgvector), Redis 7.2, LiveKit SFU, and OpenTelemetry Collector:
+
 ```bash
 make up
 ```
 
 ### 3. Install Dependencies
+
 ```bash
 make install
 ```
 
 ### 4. Run Migrations
+
 ```bash
 make db-migrate
 ```
 
 ### 5. Start Development Servers
+
 ```bash
 make dev
 ```
+
 - **Web App**: `http://localhost:3000`
 - **Control Plane API**: `http://localhost:8000/docs`
 - **WebSocket Gateway**: `ws://localhost:8001/ws`
@@ -212,6 +220,7 @@ make clean           # Remove temporary artifacts, caches, and build outputs
 ## 7. Git & Commit Conventions
 
 This project strictly follows the **Conventional Commits** specification:
+
 - `feat(scope)`: A new feature
 - `fix(scope)`: A bug fix
 - `refactor(scope)`: Code change that neither fixes a bug nor adds a feature
