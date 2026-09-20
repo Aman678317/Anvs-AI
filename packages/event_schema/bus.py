@@ -10,6 +10,7 @@ from redis.asyncio import Redis
 from redis.exceptions import ResponseError
 
 from packages.config.settings import settings
+
 from .events import BaseEvent, DeadLetterEvent
 
 T = TypeVar("T", bound=BaseEvent)
