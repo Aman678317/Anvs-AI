@@ -106,6 +106,10 @@ def test_verify_webhook_valid_signature(livekit_svc: LiveKitService) -> None:
     assert parsed["event"] == "participant_joined"
     assert parsed["room"]["name"] == "room_123"
 
+    # Verify Bearer prefix handling
+    parsed_bearer = livekit_svc.verify_webhook(raw_body, f"Bearer {auth_token}")
+    assert parsed_bearer["event"] == "participant_joined"
+
 
 @pytest.mark.unit
 def test_verify_webhook_mismatch_raises_error(livekit_svc: LiveKitService) -> None:

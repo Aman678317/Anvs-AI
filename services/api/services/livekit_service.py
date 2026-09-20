@@ -94,19 +94,18 @@ class LiveKitService:
 
     async def delete_room(self, room_name: str) -> bool:
         """Deletes a room from the LiveKit SFU, terminating all active peer connections."""
-        if not room_name:
-            return False
-        # Clean teardown acknowledged
-        return True
+        return bool(room_name)
 
     def verify_webhook(self, raw_body: bytes, auth_header: str) -> dict[str, Any]:
         """Validates LiveKit webhook signature and decodes the event payload."""
         if not auth_header:
             raise ValueError("Missing LiveKit webhook Authorization header")
 
+        token = auth_header[7:] if auth_header.startswith("Bearer ") else auth_header
+
         # Decode JWT token sent in auth header
         claims: dict[str, Any] = jwt.decode(
-            auth_header,
+            token,
             self.api_secret,
             algorithms=["HS256"],
             options={"verify_signature": True},
@@ -114,13 +113,10 @@ class LiveKitService:
 
         # Verify body hash if present in claims
         expected_sha = claims.get("sha256")
-        computed_sha = (
-            base64.b64encode(hashlib.sha256(raw_body).digest()).decode("utf-8")
-            if expected_sha
-            else ""
-        )
-        if expected_sha and expected_sha != computed_sha:
-            raise ValueError("LiveKit webhook payload sha256 mismatch")
+        if expected_sha:
+            computed_sha = base64.b64encode(hashlib.sha256(raw_body).digest()).decode("utf-8")
+            if expected_sha != computed_sha:
+                raise ValueError("LiveKit webhook payload sha256 mismatch")
 
         return json.loads(raw_body.decode("utf-8"))
 
