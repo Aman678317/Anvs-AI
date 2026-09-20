@@ -24,16 +24,32 @@ class LanguageMetadata(BaseModel):
 
 SUPPORTED_LANGUAGES: dict[str, LanguageMetadata] = {
     "eng": LanguageMetadata(
-        code="eng", bcp47="en-US", name_en="English", name_native="English", tier=LanguageTier.TIER_1
+        code="eng",
+        bcp47="en-US",
+        name_en="English",
+        name_native="English",
+        tier=LanguageTier.TIER_1,
     ),
     "spa": LanguageMetadata(
-        code="spa", bcp47="es-ES", name_en="Spanish", name_native="Español", tier=LanguageTier.TIER_1
+        code="spa",
+        bcp47="es-ES",
+        name_en="Spanish",
+        name_native="Español",
+        tier=LanguageTier.TIER_1,
     ),
     "fra": LanguageMetadata(
-        code="fra", bcp47="fr-FR", name_en="French", name_native="Français", tier=LanguageTier.TIER_1
+        code="fra",
+        bcp47="fr-FR",
+        name_en="French",
+        name_native="Français",
+        tier=LanguageTier.TIER_1,
     ),
     "deu": LanguageMetadata(
-        code="deu", bcp47="de-DE", name_en="German", name_native="Deutsch", tier=LanguageTier.TIER_1
+        code="deu",
+        bcp47="de-DE",
+        name_en="German",
+        name_native="Deutsch",
+        tier=LanguageTier.TIER_1,
     ),
     "zho": LanguageMetadata(
         code="zho",
@@ -43,10 +59,18 @@ SUPPORTED_LANGUAGES: dict[str, LanguageMetadata] = {
         tier=LanguageTier.TIER_1,
     ),
     "jpn": LanguageMetadata(
-        code="jpn", bcp47="ja-JP", name_en="Japanese", name_native="日本語", tier=LanguageTier.TIER_1
+        code="jpn",
+        bcp47="ja-JP",
+        name_en="Japanese",
+        name_native="日本語",
+        tier=LanguageTier.TIER_1,
     ),
     "hin": LanguageMetadata(
-        code="hin", bcp47="hi-IN", name_en="Hindi", name_native="हिन्दी", tier=LanguageTier.TIER_2
+        code="hin",
+        bcp47="hi-IN",
+        name_en="Hindi",
+        name_native="हिन्दी",
+        tier=LanguageTier.TIER_2,
     ),
     "por": LanguageMetadata(
         code="por",
@@ -56,16 +80,32 @@ SUPPORTED_LANGUAGES: dict[str, LanguageMetadata] = {
         tier=LanguageTier.TIER_2,
     ),
     "ara": LanguageMetadata(
-        code="ara", bcp47="ar-SA", name_en="Arabic", name_native="العربية", tier=LanguageTier.TIER_2
+        code="ara",
+        bcp47="ar-SA",
+        name_en="Arabic",
+        name_native="العربية",
+        tier=LanguageTier.TIER_2,
     ),
     "rus": LanguageMetadata(
-        code="rus", bcp47="ru-RU", name_en="Russian", name_native="Русский", tier=LanguageTier.TIER_2
+        code="rus",
+        bcp47="ru-RU",
+        name_en="Russian",
+        name_native="Русский",
+        tier=LanguageTier.TIER_2,
     ),
     "ita": LanguageMetadata(
-        code="ita", bcp47="it-IT", name_en="Italian", name_native="Italiano", tier=LanguageTier.TIER_2
+        code="ita",
+        bcp47="it-IT",
+        name_en="Italian",
+        name_native="Italiano",
+        tier=LanguageTier.TIER_2,
     ),
     "kor": LanguageMetadata(
-        code="kor", bcp47="ko-KR", name_en="Korean", name_native="한국어", tier=LanguageTier.TIER_2
+        code="kor",
+        bcp47="ko-KR",
+        name_en="Korean",
+        name_native="한국어",
+        tier=LanguageTier.TIER_2,
     ),
 }
 
