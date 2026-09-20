@@ -14,6 +14,7 @@ from services.stt_worker import (
     MockSTTEngine,
     STTConsumer,
     create_stt_engine,
+    get_supported_languages,
     to_iso639_1,
     to_iso639_3,
 )
@@ -97,6 +98,11 @@ def test_language_code_mapping() -> None:
     assert to_iso639_1("spa") == "es"
     assert to_iso639_1("fra") == "fr"
     assert to_iso639_1("jpn") == "ja"
+
+    supported = get_supported_languages()
+    assert "eng" in supported
+    assert "spa" in supported
+    assert len(supported) > 0
 
 
 @pytest.mark.unit

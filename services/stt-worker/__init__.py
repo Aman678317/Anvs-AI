@@ -7,6 +7,7 @@ from services.stt_worker import (
     STTConsumer,
     STTResult,
     create_stt_engine,
+    get_supported_languages,
     to_iso639_1,
     to_iso639_3,
 )
@@ -18,6 +19,8 @@ __all__ = [
     "STTConsumer",
     "STTResult",
     "create_stt_engine",
+    "get_supported_languages",
     "to_iso639_1",
     "to_iso639_3",
 ]
+

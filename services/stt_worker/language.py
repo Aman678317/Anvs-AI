@@ -2,9 +2,15 @@
 
 import logging
 
-from packages.language_registry.languages import SUPPORTED_LANGUAGES, normalize_code
+from packages.language_registry import SUPPORTED_LANGUAGES, normalize_code
 
 logger = logging.getLogger(__name__)
+
+
+def get_supported_languages() -> list[str]:
+    """Return list of all cataloged ISO-639-3 language codes."""
+    return list(SUPPORTED_LANGUAGES.keys())
+
 
 # Static map for 2-letter ISO-639-1 -> 3-letter ISO-639-3
 _ISO639_1_TO_3: dict[str, str] = {

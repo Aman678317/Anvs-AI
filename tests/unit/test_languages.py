@@ -33,3 +33,12 @@ def test_language_tier_two_lookup() -> None:
 def test_unsupported_language() -> None:
     assert not is_supported("xyz")
     assert get_language("xyz") is None
+
+
+@pytest.mark.unit
+def test_supported_languages_catalog() -> None:
+    from packages.language_registry import SUPPORTED_LANGUAGES
+
+    assert len(SUPPORTED_LANGUAGES) > 0
+    assert "eng" in SUPPORTED_LANGUAGES
+    assert "spa" in SUPPORTED_LANGUAGES
