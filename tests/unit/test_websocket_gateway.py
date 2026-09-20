@@ -99,6 +99,17 @@ def test_successful_websocket_handshake_and_ping_pong(
         )
         ws.send_text(lang_frame.model_dump_json())
 
+        # Send synchronization PING to ensure the message loop has processed the language update
+        sync_ping = WSClientPingFrame(
+            type=WSClientMessageType.PING,
+            timestamp_ms=1710000000001,
+        )
+        ws.send_text(sync_ping.model_dump_json())
+        sync_pong_raw = ws.receive_text()
+        sync_pong = json.loads(sync_pong_raw)
+        assert sync_pong["type"] == WSServerMessageType.PONG
+        assert sync_pong["timestamp_ms"] == 1710000000001
+
         # Verify manager updated language
         session = manager.get_session(meeting_id, participant_id)
         assert session is not None
