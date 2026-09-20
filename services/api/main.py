@@ -4,6 +4,8 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from packages.config import settings
+from services.api.middleware import TenantContextMiddleware
+from services.api.routers import auth_router
 
 app = FastAPI(
     title="Multilingual AI Meeting Platform - Control Plane API",
@@ -13,6 +15,8 @@ app = FastAPI(
     redoc_url="/redoc",
 )
 
+# Middleware stack (LIFO: TenantContextMiddleware runs after CORS)
+app.add_middleware(TenantContextMiddleware)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins,
@@ -20,6 +24,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Register routers
+app.include_router(auth_router)
 
 
 @app.get("/healthz", tags=["System"])

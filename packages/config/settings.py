@@ -45,5 +45,16 @@ class Settings(BaseSettings):
     audio_channels: int = Field(default=1, alias="AUDIO_CHANNELS")
     audio_watermark_freq_hz: int = Field(default=20000, alias="TTS_WATERMARK_FREQUENCY_HZ")
 
+    # Authentication & Supabase (PR-05)
+    supabase_url: str = Field(default="https://example.supabase.co", alias="SUPABASE_URL")
+    supabase_jwt_secret: str = Field(
+        default="dev-supabase-jwt-secret-key-32-chars-min-change-in-prod",
+        alias="SUPABASE_JWT_SECRET",
+    )
+    supabase_jwt_algorithm: str = Field(default="HS256", alias="SUPABASE_JWT_ALGORITHM")
+    jwt_issuer: str | None = Field(default=None, alias="JWT_ISSUER")
+    jwt_audience: str | None = Field(default=None, alias="JWT_AUDIENCE")
+    session_ticket_ttl_seconds: int = Field(default=300, alias="SESSION_TICKET_TTL_SECONDS")
+
 
 settings = Settings()
