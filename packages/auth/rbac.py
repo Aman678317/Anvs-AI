@@ -1,7 +1,7 @@
 """Role-Based Access Control (RBAC) and Permission Guards."""
 
 from collections.abc import Callable
-from enum import Enum
+from enum import StrEnum
 
 from fastapi import HTTPException, status
 
@@ -10,7 +10,7 @@ from packages.contracts import ParticipantRole
 from .models import AuthenticatedUser
 
 
-class Permission(str, Enum):
+class Permission(StrEnum):
     """Granular platform and meeting permissions."""
 
     MEETING_END = "meeting:end"
@@ -25,9 +25,9 @@ class Permission(str, Enum):
 
 ROLE_HIERARCHY: dict[ParticipantRole, int] = {
     ParticipantRole.HOST: 40,
-    ParticipantRole.CO_HOST: 30,
+    ParticipantRole.MODERATOR: 30,
     ParticipantRole.PARTICIPANT: 20,
-    ParticipantRole.OBSERVER: 10,
+    ParticipantRole.GUEST: 10,
 }
 
 ROLE_PERMISSIONS: dict[ParticipantRole, set[Permission]] = {
@@ -41,7 +41,7 @@ ROLE_PERMISSIONS: dict[ParticipantRole, set[Permission]] = {
         Permission.AUDIO_PUBLISH,
         Permission.ASSISTANT_QUERY,
     },
-    ParticipantRole.CO_HOST: {
+    ParticipantRole.MODERATOR: {
         Permission.MEETING_UPDATE,
         Permission.PARTICIPANT_MUTE,
         Permission.PARTICIPANT_REMOVE,
@@ -55,7 +55,7 @@ ROLE_PERMISSIONS: dict[ParticipantRole, set[Permission]] = {
         Permission.AUDIO_PUBLISH,
         Permission.ASSISTANT_QUERY,
     },
-    ParticipantRole.OBSERVER: {
+    ParticipantRole.GUEST: {
         Permission.TRANSCRIPT_VIEW,
         Permission.ASSISTANT_QUERY,
     },

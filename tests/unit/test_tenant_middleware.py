@@ -54,7 +54,7 @@ def sample_user() -> AuthenticatedUser:
         user_id=str(uuid.uuid4()),
         tenant_id=str(uuid.uuid4()),
         email="operator@telecom.org",
-        role=ParticipantRole.CO_HOST,
+        role=ParticipantRole.MODERATOR,
         display_name="Network Operator",
     )
 
@@ -93,7 +93,7 @@ def test_protected_endpoint_with_valid_token(
     data = response.json()
     assert data["user_id"] == sample_user.user_id
     assert data["tenant_id"] == sample_user.tenant_id
-    assert data["role"] == "CO_HOST"
+    assert data["role"] == "MODERATOR"
 
 
 @pytest.mark.unit

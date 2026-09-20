@@ -37,12 +37,22 @@ def participant_user() -> AuthenticatedUser:
 
 
 @pytest.fixture
-def observer_user() -> AuthenticatedUser:
+def moderator_user() -> AuthenticatedUser:
     return AuthenticatedUser(
         user_id=str(uuid.uuid4()),
         tenant_id=str(uuid.uuid4()),
-        email="observer@company.com",
-        role=ParticipantRole.OBSERVER,
+        email="moderator@company.com",
+        role=ParticipantRole.MODERATOR,
+    )
+
+
+@pytest.fixture
+def guest_user() -> AuthenticatedUser:
+    return AuthenticatedUser(
+        user_id=str(uuid.uuid4()),
+        tenant_id=str(uuid.uuid4()),
+        email="guest@company.com",
+        role=ParticipantRole.GUEST,
     )
 
 
@@ -50,21 +60,20 @@ def observer_user() -> AuthenticatedUser:
 def test_role_hierarchy_checks() -> None:
     # HOST satisfies all minimum levels
     assert check_role_satisfies_minimum(ParticipantRole.HOST, ParticipantRole.HOST) is True
-    assert check_role_satisfies_minimum(ParticipantRole.HOST, ParticipantRole.CO_HOST) is True
+    assert check_role_satisfies_minimum(ParticipantRole.HOST, ParticipantRole.MODERATOR) is True
     assert check_role_satisfies_minimum(ParticipantRole.HOST, ParticipantRole.PARTICIPANT) is True
-    assert check_role_satisfies_minimum(ParticipantRole.HOST, ParticipantRole.OBSERVER) is True
+    assert check_role_satisfies_minimum(ParticipantRole.HOST, ParticipantRole.GUEST) is True
 
-    # PARTICIPANT satisfies PARTICIPANT and OBSERVER, but NOT HOST
+    # PARTICIPANT satisfies PARTICIPANT and GUEST, but NOT HOST
     assert (
         check_role_satisfies_minimum(ParticipantRole.PARTICIPANT, ParticipantRole.PARTICIPANT)
         is True
     )
-    assert (
-        check_role_satisfies_minimum(ParticipantRole.PARTICIPANT, ParticipantRole.OBSERVER) is True
-    )
+    assert check_role_satisfies_minimum(ParticipantRole.PARTICIPANT, ParticipantRole.GUEST) is True
     assert check_role_satisfies_minimum(ParticipantRole.PARTICIPANT, ParticipantRole.HOST) is False
     assert (
-        check_role_satisfies_minimum(ParticipantRole.PARTICIPANT, ParticipantRole.CO_HOST) is False
+        check_role_satisfies_minimum(ParticipantRole.PARTICIPANT, ParticipantRole.MODERATOR)
+        is False
     )
 
 
@@ -72,18 +81,18 @@ def test_role_hierarchy_checks() -> None:
 def test_permission_matrix() -> None:
     # Only HOST has MEETING_END
     assert has_permission(ParticipantRole.HOST, Permission.MEETING_END) is True
-    assert has_permission(ParticipantRole.CO_HOST, Permission.MEETING_END) is False
+    assert has_permission(ParticipantRole.MODERATOR, Permission.MEETING_END) is False
     assert has_permission(ParticipantRole.PARTICIPANT, Permission.MEETING_END) is False
-    assert has_permission(ParticipantRole.OBSERVER, Permission.MEETING_END) is False
+    assert has_permission(ParticipantRole.GUEST, Permission.MEETING_END) is False
 
     # PARTICIPANT can publish audio and query assistant
     assert has_permission(ParticipantRole.PARTICIPANT, Permission.AUDIO_PUBLISH) is True
     assert has_permission(ParticipantRole.PARTICIPANT, Permission.ASSISTANT_QUERY) is True
     assert has_permission(ParticipantRole.PARTICIPANT, Permission.PARTICIPANT_MUTE) is False
 
-    # OBSERVER can only view transcripts and query assistant
-    assert has_permission(ParticipantRole.OBSERVER, Permission.TRANSCRIPT_VIEW) is True
-    assert has_permission(ParticipantRole.OBSERVER, Permission.AUDIO_PUBLISH) is False
+    # GUEST can only view transcripts and query assistant
+    assert has_permission(ParticipantRole.GUEST, Permission.TRANSCRIPT_VIEW) is True
+    assert has_permission(ParticipantRole.GUEST, Permission.AUDIO_PUBLISH) is False
 
 
 @pytest.mark.unit
