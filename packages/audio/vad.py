@@ -57,8 +57,9 @@ class EnergyVAD(BaseVAD):
         self.zcr_min = zcr_min
         self.zcr_max = zcr_max
 
-    def detect(self, frame: np.ndarray, _sample_rate: int = 16000) -> VADResult:
+    def detect(self, frame: np.ndarray, sample_rate: int = 16000) -> VADResult:
         """Determines speech presence using RMS energy and Zero-Crossing Rate."""
+        _ = sample_rate
         if len(frame) == 0:
             return VADResult(is_speech=False, confidence=0.0, energy=0.0)
 
