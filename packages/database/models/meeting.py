@@ -39,16 +39,35 @@ class Meeting(Base):
         nullable=True,
     )
     title: Mapped[str] = mapped_column(String(200), nullable=False)
-    status: Mapped[str] = mapped_column(String(50), default="SCHEDULED", nullable=False)
+    status: Mapped[str] = mapped_column(
+        String(50),
+        default="SCHEDULED",
+        nullable=False,
+    )
     state_version: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
-    host_spoken_language: Mapped[str] = mapped_column(String(3), default="eng", nullable=False)
-    host_listening_language: Mapped[str] = mapped_column(String(3), default="eng", nullable=False)
+    host_spoken_language: Mapped[str] = mapped_column(
+        String(3),
+        default="eng",
+        nullable=False,
+    )
+    host_listening_language: Mapped[str] = mapped_column(
+        String(3),
+        default="eng",
+        nullable=False,
+    )
     passcode_hash: Mapped[str | None] = mapped_column(String(255), nullable=True)
     scheduled_start: Mapped[datetime | None] = mapped_column(
-        DateTime(timezone=True), nullable=True
+        DateTime(timezone=True),
+        nullable=True,
     )
-    actual_start: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
-    actual_end: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    actual_start: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
+    )
+    actual_end: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         default=lambda: datetime.now(UTC),
