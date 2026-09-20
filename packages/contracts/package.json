@@ -1,5 +1,5 @@
 {
-  "name": "@multilingual/meeting-client",
+  "name": "@multilingual/contracts",
   "version": "1.0.0",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -7,10 +7,6 @@
     "build": "tsc",
     "typecheck": "tsc --noEmit",
     "lint": "tsc --noEmit"
-  },
-  "dependencies": {
-    "@multilingual/contracts": "workspace:*",
-    "livekit-client": "^2.1.2"
   },
   "devDependencies": {
     "typescript": "^5.4.5"

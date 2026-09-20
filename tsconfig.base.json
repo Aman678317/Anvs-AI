@@ -27,6 +27,11 @@
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
     "skipLibCheck": true,
-    "isolatedModules": true
+    "isolatedModules": true,
+    "baseUrl": ".",
+    "paths": {
+      "@multilingual/contracts": ["packages/contracts/src/index.ts"],
+      "@multilingual/contracts/*": ["packages/contracts/src/*"]
+    }
   }
 }

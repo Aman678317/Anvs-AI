@@ -1,0 +1,114 @@
+import { MeetingStatus, ParticipantRole, TranscriptFormat } from "./enums";
+
+export interface AuthTokenRequest {
+  user_id: string;
+  tenant_id: string;
+  email: string;
+  role?: ParticipantRole;
+}
+
+export interface AuthTokenResponse {
+  access_token: string;
+  token_type: string;
+  expires_in_sec: number;
+  tenant_id: string;
+  user_id: string;
+}
+
+export interface CreateMeetingRequest {
+  title: string;
+  host_spoken_language?: string;
+  host_listening_language?: string;
+  scheduled_start?: string;
+  passcode?: string;
+}
+
+export interface CreateMeetingResponse {
+  meeting_id: string;
+  tenant_id: string;
+  title: string;
+  status: MeetingStatus;
+  state_version: number;
+  created_at: string;
+}
+
+export interface GetMeetingResponse {
+  meeting_id: string;
+  tenant_id: string;
+  title: string;
+  status: MeetingStatus;
+  state_version: number;
+  created_at: string;
+  active_participants_count: number;
+}
+
+export interface EndMeetingRequest {
+  reason?: string;
+}
+
+export interface JoinMeetingRequest {
+  display_name: string;
+  spoken_language?: string;
+  listening_language?: string;
+  passcode?: string;
+}
+
+export interface JoinMeetingResponse {
+  meeting_id: string;
+  participant_id: string;
+  display_name: string;
+  role: ParticipantRole;
+  livekit_token: string;
+  ws_ticket: string;
+  state_version: number;
+}
+
+export interface UpdateParticipantRequest {
+  display_name?: string;
+  spoken_language?: string;
+  listening_language?: string;
+  is_muted?: boolean;
+  is_video_enabled?: boolean;
+}
+
+export interface ParticipantContract {
+  participant_id: string;
+  user_id?: string | null;
+  display_name: string;
+  role: ParticipantRole;
+  spoken_language: string;
+  listening_language: string;
+  is_muted: boolean;
+  is_video_enabled: boolean;
+  joined_at: string;
+}
+
+export interface MeetingContract {
+  meeting_id: string;
+  tenant_id: string;
+  title: string;
+  status: MeetingStatus;
+  state_version: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface TranscriptSegmentResponse {
+  source_segment_id: string;
+  speaker_id: string;
+  speaker_name: string;
+  source_language: string;
+  target_language: string;
+  original_text: string;
+  translated_text: string;
+  start_ms: number;
+  end_ms: number;
+  is_final: boolean;
+}
+
+export interface GetTranscriptResponse {
+  meeting_id: string;
+  total_segments: number;
+  format: TranscriptFormat;
+  segments: TranscriptSegmentResponse[];
+}
