@@ -80,15 +80,10 @@ async def get_tenant_session(
     so that PostgreSQL RLS policies mathematically restrict visible rows.
     """
     factory = get_session_factory(get_async_engine(database_url))
-    async with factory() as session:
-        async with session.begin():
-            # Inject tenant context for PostgreSQL RLS policy evaluation
-            await session.execute(
-                text("SET LOCAL app.current_tenant_id = :tenant_id"),
-                {"tenant_id": str(tenant_id)},
-            )
-            try:
-                yield session
-            except Exception:
-                await session.rollback()
-                raise
+    async with factory() as session, session.begin():
+        # Inject tenant context for PostgreSQL RLS policy evaluation
+        await session.execute(
+            text("SET LOCAL app.current_tenant_id = :tenant_id"),
+            {"tenant_id": str(tenant_id)},
+        )
+        yield session
