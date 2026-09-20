@@ -33,8 +33,10 @@ async def test_tenant_session_rls_injection() -> None:
     test_tenant_id = str(uuid.uuid4())
 
     mock_session = AsyncMock()
-    mock_session.begin.return_value.__aenter__ = AsyncMock(return_value=mock_session)
-    mock_session.begin.return_value.__aexit__ = AsyncMock(return_value=None)
+    mock_transaction = MagicMock()
+    mock_transaction.__aenter__ = AsyncMock(return_value=mock_session)
+    mock_transaction.__aexit__ = AsyncMock(return_value=None)
+    mock_session.begin = MagicMock(return_value=mock_transaction)
 
     mock_factory = MagicMock()
     mock_factory.return_value.__aenter__ = AsyncMock(return_value=mock_session)
@@ -59,6 +61,7 @@ async def test_tenant_session_rls_injection() -> None:
 @pytest.mark.asyncio
 async def test_seed_database_execution() -> None:
     mock_session = AsyncMock()
+    mock_session.add = MagicMock()
     # Mock scalar_one_or_none to return None for each query, triggering object creation
     mock_result = MagicMock()
     mock_result.scalar_one_or_none.return_value = None
@@ -68,5 +71,5 @@ async def test_seed_database_execution() -> None:
 
     assert seed_result["tenant_id"] == str(DEFAULT_TENANT_ID)
     assert seed_result["secondary_tenant_id"] == str(SECONDARY_TENANT_ID)
-    assert mock_session.add.call_count == 5
+    assert mock_session.add.call_count == 6
     mock_session.commit.assert_awaited_once()
