@@ -7,7 +7,6 @@ import json
 import pytest
 from jose import jwt
 
-from packages.config import settings
 from packages.contracts import ParticipantRole
 from services.api.services.livekit_service import LiveKitService
 

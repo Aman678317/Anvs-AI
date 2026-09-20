@@ -94,6 +94,8 @@ class LiveKitService:
 
     async def delete_room(self, room_name: str) -> bool:
         """Deletes a room from the LiveKit SFU, terminating all active peer connections."""
+        if not room_name:
+            return False
         # Clean teardown acknowledged
         return True
 

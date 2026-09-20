@@ -10,7 +10,7 @@ from fastapi.testclient import TestClient
 
 from packages.auth import AuthenticatedUser
 from packages.contracts import ParticipantRole
-from packages.database.models import Meeting, Participant
+from packages.database.models import Meeting
 from services.api.main import app
 from services.api.middleware.tenant import (
     get_authenticated_tenant_session,
