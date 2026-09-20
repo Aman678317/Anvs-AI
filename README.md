@@ -76,7 +76,7 @@ flowchart TD
 | **Control Plane**     | FastAPI 0.111+, Python 3.11, Pydantic v2, SQLAlchemy 2.0  | Async IO, OpenAPI schemas, Supabase Auth integration          |
 | **Media Server**      | LiveKit SFU (Go), WebRTC                                  | Selective Forwarding Unit, simulcast, adaptive bitrate        |
 | **Realtime Gateway**  | WebSocket, Redis Pub/Sub, asyncio                         | Sub-50ms caption distribution, presence, room events          |
-| **Database**          | PostgreSQL 16 (Supabase), pgvector, pg_stat_statements     | RLS, vector semantic search for meeting transcripts           |
+| **Database**          | PostgreSQL 16 (Supabase), pgvector, pg_stat_statements    | RLS, vector semantic search for meeting transcripts           |
 | **Event Bus & Cache** | Redis 7.2 (Redis Streams, Pub/Sub, Sentinel)              | High-throughput durable audio and text event streaming        |
 | **Speech-to-Text**    | Faster-Whisper, Conformer, Silero VAD                     | Chunked streaming transcription, Voice Activity Detection     |
 | **Translation**       | Meta NLLB-200-distilled-600M, vLLM                        | 200+ language support, contextual sliding window              |

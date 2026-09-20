@@ -2,9 +2,9 @@ name: CI Pipeline
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [main, develop]
   pull_request:
-    branches: [ main, develop ]
+    branches: [main, develop]
 
 env:
   ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: "true"
