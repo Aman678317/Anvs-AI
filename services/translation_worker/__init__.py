@@ -1,16 +1,15 @@
-"""Neural Machine Translation (NMT) Worker Service (Hyphenated Monorepo Alias)."""
+"""Neural Machine Translation (NMT) Worker Service."""
 
-from services.translation_worker import (
+from .consumer import NMTConsumer
+from .context import ContextWindowBuffer
+from .engine import (
     BaseNMTEngine,
-    ContextWindowBuffer,
     MockNMTEngine,
     NLLBTranslationEngine,
-    NMTConsumer,
-    TranslationResult,
     create_nmt_engine,
-    iso639_3_to_nllb,
-    nllb_to_iso639_3,
 )
+from .languages import iso639_3_to_nllb, nllb_to_iso639_3
+from .types import TranslationResult
 
 __all__ = [
     "BaseNMTEngine",
