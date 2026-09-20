@@ -21,8 +21,12 @@ class SourceSegmentEvent(BaseEvent):
 
     session_id: str = Field(..., description="WebRTC session identifier")
     participant_id: str = Field(..., description="Speaker participant identifier")
-    source_segment_id: str = Field(..., description="Immutable lineage source segment identifier")
-    language: str = Field(..., min_length=3, max_length=3, description="ISO-639-3 spoken language code")
+    source_segment_id: str = Field(
+        ..., description="Immutable lineage source segment identifier"
+    )
+    language: str = Field(
+        ..., min_length=3, max_length=3, description="ISO-639-3 spoken language code"
+    )
     text: str = Field(..., description="Transcribed speech text")
     is_final: bool = Field(..., description="Whether this segment is a final commitment")
     start_ms: int = Field(..., ge=0, description="Start offset in milliseconds")
@@ -34,29 +38,45 @@ class SourceSegmentEvent(BaseEvent):
 class TranslationSegmentEvent(BaseEvent):
     """Emitted by Translation Worker with source lineage."""
 
-    source_segment_id: str = Field(..., description="Immutable lineage linking to SourceSegmentEvent")
-    source_language: str = Field(..., min_length=3, max_length=3, description="ISO-639-3 source language code")
-    target_language: str = Field(..., min_length=3, max_length=3, description="ISO-639-3 target language code")
+    source_segment_id: str = Field(
+        ..., description="Immutable lineage linking to SourceSegmentEvent"
+    )
+    source_language: str = Field(
+        ..., min_length=3, max_length=3, description="ISO-639-3 source language code"
+    )
+    target_language: str = Field(
+        ..., min_length=3, max_length=3, description="ISO-639-3 target language code"
+    )
     translated_text: str = Field(..., description="Translated text content")
-    is_final: bool = Field(..., description="Whether this translation corresponds to a final transcript")
+    is_final: bool = Field(
+        ..., description="Whether this translation corresponds to a final transcript"
+    )
     latency_ms: int = Field(..., ge=0, description="Translation compute latency in milliseconds")
 
 
 class AudioSegmentEvent(BaseEvent):
     """Emitted by TTS Worker when synthesized translated audio is ready."""
 
-    source_segment_id: str = Field(..., description="Immutable lineage linking to SourceSegmentEvent")
-    target_language: str = Field(..., min_length=3, max_length=3, description="ISO-639-3 target language code")
+    source_segment_id: str = Field(
+        ..., description="Immutable lineage linking to SourceSegmentEvent"
+    )
+    target_language: str = Field(
+        ..., min_length=3, max_length=3, description="ISO-639-3 target language code"
+    )
     audio_uri: str = Field(..., description="URI or storage key of synthesized audio payload")
     duration_ms: int = Field(..., ge=0, description="Audio playback duration in milliseconds")
     sample_rate: int = Field(default=24000, description="Audio sample rate in Hz")
-    watermarked: bool = Field(default=True, description="Flag verifying 20 kHz acoustic watermark embedding")
+    watermarked: bool = Field(
+        default=True, description="Flag verifying 20 kHz acoustic watermark embedding"
+    )
 
 
 class DiarizationSegmentEvent(BaseEvent):
     """Emitted by Diarization Worker identifying speaker profile."""
 
-    source_segment_id: str = Field(..., description="Immutable lineage linking to SourceSegmentEvent")
+    source_segment_id: str = Field(
+        ..., description="Immutable lineage linking to SourceSegmentEvent"
+    )
     speaker_id: str = Field(..., description="Identified speaker identifier or cluster ID")
     speaker_name: str | None = Field(default=None, description="Resolved speaker display name")
     confidence: float = Field(..., ge=0.0, le=1.0, description="Speaker recognition confidence")
@@ -67,7 +87,9 @@ class AssistantQueryEvent(BaseEvent):
 
     query_id: str = Field(..., description="UUIDv4 assistant query identifier")
     participant_id: str = Field(..., description="Querying participant identifier")
-    question: str = Field(..., min_length=1, max_length=2000, description="Natural language question")
+    question: str = Field(
+        ..., min_length=1, max_length=2000, description="Natural language question"
+    )
 
 
 class AssistantResponseEvent(BaseEvent):
@@ -75,8 +97,12 @@ class AssistantResponseEvent(BaseEvent):
 
     query_id: str = Field(..., description="Linked assistant query identifier")
     answer: str = Field(..., description="Assistant response text")
-    citations: list[str] = Field(default_factory=list, description="Meeting transcript citations")
-    action_items: list[str] = Field(default_factory=list, description="Extracted meeting action items")
+    citations: list[str] = Field(
+        default_factory=list, description="Meeting transcript citations"
+    )
+    action_items: list[str] = Field(
+        default_factory=list, description="Extracted meeting action items"
+    )
 
 
 class RoomStateEvent(BaseEvent):
@@ -84,7 +110,9 @@ class RoomStateEvent(BaseEvent):
 
     state_version: int = Field(..., ge=1, description="Monotonically increasing state version")
     status: str = Field(..., description="Current meeting status string")
-    active_participants_count: int = Field(default=0, ge=0, description="Number of currently connected participants")
+    active_participants_count: int = Field(
+        default=0, ge=0, description="Number of currently connected participants"
+    )
 
 
 class DeadLetterEvent(BaseEvent):

@@ -75,7 +75,9 @@ async def test_create_consumer_group_idempotent() -> None:
     assert created is True
 
     # Second creation raises BUSYGROUP (already exists)
-    mock_client.xgroup_create.side_effect = ResponseError("BUSYGROUP Consumer Group name already exists")
+    mock_client.xgroup_create.side_effect = ResponseError(
+        "BUSYGROUP Consumer Group name already exists"
+    )
     created_again = await bus.create_consumer_group("stream-1", "group-1")
     assert created_again is False
 
