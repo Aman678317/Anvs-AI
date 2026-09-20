@@ -1,6 +1,7 @@
 """Unit tests for the Language Registry and Tier classifications."""
 
 import pytest
+
 from packages.language_registry import (
     LanguageTier,
     get_language,

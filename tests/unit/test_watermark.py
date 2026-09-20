@@ -2,14 +2,17 @@
 
 import numpy as np
 import pytest
-from packages.audio.watermark import embed_watermark, detect_watermark
+
+from packages.audio.watermark import detect_watermark, embed_watermark
 
 
 @pytest.mark.unit
 def test_watermark_embedding_and_detection() -> None:
     sample_rate = 48000
     duration_sec = 0.5
-    t = np.linspace(0, duration_sec, int(sample_rate * duration_sec), endpoint=False, dtype=np.float32)
+    t = np.linspace(
+        0, duration_sec, int(sample_rate * duration_sec), endpoint=False, dtype=np.float32
+    )
 
     # Generate a pure 1 kHz human voice test tone
     clean_audio = 0.5 * np.sin(2 * np.pi * 1000.0 * t)

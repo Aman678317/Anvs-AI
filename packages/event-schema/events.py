@@ -1,6 +1,5 @@
 """Redis Streams Event Schemas adhering to Documents 08, 12, and 14."""
 
-from typing import Optional
 from pydantic import BaseModel, Field
 
 
@@ -12,6 +11,7 @@ class BaseEvent(BaseModel):
 
 class SourceSegmentEvent(BaseEvent):
     """Emitted by STT Worker when a speech segment is transcribed."""
+
     session_id: str
     participant_id: str
     source_segment_id: str
@@ -25,6 +25,7 @@ class SourceSegmentEvent(BaseEvent):
 
 class TranslationSegmentEvent(BaseEvent):
     """Emitted by Translation Worker with source lineage."""
+
     source_segment_id: str
     source_language: str
     target_language: str  # ISO-639-3
@@ -35,6 +36,7 @@ class TranslationSegmentEvent(BaseEvent):
 
 class AudioSegmentEvent(BaseEvent):
     """Emitted by TTS Worker when synthesized translated audio is ready."""
+
     source_segment_id: str
     target_language: str
     audio_uri: str
@@ -45,6 +47,7 @@ class AudioSegmentEvent(BaseEvent):
 
 class RoomStateEvent(BaseEvent):
     """Emitted on room lifecycle transitions."""
+
     state_version: int
     status: str
     active_participants_count: int

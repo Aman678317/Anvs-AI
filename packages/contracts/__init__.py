@@ -1,15 +1,15 @@
 """Shared contracts package."""
 
 from .models import (
-    ParticipantRole,
+    MeetingContract,
     MeetingStatus,
     ParticipantContract,
-    MeetingContract,
+    ParticipantRole,
 )
 
 __all__ = [
-    "ParticipantRole",
+    "MeetingContract",
     "MeetingStatus",
     "ParticipantContract",
-    "MeetingContract",
+    "ParticipantRole",
 ]

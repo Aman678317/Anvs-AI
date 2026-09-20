@@ -1,6 +1,5 @@
 """Authentication and Authorization package (Supabase JWT & RBAC)."""
 
-from typing import Optional
 from pydantic import BaseModel
 
 

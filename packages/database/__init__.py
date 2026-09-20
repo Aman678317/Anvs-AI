@@ -8,4 +8,4 @@ class Base(DeclarativeBase):
     pass
 
 
-__all__ = ["Base", "AsyncSession", "async_sessionmaker", "create_async_engine"]
+__all__ = ["AsyncSession", "Base", "async_sessionmaker", "create_async_engine"]

@@ -1,6 +1,5 @@
 """Unified Application Configuration Loader using Pydantic Settings."""
 
-from typing import List
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -21,8 +20,10 @@ class Settings(BaseSettings):
     # API & Gateways
     api_host: str = Field(default="0.0.0.0", alias="API_HOST")
     api_port: int = Field(default=8000, alias="API_PORT")
-    api_secret_key: str = Field(default="dev-secret-key-change-in-production-64-bytes-min", alias="API_SECRET_KEY")
-    cors_origins: List[str] = Field(default=["*"], alias="CORS_ORIGINS")
+    api_secret_key: str = Field(
+        default="dev-secret-key-change-in-production-64-bytes-min", alias="API_SECRET_KEY"
+    )
+    cors_origins: list[str] = Field(default=["*"], alias="CORS_ORIGINS")
 
     ws_host: str = Field(default="0.0.0.0", alias="WS_HOST")
     ws_port: int = Field(default=8001, alias="WS_PORT")

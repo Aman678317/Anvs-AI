@@ -1,17 +1,19 @@
 """Contract and schema validation tests."""
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
+
 import pytest
+
 from packages.contracts import (
-    ParticipantRole,
+    MeetingContract,
     MeetingStatus,
     ParticipantContract,
-    MeetingContract,
+    ParticipantRole,
 )
 from packages.event_schema import (
+    AudioSegmentEvent,
     SourceSegmentEvent,
     TranslationSegmentEvent,
-    AudioSegmentEvent,
 )
 
 
@@ -24,12 +26,28 @@ def test_participant_contract_validation() -> None:
         role=ParticipantRole.HOST,
         spoken_language="rus",
         listening_language="eng",
-        joined_at=datetime.now(timezone.utc),
+        joined_at=datetime.now(UTC),
     )
     assert participant.participant_id == "part-12345"
     assert participant.role == ParticipantRole.HOST
     assert participant.spoken_language == "rus"
     assert participant.listening_language == "eng"
+
+
+@pytest.mark.contract
+def test_meeting_contract_validation() -> None:
+    now = datetime.now(UTC)
+    meeting = MeetingContract(
+        meeting_id="meet-abc",
+        tenant_id="tenant-123",
+        title="Global Sync",
+        status=MeetingStatus.ACTIVE,
+        state_version=1,
+        created_at=now,
+        updated_at=now,
+    )
+    assert meeting.meeting_id == "meet-abc"
+    assert meeting.status == MeetingStatus.ACTIVE
 
 
 @pytest.mark.contract

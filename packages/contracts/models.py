@@ -1,19 +1,19 @@
 """Shared Domain Contracts and REST/WebSocket API Models."""
 
-from enum import Enum
-from typing import Optional
 from datetime import datetime
+from enum import StrEnum
+
 from pydantic import BaseModel, Field
 
 
-class ParticipantRole(str, Enum):
+class ParticipantRole(StrEnum):
     HOST = "HOST"
     MODERATOR = "MODERATOR"
     PARTICIPANT = "PARTICIPANT"
     GUEST = "GUEST"
 
 
-class MeetingStatus(str, Enum):
+class MeetingStatus(StrEnum):
     SCHEDULED = "SCHEDULED"
     ACTIVE = "ACTIVE"
     ENDED = "ENDED"
@@ -22,7 +22,7 @@ class MeetingStatus(str, Enum):
 
 class ParticipantContract(BaseModel):
     participant_id: str
-    user_id: Optional[str] = None
+    user_id: str | None = None
     display_name: str
     role: ParticipantRole
     spoken_language: str = Field(..., description="ISO-639-3 spoken language code")

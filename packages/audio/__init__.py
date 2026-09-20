@@ -1,5 +1,5 @@
 """Audio utilities package."""
 
-from .watermark import embed_watermark, detect_watermark
+from .watermark import detect_watermark, embed_watermark
 
-__all__ = ["embed_watermark", "detect_watermark"]
+__all__ = ["detect_watermark", "embed_watermark"]
