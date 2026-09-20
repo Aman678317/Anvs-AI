@@ -56,5 +56,14 @@ class Settings(BaseSettings):
     jwt_audience: str | None = Field(default=None, alias="JWT_AUDIENCE")
     session_ticket_ttl_seconds: int = Field(default=300, alias="SESSION_TICKET_TTL_SECONDS")
 
+    # Speech-to-Text STT Worker (PR-09)
+    stt_engine_type: str = Field(default="mock", alias="STT_ENGINE_TYPE")
+    stt_model_size: str = Field(default="base", alias="STT_MODEL_SIZE")
+    stt_device: str = Field(default="cpu", alias="STT_DEVICE")
+    stt_compute_type: str = Field(default="default", alias="STT_COMPUTE_TYPE")
+    stt_consumer_group: str = Field(default="stt-workers-group", alias="STT_CONSUMER_GROUP")
+    stt_default_language: str = Field(default="eng", alias="STT_DEFAULT_LANGUAGE")
+
 
 settings = Settings()
+
