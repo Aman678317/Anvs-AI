@@ -5,7 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from packages.config import settings
 from services.api.middleware import TenantContextMiddleware
-from services.api.routers import auth_router
+from services.api.routers import auth_router, rooms_router
 
 app = FastAPI(
     title="Multilingual AI Meeting Platform - Control Plane API",
@@ -27,6 +27,7 @@ app.add_middleware(
 
 # Register routers
 app.include_router(auth_router)
+app.include_router(rooms_router)
 
 
 @app.get("/healthz", tags=["System"])
