@@ -1,11 +1,38 @@
-"""Database connection and SQLAlchemy async base."""
+"""Database Package for the Multilingual AI Meeting Platform."""
 
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
-from sqlalchemy.orm import DeclarativeBase
 
+from .base import Base
+from .models import (
+    Meeting,
+    Organization,
+    Participant,
+    TranscriptEmbedding,
+    TranscriptSegment,
+    User,
+)
+from .seed import seed_database
+from .session import (
+    get_async_engine,
+    get_db_session,
+    get_session_factory,
+    get_tenant_session,
+)
 
-class Base(DeclarativeBase):
-    pass
-
-
-__all__ = ["AsyncSession", "Base", "async_sessionmaker", "create_async_engine"]
+__all__ = [
+    "AsyncSession",
+    "Base",
+    "Meeting",
+    "Organization",
+    "Participant",
+    "TranscriptEmbedding",
+    "TranscriptSegment",
+    "User",
+    "async_sessionmaker",
+    "create_async_engine",
+    "get_async_engine",
+    "get_db_session",
+    "get_session_factory",
+    "get_tenant_session",
+    "seed_database",
+]
