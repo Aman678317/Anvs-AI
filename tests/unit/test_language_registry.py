@@ -3,7 +3,6 @@
 import pytest
 
 from packages.language_registry import (
-    SUPPORTED_LANGUAGES,
     LanguageTier,
     get_language,
     get_tier_languages,

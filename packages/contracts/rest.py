@@ -1,6 +1,7 @@
 """REST API Request and Response Contracts."""
 
 from datetime import datetime
+
 from pydantic import BaseModel, ConfigDict, Field
 
 from .enums import MeetingStatus, ParticipantRole, TranscriptFormat

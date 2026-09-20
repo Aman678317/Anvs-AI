@@ -5,24 +5,13 @@ from pydantic import ValidationError
 
 from packages.contracts import (
     AudioStreamType,
-    MeetingStatus,
-    ParticipantContract,
-    ParticipantRole,
-    WSClientChatMessageFrame,
     WSClientJoinFrame,
     WSClientMessageType,
-    WSClientPingFrame,
-    WSClientQueryAssistantFrame,
     WSClientSetLanguageFrame,
-    WSServerAssistantFrame,
     WSServerAudioTrackFrame,
     WSServerCaptionFrame,
     WSServerErrorFrame,
     WSServerMessageType,
-    WSServerParticipantJoinedFrame,
-    WSServerParticipantLeftFrame,
-    WSServerPongFrame,
-    WSServerRoomStateFrame,
 )
 
 

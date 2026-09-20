@@ -53,11 +53,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          if [ -f pnpm-lock.yaml ]; then
-            pnpm install --frozen-lockfile
-          else
-            pnpm install --no-frozen-lockfile
-          fi
+          pnpm install --frozen-lockfile || pnpm install --no-frozen-lockfile
 
       - name: TypeScript Typecheck
         run: pnpm run typecheck

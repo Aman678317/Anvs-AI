@@ -91,8 +91,8 @@ class WSServerAssistantFrame(BaseWSFrame):
     type: WSServerMessageType = WSServerMessageType.ASSISTANT_RESPONSE
     query_id: str
     answer: str
-    citations: list[str] = []
-    action_items: list[str] = []
+    citations: list[str] = Field(default_factory=list)
+    action_items: list[str] = Field(default_factory=list)
 
 
 class WSServerPongFrame(BaseWSFrame):

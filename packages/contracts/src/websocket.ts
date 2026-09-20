@@ -1,9 +1,4 @@
-import {
-  AudioStreamType,
-  MeetingStatus,
-  WSClientMessageType,
-  WSServerMessageType,
-} from "./enums";
+import { AudioStreamType, MeetingStatus, WSClientMessageType, WSServerMessageType } from "./enums";
 import { ParticipantContract } from "./rest";
 
 // --- Client to Server Frames ---
