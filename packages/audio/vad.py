@@ -1,8 +1,8 @@
 """Voice Activity Detection (VAD) and speech utterance segmentation."""
 
 from abc import ABC, abstractmethod
+from collections.abc import Iterator
 from dataclasses import dataclass
-from typing import Iterator
 
 import numpy as np
 
@@ -57,7 +57,7 @@ class EnergyVAD(BaseVAD):
         self.zcr_min = zcr_min
         self.zcr_max = zcr_max
 
-    def detect(self, frame: np.ndarray, sample_rate: int = 16000) -> VADResult:
+    def detect(self, frame: np.ndarray, _sample_rate: int = 16000) -> VADResult:
         """Determines speech presence using RMS energy and Zero-Crossing Rate."""
         if len(frame) == 0:
             return VADResult(is_speech=False, confidence=0.0, energy=0.0)
@@ -205,15 +205,12 @@ class SpeechSegmenter:
             else:
                 self._silence_ms += frame_duration_ms
 
-            # Check if segment reached maximum duration
+            # Check if segment reached maximum duration or silence timeout
             total_samples = sum(len(f) for f in self._current_segment)
-            if total_samples >= self._max_speech_samples:
-                seg = self._flush_segment()
-                if seg:
-                    yield seg
-
-            # Check if silence timeout reached
-            elif self._silence_ms >= self.silence_timeout_ms:
+            if (
+                total_samples >= self._max_speech_samples
+                or self._silence_ms >= self.silence_timeout_ms
+            ):
                 seg = self._flush_segment()
                 if seg:
                     yield seg

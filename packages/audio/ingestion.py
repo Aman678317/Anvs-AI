@@ -15,7 +15,6 @@ from packages.audio.framing import (
 )
 from packages.audio.vad import BaseVAD, EnergyVAD, SpeechSegment, SpeechSegmenter
 from packages.audio.watermark import detect_watermark
-from packages.contracts import AudioStreamType
 from packages.event_schema import STREAM_AUDIO, AudioSegmentEvent, RedisStreamBus, get_stream_key
 
 logger = logging.getLogger(__name__)
@@ -161,11 +160,12 @@ class AudioIngestionPipeline:
             event_id=f"aud_{uuid.uuid4()}",
             timestamp_ms=int(time.time() * 1000),
             meeting_id=self.meeting_id,
-            participant_id=self.participant_id,
-            stream_type=AudioStreamType.ORIGINAL_HUMAN,
+            source_segment_id=f"src_{self.participant_id}_{segment.start_ms}",
+            target_language="eng",
+            audio_uri=f"base64://{b64_audio}",
+            duration_ms=max(0, segment.end_ms - segment.start_ms),
+            sample_rate=segment.sample_rate,
             watermarked=False,
-            payload=b64_audio,
-            duration_ms=segment.end_ms - segment.start_ms,
         )
 
         await self.stream_bus.publish(stream=stream_key, event=event)

@@ -7,7 +7,6 @@ import pytest
 
 from packages.audio.ingestion import AudioIngestionPipeline
 from packages.audio.watermark import embed_watermark
-from packages.contracts import AudioStreamType
 from packages.event_schema import STREAM_AUDIO, AudioSegmentEvent, RedisStreamBus
 
 
@@ -104,7 +103,6 @@ async def test_ingestion_publishes_to_redis_bus() -> None:
     event: AudioSegmentEvent = call_args.kwargs["event"]
     assert isinstance(event, AudioSegmentEvent)
     assert event.meeting_id == "meeting_bus_test"
-    assert event.participant_id == "part_human_2"
-    assert event.stream_type == AudioStreamType.ORIGINAL_HUMAN
+    assert event.source_segment_id.startswith("src_part_human_2_")
     assert event.watermarked is False  # Invariant: human speech is unwatermarked
     assert event.duration_ms > 0

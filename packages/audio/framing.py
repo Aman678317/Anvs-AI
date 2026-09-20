@@ -1,7 +1,7 @@
 """Audio framing, sample format conversion, and resampling utilities."""
 
+from collections.abc import Iterator
 import math
-from typing import Iterator
 
 import numpy as np
 from scipy import signal
