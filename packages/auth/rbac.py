@@ -3,7 +3,7 @@
 from collections.abc import Callable
 from enum import StrEnum
 
-from fastapi import HTTPException, status
+from fastapi import HTTPException, Request, status
 
 from packages.contracts import ParticipantRole
 
@@ -86,10 +86,20 @@ def check_role_satisfies_minimum(
 
 def require_role(
     minimum_role: ParticipantRole,
-) -> Callable[[AuthenticatedUser], AuthenticatedUser]:
+) -> Callable[..., AuthenticatedUser]:
     """FastAPI dependency factory enforcing a minimum role hierarchy."""
 
-    def role_checker(user: AuthenticatedUser) -> AuthenticatedUser:
+    def role_checker(request: Request | AuthenticatedUser) -> AuthenticatedUser:
+        if isinstance(request, AuthenticatedUser):
+            user = request
+        else:
+            user = getattr(request.state, "user", None)
+            if not user or not isinstance(user, AuthenticatedUser):
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="Authentication required.",
+                    headers={"WWW-Authenticate": "Bearer"},
+                )
         if not check_role_satisfies_minimum(user.role, minimum_role):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
@@ -105,10 +115,20 @@ def require_role(
 
 def require_permission(
     permission: Permission,
-) -> Callable[[AuthenticatedUser], AuthenticatedUser]:
+) -> Callable[..., AuthenticatedUser]:
     """FastAPI dependency factory enforcing a specific permission."""
 
-    def permission_checker(user: AuthenticatedUser) -> AuthenticatedUser:
+    def permission_checker(request: Request | AuthenticatedUser) -> AuthenticatedUser:
+        if isinstance(request, AuthenticatedUser):
+            user = request
+        else:
+            user = getattr(request.state, "user", None)
+            if not user or not isinstance(user, AuthenticatedUser):
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="Authentication required.",
+                    headers={"WWW-Authenticate": "Bearer"},
+                )
         if not has_permission(user.role, permission):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
