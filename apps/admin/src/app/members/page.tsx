@@ -85,13 +85,16 @@ export default function MembersPage() {
     e.preventDefault();
     if (!inviteEmail.trim()) return;
 
+    const normalizedEmail = inviteEmail.trim();
+    const emailLocalPart = normalizedEmail.split("@")[0] ?? "invited-member";
+
     const newMember: MemberItem = {
       userId: `usr_${Date.now()}`,
-      email: inviteEmail.trim(),
-      fullName: inviteName.trim() || inviteEmail.split("@")[0],
+      email: normalizedEmail,
+      fullName: inviteName.trim() || emailLocalPart,
       role: inviteRole,
       isActive: true,
-      createdAt: new Date().toISOString().split("T")[0],
+      createdAt: new Date().toISOString().slice(0, 10),
     };
 
     setMembers([newMember, ...members]);

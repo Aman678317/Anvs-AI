@@ -131,8 +131,8 @@ export default function MeetingsPage() {
       m.languages.toLowerCase().includes(searchQuery.toLowerCase()),
   );
 
-  const activeSegments = selectedMeeting
-    ? SAMPLE_SEGMENTS[selectedMeeting.meetingId] || SAMPLE_SEGMENTS["meet_001"]
+  const activeSegments: MockTranscriptSegment[] = selectedMeeting
+    ? (SAMPLE_SEGMENTS[selectedMeeting.meetingId] ?? SAMPLE_SEGMENTS.meet_001 ?? [])
     : [];
 
   const handleExportJson = () => {
