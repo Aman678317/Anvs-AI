@@ -132,9 +132,7 @@ class SpeakerConsumer:
                 exc_info=True,
             )
             payload_str = (
-                json.dumps(raw_payload)
-                if isinstance(raw_payload, dict)
-                else str(raw_payload)
+                json.dumps(raw_payload) if isinstance(raw_payload, dict) else str(raw_payload)
             )
             await self.stream_bus.send_to_dlq(
                 meeting_id=meeting_id,
