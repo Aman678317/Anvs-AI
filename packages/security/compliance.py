@@ -35,23 +35,17 @@ class ComplianceManager:
         m_uuid = uuid.UUID(meeting_id)
 
         # 1. Delete transcript embeddings
-        del_emb_stmt = (
-            delete(TranscriptEmbedding)
-            .where(
-                TranscriptEmbedding.tenant_id == t_uuid,
-                TranscriptEmbedding.meeting_id == m_uuid,
-            )
+        del_emb_stmt = delete(TranscriptEmbedding).where(
+            TranscriptEmbedding.tenant_id == t_uuid,
+            TranscriptEmbedding.meeting_id == m_uuid,
         )
         emb_res = await session.execute(del_emb_stmt)
         shredded_embeddings = emb_res.rowcount if hasattr(emb_res, "rowcount") else 0
 
         # 2. Delete transcript segments
-        del_seg_stmt = (
-            delete(TranscriptSegment)
-            .where(
-                TranscriptSegment.tenant_id == t_uuid,
-                TranscriptSegment.meeting_id == m_uuid,
-            )
+        del_seg_stmt = delete(TranscriptSegment).where(
+            TranscriptSegment.tenant_id == t_uuid,
+            TranscriptSegment.meeting_id == m_uuid,
         )
         seg_res = await session.execute(del_seg_stmt)
         shredded_segments = seg_res.rowcount if hasattr(seg_res, "rowcount") else 0

@@ -31,7 +31,9 @@ class CryptoEngine:
     """Enterprise AES-256-GCM cryptographic engine with HKDF tenant key derivation."""
 
     def __init__(self, master_key: str | bytes | None = None) -> None:
-        key_input = master_key if master_key is not None else settings.security_master_encryption_key
+        key_input = (
+            master_key if master_key is not None else settings.security_master_encryption_key
+        )
         if isinstance(key_input, str):
             if len(key_input) == 64:
                 self.master_key = bytes.fromhex(key_input)
