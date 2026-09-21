@@ -18,6 +18,7 @@ from services.api.middleware.tenant import (
 )
 from services.api.routers.admin import get_admin_user, router as admin_router
 
+
 TEST_TENANT_ID = str(uuid.uuid4())
 TEST_ADMIN_USER_ID = str(uuid.uuid4())
 TEST_MEMBER_USER_ID = str(uuid.uuid4())
@@ -74,7 +75,6 @@ def participant_app(mock_session: AsyncMock) -> FastAPI:
     app.dependency_overrides[get_current_user] = lambda: PARTICIPANT_USER
     # Do NOT override get_admin_user — let it run so the role check fires
     return app
-
 
 
 # -----------------------------------------------------------------------------
