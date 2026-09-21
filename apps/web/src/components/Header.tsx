@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useMeetingStore } from "../stores/useMeetingStore";
-import { Activity, Radio, Users, Globe2, Volume2, Sparkles } from "lucide-react";
+import { Activity, Users, Globe2, Volume2, Sparkles } from "lucide-react";
 
 export function Header() {
   const {

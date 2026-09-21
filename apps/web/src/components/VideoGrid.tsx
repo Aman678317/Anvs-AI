@@ -2,7 +2,7 @@
 
 import { useMeetingStore } from "../stores/useMeetingStore";
 import { ParticipantTile } from "./ParticipantTile";
-import { LocalVideoTrack, RemoteVideoTrack } from "livekit-client";
+import { LocalVideoTrack } from "livekit-client";
 
 interface VideoGridProps {
   localVideoTrack?: LocalVideoTrack | null;

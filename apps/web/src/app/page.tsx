@@ -12,7 +12,6 @@ import {
   ArrowRight,
   ShieldCheck,
   PlusCircle,
-  LogIn,
 } from "lucide-react";
 import { SUPPORTED_LANGUAGES, ParticipantRole } from "@multilingual/contracts";
 import { useMeetingStore } from "../stores/useMeetingStore";

@@ -28,12 +28,16 @@ export function ParticipantTile({
 
   useEffect(() => {
     const el = videoRef.current;
-    if (el && videoTrack) {
-      videoTrack.attach(el);
-      return () => {
-        videoTrack.detach(el);
-      };
+
+    if (!el || !videoTrack) {
+      return;
     }
+
+    videoTrack.attach(el);
+
+    return () => {
+      videoTrack.detach(el);
+    };
   }, [videoTrack]);
 
   const initials = displayName

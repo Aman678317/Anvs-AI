@@ -6,8 +6,6 @@ import {
   RoomEvent,
   VideoPresets,
   Track,
-  RemoteParticipant,
-  LocalParticipant,
   createLocalVideoTrack,
   createLocalAudioTrack,
   LocalVideoTrack,

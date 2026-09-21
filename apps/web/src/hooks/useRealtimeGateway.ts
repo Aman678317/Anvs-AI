@@ -12,7 +12,7 @@ import {
   WSServerFrame,
 } from "@multilingual/contracts";
 import { useMeetingStore } from "../stores/useMeetingStore";
-import { CaptionSegment, MeetingParticipant } from "../types/meeting";
+import { CaptionSegment } from "../types/meeting";
 
 const PING_INTERVAL_MS = 15000;
 const RECONNECT_DELAY_MS = 3000;
@@ -39,7 +39,6 @@ export function useRealtimeGateway(
     addAvailableTrack,
     addChatMessage,
     resolveAssistantResponse,
-    listeningLanguage,
   } = useMeetingStore();
 
   const sendFrame = useCallback((frame: unknown) => {

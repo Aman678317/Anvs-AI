@@ -1,4 +1,4 @@
-import { AudioStreamType, MeetingStatus, ParticipantRole } from "@multilingual/contracts";
+import { AudioStreamType, ParticipantRole } from "@multilingual/contracts";
 
 export type AudioTrackMode = "original" | "translated";
 
