@@ -5,7 +5,13 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from .enums import MeetingStatus, ParticipantRole, TranscriptFormat
+from .enums import (
+    DegradationTier,
+    MeetingStatus,
+    ParticipantRole,
+    TranscriptFormat,
+    WorkerHealthStatus,
+)
 
 
 class BaseContract(BaseModel):
@@ -206,3 +212,20 @@ class AuditLogEntry(BaseContract):
 class AdminAuditLogsResponse(BaseContract):
     logs: list[AuditLogEntry]
     total: int
+
+
+class WorkerHeartbeatPayload(BaseContract):
+    worker_type: str = Field(..., description="Worker service type (stt, nmt, tts, speaker, assistant)")
+    worker_id: str = Field(..., description="Unique instance identifier of the worker")
+    timestamp_ms: int = Field(..., description="Epoch millisecond timestamp of the heartbeat")
+    queue_depth: int = Field(default=0, ge=0, description="Observed queue depth for this worker")
+    gpu_utilization_pct: float | None = Field(default=None, ge=0.0, le=100.0, description="Optional GPU load %")
+
+
+class PipelineStatusResponse(BaseContract):
+    meeting_id: str = Field(..., description="Unique meeting room identifier")
+    current_tier: DegradationTier = Field(default=DegradationTier.NORMAL)
+    active_workers: dict[str, WorkerHealthStatus] = Field(default_factory=dict)
+    queue_depths: dict[str, int] = Field(default_factory=dict)
+    dropped_partials_count: int = Field(default=0, ge=0)
+    uptime_seconds: float = Field(default=0.0, ge=0.0)

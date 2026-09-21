@@ -1,4 +1,10 @@
-import { MeetingStatus, ParticipantRole, TranscriptFormat } from "./enums";
+import {
+  DegradationTier,
+  MeetingStatus,
+  ParticipantRole,
+  TranscriptFormat,
+  WorkerHealthStatus,
+} from "./enums";
 
 export interface AuthTokenRequest {
   user_id: string;
@@ -182,4 +188,21 @@ export interface AuditLogEntry {
 export interface AdminAuditLogsResponse {
   logs: AuditLogEntry[];
   total: number;
+}
+
+export interface WorkerHeartbeatPayload {
+  worker_type: string;
+  worker_id: string;
+  timestamp_ms: number;
+  queue_depth?: number;
+  gpu_utilization_pct?: number | null;
+}
+
+export interface PipelineStatusResponse {
+  meeting_id: string;
+  current_tier: DegradationTier;
+  active_workers: Record<string, WorkerHealthStatus>;
+  queue_depths: Record<string, number>;
+  dropped_partials_count: number;
+  uptime_seconds: number;
 }

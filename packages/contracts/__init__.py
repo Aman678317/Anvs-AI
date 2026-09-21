@@ -2,9 +2,11 @@
 
 from .enums import (
     AudioStreamType,
+    DegradationTier,
     MeetingStatus,
     ParticipantRole,
     TranscriptFormat,
+    WorkerHealthStatus,
     WSClientMessageType,
     WSServerMessageType,
 )
@@ -28,10 +30,12 @@ from .rest import (
     OrganizationMemberResponse,
     OrganizationResponse,
     ParticipantContract,
+    PipelineStatusResponse,
     TranscriptSegmentResponse,
     UpdateMemberRoleRequest,
     UpdateOrganizationRequest,
     UpdateParticipantRequest,
+    WorkerHeartbeatPayload,
 )
 from .websocket import (
     BaseWSFrame,
@@ -62,6 +66,7 @@ __all__ = [
     "BaseWSFrame",
     "CreateMeetingRequest",
     "CreateMeetingResponse",
+    "DegradationTier",
     "EndMeetingRequest",
     "GetMeetingResponse",
     "GetTranscriptResponse",
@@ -74,11 +79,14 @@ __all__ = [
     "OrganizationResponse",
     "ParticipantContract",
     "ParticipantRole",
+    "PipelineStatusResponse",
     "TranscriptFormat",
     "TranscriptSegmentResponse",
     "UpdateMemberRoleRequest",
     "UpdateOrganizationRequest",
     "UpdateParticipantRequest",
+    "WorkerHealthStatus",
+    "WorkerHeartbeatPayload",
     "WSClientChatMessageFrame",
     "WSClientJoinFrame",
     "WSClientMessageType",

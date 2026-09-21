@@ -42,3 +42,16 @@ export enum WSServerMessageType {
   PONG = "PONG",
   ERROR = "ERROR",
 }
+
+export enum DegradationTier {
+  NORMAL = "NORMAL",
+  HIGH_LOAD = "HIGH_LOAD",
+  CRITICAL_LOAD = "CRITICAL_LOAD",
+  EMERGENCY = "EMERGENCY",
+}
+
+export enum WorkerHealthStatus {
+  HEALTHY = "HEALTHY",
+  DEGRADED = "DEGRADED",
+  DEAD = "DEAD",
+}

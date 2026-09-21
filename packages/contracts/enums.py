@@ -46,3 +46,16 @@ class WSServerMessageType(StrEnum):
     ASSISTANT_RESPONSE = "ASSISTANT_RESPONSE"
     PONG = "PONG"
     ERROR = "ERROR"
+
+
+class DegradationTier(StrEnum):
+    NORMAL = "NORMAL"
+    HIGH_LOAD = "HIGH_LOAD"
+    CRITICAL_LOAD = "CRITICAL_LOAD"
+    EMERGENCY = "EMERGENCY"
+
+
+class WorkerHealthStatus(StrEnum):
+    HEALTHY = "HEALTHY"
+    DEGRADED = "DEGRADED"
+    DEAD = "DEAD"
