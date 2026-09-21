@@ -77,15 +77,11 @@ export function CaptionOverlay() {
 
               {/* Bilingual Display: Original speech on top */}
               {bilingualCaptions && cap.original_text && (
-                <p className="text-zinc-400 text-xs font-normal">
-                  {cap.original_text}
-                </p>
+                <p className="text-zinc-400 text-xs font-normal">{cap.original_text}</p>
               )}
 
               {/* Translated Speech */}
-              <p className="text-zinc-100 font-medium tracking-wide">
-                {cap.translated_text}
-              </p>
+              <p className="text-zinc-100 font-medium tracking-wide">{cap.translated_text}</p>
             </div>
           ))}
         </div>

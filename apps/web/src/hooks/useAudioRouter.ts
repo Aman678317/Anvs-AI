@@ -6,13 +6,8 @@ import { AudioStreamType } from "@multilingual/contracts";
 import { useMeetingStore } from "../stores/useMeetingStore";
 
 export function useAudioRouter(room: Room | null) {
-  const {
-    audioTrackMode,
-    originalGain,
-    translatedGain,
-    listeningLanguage,
-    availableTracks,
-  } = useMeetingStore();
+  const { audioTrackMode, originalGain, translatedGain, listeningLanguage, availableTracks } =
+    useMeetingStore();
 
   useEffect(() => {
     if (!room) return;
@@ -30,9 +25,7 @@ export function useAudioRouter(room: Room | null) {
           pub.trackName.includes("translated") ||
           pub.trackName.includes("synthetic");
 
-        const audioElement = pub.audioTrack?.attachedElements[0] as
-          | HTMLAudioElement
-          | undefined;
+        const audioElement = pub.audioTrack?.attachedElements[0] as HTMLAudioElement | undefined;
 
         if (audioTrackMode === "translated") {
           if (isSynthetic) {
@@ -69,12 +62,5 @@ export function useAudioRouter(room: Room | null) {
         }
       });
     });
-  }, [
-    room,
-    audioTrackMode,
-    originalGain,
-    translatedGain,
-    listeningLanguage,
-    availableTracks,
-  ]);
+  }, [room, audioTrackMode, originalGain, translatedGain, listeningLanguage, availableTracks]);
 }

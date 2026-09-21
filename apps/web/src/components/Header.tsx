@@ -55,9 +55,7 @@ export function Header() {
             {title || "AI Meeting Session"}
           </h1>
           <span className="text-xs text-zinc-500">|</span>
-          <span className="text-xs text-zinc-400 font-mono">
-            {formatDuration(elapsedSec)}
-          </span>
+          <span className="text-xs text-zinc-400 font-mono">{formatDuration(elapsedSec)}</span>
         </div>
       </div>
 

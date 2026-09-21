@@ -50,9 +50,7 @@ export function ParticipantsPanel({ onClose }: ParticipantsPanelProps) {
     <aside className="w-80 md:w-96 h-full border-l border-surface-200/60 bg-surface-900/95 backdrop-blur-md flex flex-col z-30">
       {/* Header */}
       <div className="h-14 px-4 border-b border-surface-200 flex items-center justify-between">
-        <h2 className="text-sm font-semibold text-zinc-100">
-          Participants ({totalCount})
-        </h2>
+        <h2 className="text-sm font-semibold text-zinc-100">Participants ({totalCount})</h2>
         <button
           onClick={onClose}
           className="p-1.5 rounded-lg hover:bg-surface-100 text-zinc-400 hover:text-zinc-200"
@@ -71,9 +69,7 @@ export function ParticipantsPanel({ onClose }: ParticipantsPanelProps) {
             </div>
             <div>
               <div className="flex items-center space-x-1.5">
-                <span className="text-xs font-semibold text-zinc-200">
-                  {displayName} (You)
-                </span>
+                <span className="text-xs font-semibold text-zinc-200">{displayName} (You)</span>
                 {renderRoleBadge(role)}
               </div>
               <span className="text-[10px] text-zinc-500 font-mono">
@@ -108,9 +104,7 @@ export function ParticipantsPanel({ onClose }: ParticipantsPanelProps) {
               </div>
               <div>
                 <div className="flex items-center space-x-1.5">
-                  <span className="text-xs font-semibold text-zinc-200">
-                    {p.display_name}
-                  </span>
+                  <span className="text-xs font-semibold text-zinc-200">{p.display_name}</span>
                   {renderRoleBadge(p.role)}
                 </div>
                 <span className="text-[10px] text-zinc-500 font-mono">

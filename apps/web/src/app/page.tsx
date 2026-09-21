@@ -142,9 +142,7 @@ export default function LobbyPage() {
             <Sparkles className="w-5 h-5" />
           </div>
           <div>
-            <h1 className="text-lg font-bold text-zinc-100">
-              Multilingual AI Meeting Platform
-            </h1>
+            <h1 className="text-lg font-bold text-zinc-100">Multilingual AI Meeting Platform</h1>
             <p className="text-xs text-zinc-400">
               Zero-latency speech translation & grounded RAG copilot
             </p>

@@ -21,7 +21,7 @@ export function useRealtimeGateway(
   meetingId: string | null,
   participantId: string | null,
   ticket: string | null,
-  wsBaseUrl: string = process.env.NEXT_PUBLIC_WS_URL || "ws://localhost:8001"
+  wsBaseUrl: string = process.env.NEXT_PUBLIC_WS_URL || "ws://localhost:8001",
 ) {
   const wsRef = useRef<WebSocket | null>(null);
   const pingTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -65,7 +65,7 @@ export function useRealtimeGateway(
         is_self: true,
       });
     },
-    [participantId, sendFrame, addChatMessage]
+    [participantId, sendFrame, addChatMessage],
   );
 
   const queryAssistant = useCallback(
@@ -79,7 +79,7 @@ export function useRealtimeGateway(
       sendFrame(frame);
       return queryId;
     },
-    [sendFrame]
+    [sendFrame],
   );
 
   const updateListeningLanguage = useCallback(
@@ -90,7 +90,7 @@ export function useRealtimeGateway(
       };
       sendFrame(frame);
     },
-    [sendFrame]
+    [sendFrame],
   );
 
   useEffect(() => {
@@ -107,7 +107,7 @@ export function useRealtimeGateway(
 
       isConnectingRef.current = true;
       const url = `${wsBaseUrl}/ws/meetings/${meetingId}?ticket=${encodeURIComponent(
-        ticket
+        ticket,
       )}&participant_id=${encodeURIComponent(participantId)}`;
 
       try {
@@ -165,7 +165,7 @@ export function useRealtimeGateway(
                     is_video_enabled: p.is_video_enabled,
                     is_speaking: false,
                     audio_level: 0,
-                  }))
+                  })),
                 );
                 break;
 

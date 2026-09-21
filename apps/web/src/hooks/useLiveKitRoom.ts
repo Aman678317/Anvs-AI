@@ -15,7 +15,7 @@ import { useMeetingStore } from "../stores/useMeetingStore";
 
 export function useLiveKitRoom(
   livekitUrl: string = process.env.NEXT_PUBLIC_LIVEKIT_URL || "ws://localhost:7880",
-  token: string | null
+  token: string | null,
 ) {
   const roomRef = useRef<Room | null>(null);
   const [localVideoTrack, setLocalVideoTrack] = useState<LocalVideoTrack | null>(null);

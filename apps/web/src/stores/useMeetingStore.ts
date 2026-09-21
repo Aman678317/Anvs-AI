@@ -166,18 +166,14 @@ export const useMeetingStore = create<MeetingStoreState>((set) => ({
       listeningLanguage: p.listeningLanguage,
     }),
 
-  setTokens: ({ wsTicket, livekitToken }) =>
-    set({ wsTicket, livekitToken }),
+  setTokens: ({ wsTicket, livekitToken }) => set({ wsTicket, livekitToken }),
 
   setParticipants: (list) =>
     set({
-      participants: list.reduce<Record<string, MeetingParticipant>>(
-        (acc, item) => {
-          acc[item.participant_id] = item;
-          return acc;
-        },
-        {}
-      ),
+      participants: list.reduce<Record<string, MeetingParticipant>>((acc, item) => {
+        acc[item.participant_id] = item;
+        return acc;
+      }, {}),
     }),
 
   upsertParticipant: (p) =>
@@ -226,7 +222,7 @@ export const useMeetingStore = create<MeetingStoreState>((set) => ({
     set((state) => {
       // Find existing segment by source_segment_id for in-place streaming update
       const existingIdx = state.captions.findIndex(
-        (c) => c.source_segment_id === caption.source_segment_id
+        (c) => c.source_segment_id === caption.source_segment_id,
       );
 
       let nextCaptions: CaptionSegment[];
@@ -252,9 +248,7 @@ export const useMeetingStore = create<MeetingStoreState>((set) => ({
     set((state) => ({
       chatMessages: [...state.chatMessages, msg],
       unreadChatCount:
-        state.activePanel === "chat"
-          ? 0
-          : state.unreadChatCount + (msg.is_self ? 0 : 1),
+        state.activePanel === "chat" ? 0 : state.unreadChatCount + (msg.is_self ? 0 : 1),
     })),
 
   addAssistantQuery: (query) =>
@@ -273,21 +267,17 @@ export const useMeetingStore = create<MeetingStoreState>((set) => ({
               action_items: res.action_items,
               is_loading: false,
             }
-          : q
+          : q,
       );
 
       // Merge newly extracted action items into global list
-      const newItems = res.action_items.filter(
-        (item) => !state.meetingActionItems.includes(item)
-      );
+      const newItems = res.action_items.filter((item) => !state.meetingActionItems.includes(item));
 
       return {
         assistantQueries: nextQueries,
         meetingActionItems: [...state.meetingActionItems, ...newItems],
         unreadAssistantCount:
-          state.activePanel === "assistant"
-            ? 0
-            : state.unreadAssistantCount + 1,
+          state.activePanel === "assistant" ? 0 : state.unreadAssistantCount + 1,
       };
     }),
 
@@ -295,8 +285,7 @@ export const useMeetingStore = create<MeetingStoreState>((set) => ({
     set((state) => ({
       activePanel,
       unreadChatCount: activePanel === "chat" ? 0 : state.unreadChatCount,
-      unreadAssistantCount:
-        activePanel === "assistant" ? 0 : state.unreadAssistantCount,
+      unreadAssistantCount: activePanel === "assistant" ? 0 : state.unreadAssistantCount,
     })),
 
   setListeningLanguage: (listeningLanguage) => set({ listeningLanguage }),

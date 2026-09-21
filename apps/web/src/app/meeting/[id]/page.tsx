@@ -73,18 +73,15 @@ export default function MeetingRoomPage() {
   ]);
 
   // 1. Initialize Realtime WebSocket Gateway (Invariant #4 & #5)
-  const { sendChatMessage, queryAssistant, updateListeningLanguage } =
-    useRealtimeGateway(meetingId, participantId, wsTicket);
+  const { sendChatMessage, queryAssistant, updateListeningLanguage } = useRealtimeGateway(
+    meetingId,
+    participantId,
+    wsTicket,
+  );
 
   // 2. Initialize LiveKit WebRTC SFU Media Connection
-  const {
-    room,
-    localVideoTrack,
-    screenTrack,
-    toggleMic,
-    toggleVideo,
-    toggleScreenShare,
-  } = useLiveKitRoom(undefined, livekitToken);
+  const { room, localVideoTrack, screenTrack, toggleMic, toggleVideo, toggleScreenShare } =
+    useLiveKitRoom(undefined, livekitToken);
 
   // 3. Initialize Multi-Track Audio Router (Invariant #3 & #5)
   useAudioRouter(room);
@@ -106,17 +103,11 @@ export default function MeetingRoomPage() {
 
         {/* Side Panels */}
         {activePanel === "chat" && (
-          <ChatPanel
-            onSendMessage={sendChatMessage}
-            onClose={() => setActivePanel("none")}
-          />
+          <ChatPanel onSendMessage={sendChatMessage} onClose={() => setActivePanel("none")} />
         )}
 
         {activePanel === "assistant" && (
-          <AssistantPanel
-            onAskQuery={queryAssistant}
-            onClose={() => setActivePanel("none")}
-          />
+          <AssistantPanel onAskQuery={queryAssistant} onClose={() => setActivePanel("none")} />
         )}
 
         {activePanel === "participants" && (

@@ -16,12 +16,8 @@ export function LanguageSelectorModal({
   onClose,
   onLanguageChanged,
 }: LanguageSelectorModalProps) {
-  const {
-    spokenLanguage,
-    listeningLanguage,
-    setSpokenLanguage,
-    setListeningLanguage,
-  } = useMeetingStore();
+  const { spokenLanguage, listeningLanguage, setSpokenLanguage, setListeningLanguage } =
+    useMeetingStore();
 
   const [selectedSpoken, setSelectedSpoken] = useState(spokenLanguage);
   const [selectedListening, setSelectedListening] = useState(listeningLanguage);
