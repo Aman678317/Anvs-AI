@@ -14,6 +14,14 @@ from packages.contracts import DegradationTier
 logger = logging.getLogger(__name__)
 
 
+TIER_SEVERITY: dict[DegradationTier, int] = {
+    DegradationTier.NORMAL: 0,
+    DegradationTier.HIGH_LOAD: 1,
+    DegradationTier.CRITICAL_LOAD: 2,
+    DegradationTier.EMERGENCY: 3,
+}
+
+
 class BackpressureController:
     """Monitors Redis stream queue depths and manages degradation tier transitions."""
 
@@ -91,8 +99,11 @@ class BackpressureController:
         elif max_depth >= self.high_threshold:
             target_tier = DegradationTier.HIGH_LOAD
 
+        target_weight = TIER_SEVERITY.get(target_tier, 0)
+        current_weight = TIER_SEVERITY.get(self._current_tier, 0)
+
         # Upward degradation is immediate (safety first)
-        if target_tier > self._current_tier:
+        if target_weight > current_weight:
             logger.warning(
                 "Upgrading pipeline backpressure tier: %s -> %s (max_depth=%d)",
                 self._current_tier.value,
@@ -105,7 +116,7 @@ class BackpressureController:
             return self._current_tier
 
         # Downward recovery requires cooldown hysteresis
-        if target_tier < self._current_tier:
+        if target_weight < current_weight:
             elapsed = now - self._last_transition_time
             if elapsed >= self.cooldown_sec:
                 logger.info(

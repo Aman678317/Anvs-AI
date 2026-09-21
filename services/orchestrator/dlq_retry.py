@@ -6,7 +6,6 @@ and securely quarantines poisoned packets to prevent infinite retry loops (Invar
 
 import json
 import logging
-import time
 
 from packages.config.settings import settings
 from packages.event_schema import (
