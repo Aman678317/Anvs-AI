@@ -1,0 +1,264 @@
+# ==============================================================================
+# Microservice Deployments: API, Gateway, Orchestrator, AI Fleet, Frontends (PR-20)
+# ==============================================================================
+
+# 1. FastAPI Control Plane API
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "meeting-platform.fullname" . }}-api
+  labels:
+    {{- include "meeting-platform.labels" . | nindent 4 }}
+    app.kubernetes.io/component: api
+spec:
+  replicas: {{ .Values.api.replicaCount }}
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app.kubernetes.io/component: api
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/component: api
+        app.kubernetes.io/instance: {{ .Release.Name }}
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
+      containers:
+        - name: api
+          image: "{{ .Values.global.imageRegistry }}/{{ .Values.api.image.repository }}:{{ .Values.global.imageTag }}"
+          imagePullPolicy: {{ .Values.global.imagePullPolicy }}
+          ports:
+            - containerPort: 8000
+              name: http
+          envFrom:
+            - configMapRef:
+                name: {{ include "meeting-platform.fullname" . }}-config
+            - secretRef:
+                name: {{ include "meeting-platform.fullname" . }}-secrets
+          resources:
+            {{- toYaml .Values.api.resources | nindent 12 }}
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 5
+---
+# 2. Realtime WebSocket Gateway
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "meeting-platform.fullname" . }}-gateway
+  labels:
+    {{- include "meeting-platform.labels" . | nindent 4 }}
+    app.kubernetes.io/component: gateway
+spec:
+  replicas: {{ .Values.gateway.replicaCount }}
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app.kubernetes.io/component: gateway
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/component: gateway
+        app.kubernetes.io/instance: {{ .Release.Name }}
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
+      containers:
+        - name: gateway
+          image: "{{ .Values.global.imageRegistry }}/{{ .Values.gateway.image.repository }}:{{ .Values.global.imageTag }}"
+          imagePullPolicy: {{ .Values.global.imagePullPolicy }}
+          ports:
+            - containerPort: 8001
+              name: ws
+          envFrom:
+            - configMapRef:
+                name: {{ include "meeting-platform.fullname" . }}-config
+          resources:
+            {{- toYaml .Values.gateway.resources | nindent 12 }}
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: ws
+            initialDelaySeconds: 10
+            periodSeconds: 10
+---
+# 3. Pipeline Orchestrator
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "meeting-platform.fullname" . }}-orchestrator
+  labels:
+    {{- include "meeting-platform.labels" . | nindent 4 }}
+    app.kubernetes.io/component: orchestrator
+spec:
+  replicas: {{ .Values.orchestrator.replicaCount }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/component: orchestrator
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/component: orchestrator
+        app.kubernetes.io/instance: {{ .Release.Name }}
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+      containers:
+        - name: orchestrator
+          image: "{{ .Values.global.imageRegistry }}/{{ .Values.orchestrator.image.repository }}:{{ .Values.global.imageTag }}"
+          imagePullPolicy: {{ .Values.global.imagePullPolicy }}
+          envFrom:
+            - configMapRef:
+                name: {{ include "meeting-platform.fullname" . }}-config
+          resources:
+            {{- toYaml .Values.orchestrator.resources | nindent 12 }}
+---
+# 4. AI Inference Fleet Workers (STT, NMT, TTS, Speaker, Assistant)
+{{- range $workerName, $workerConfig := .Values.aiWorkers }}
+{{- if ne $workerName "image" }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "meeting-platform.fullname" $ }}-worker-{{ $workerName }}
+  labels:
+    {{- include "meeting-platform.labels" $ | nindent 4 }}
+    app.kubernetes.io/component: worker-{{ $workerName }}
+spec:
+  replicas: {{ $workerConfig.replicaCount }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/component: worker-{{ $workerName }}
+      app.kubernetes.io/instance: {{ $.Release.Name }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/component: worker-{{ $workerName }}
+        app.kubernetes.io/instance: {{ $.Release.Name }}
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+      containers:
+        - name: worker
+          image: "{{ $.Values.global.imageRegistry }}/{{ $.Values.aiWorkers.image.repository }}:{{ $.Values.global.imageTag }}"
+          imagePullPolicy: {{ $.Values.global.imagePullPolicy }}
+          env:
+            - name: WORKER_TYPE
+              value: {{ $workerName | quote }}
+          envFrom:
+            - configMapRef:
+                name: {{ include "meeting-platform.fullname" $ }}-config
+          resources:
+            {{- toYaml $workerConfig.resources | nindent 12 }}
+---
+{{- end }}
+{{- end }}
+# 5. Web Frontend Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "meeting-platform.fullname" . }}-web
+  labels:
+    {{- include "meeting-platform.labels" . | nindent 4 }}
+    app.kubernetes.io/component: web
+spec:
+  replicas: {{ .Values.web.replicaCount }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/component: web
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/component: web
+        app.kubernetes.io/instance: {{ .Release.Name }}
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+      containers:
+        - name: web
+          image: "{{ .Values.global.imageRegistry }}/{{ .Values.web.image.repository }}:{{ .Values.global.imageTag }}"
+          imagePullPolicy: {{ .Values.global.imagePullPolicy }}
+          ports:
+            - containerPort: 3000
+              name: http
+          resources:
+            {{- toYaml .Values.web.resources | nindent 12 }}
+          livenessProbe:
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: 15
+            periodSeconds: 15
+---
+# 6. Admin Portal Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "meeting-platform.fullname" . }}-admin
+  labels:
+    {{- include "meeting-platform.labels" . | nindent 4 }}
+    app.kubernetes.io/component: admin
+spec:
+  replicas: {{ .Values.admin.replicaCount }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/component: admin
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/component: admin
+        app.kubernetes.io/instance: {{ .Release.Name }}
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+      containers:
+        - name: admin
+          image: "{{ .Values.global.imageRegistry }}/{{ .Values.admin.image.repository }}:{{ .Values.global.imageTag }}"
+          imagePullPolicy: {{ .Values.global.imagePullPolicy }}
+          ports:
+            - containerPort: 3001
+              name: http
+          resources:
+            {{- toYaml .Values.admin.resources | nindent 12 }}
+          livenessProbe:
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: 15
+            periodSeconds: 15

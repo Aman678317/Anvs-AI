@@ -1,0 +1,337 @@
+version: "3.9"
+
+# ==============================================================================
+# Production Docker Compose Profile (PR-20)
+# Hardened container orchestration with resource limits and health dependencies
+# ==============================================================================
+
+networks:
+  meeting_prod_net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.28.0.0/16
+
+volumes:
+  prod_postgres_data:
+  prod_redis_data:
+  prod_model_cache:
+
+services:
+  # --- Data Tier ---
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: meeting_prod_postgres
+    restart: always
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-meeting_platform}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-prod_secure_password}
+    ports:
+      - "5432:5432"
+    volumes:
+      - prod_postgres_data:/var/lib/postgresql/data
+      - ./infrastructure/docker/postgres-init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    deploy:
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: 4096M
+        reservations:
+          cpus: "0.5"
+          memory: 1024M
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d meeting_platform"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - meeting_prod_net
+
+  redis:
+    image: redis:7.2-alpine
+    container_name: meeting_prod_redis
+    restart: always
+    command:
+      [
+        "redis-server",
+        "--appendonly", "yes",
+        "--maxmemory", "2048mb",
+        "--maxmemory-policy", "noeviction"
+      ]
+    ports:
+      - "6379:6379"
+    volumes:
+      - prod_redis_data:/data
+    deploy:
+      resources:
+        limits:
+          cpus: "1.5"
+          memory: 2048M
+        reservations:
+          cpus: "0.2"
+          memory: 256M
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks:
+      - meeting_prod_net
+
+  # --- Media Tier ---
+  livekit:
+    image: livekit/livekit-server:v1.6.0
+    container_name: meeting_prod_livekit
+    restart: always
+    command: --config /etc/livekit.yaml
+    volumes:
+      - ./infrastructure/livekit/livekit.yaml:/etc/livekit.yaml:ro
+    ports:
+      - "7880:7880"
+      - "7881:7881"
+      - "7882:7882/udp"
+    deploy:
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: 2048M
+    networks:
+      - meeting_prod_net
+
+  # --- Application Services ---
+  api:
+    build:
+      context: .
+      dockerfile: services/api/Dockerfile
+    container_name: meeting_prod_api
+    restart: always
+    environment:
+      APP_ENV: production
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-prod_secure_password}@postgres:5432/${POSTGRES_DB:-meeting_platform}
+      REDIS_URL: redis://redis:6379/0
+      LIVEKIT_URL: http://livekit:7880
+      LIVEKIT_API_KEY: ${LIVEKIT_API_KEY:-devkey}
+      LIVEKIT_API_SECRET: ${LIVEKIT_API_SECRET:-secret}
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: 2048M
+    networks:
+      - meeting_prod_net
+
+  realtime-gateway:
+    build:
+      context: .
+      dockerfile: services/realtime_gateway/Dockerfile
+    container_name: meeting_prod_gateway
+    restart: always
+    environment:
+      APP_ENV: production
+      REDIS_URL: redis://redis:6379/0
+      GATEWAY_PORT: 8001
+    ports:
+      - "8001:8001"
+    depends_on:
+      redis:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: 2048M
+    networks:
+      - meeting_prod_net
+
+  orchestrator:
+    build:
+      context: .
+      dockerfile: services/orchestrator/Dockerfile
+    container_name: meeting_prod_orchestrator
+    restart: always
+    environment:
+      APP_ENV: production
+      REDIS_URL: redis://redis:6379/0
+    depends_on:
+      redis:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 1024M
+    networks:
+      - meeting_prod_net
+
+  # --- AI Fleet Workers ---
+  stt-worker:
+    build:
+      context: .
+      dockerfile: services/ai_workers/Dockerfile
+    container_name: meeting_prod_worker_stt
+    restart: always
+    environment:
+      APP_ENV: production
+      WORKER_TYPE: stt
+      REDIS_URL: redis://redis:6379/0
+    volumes:
+      - prod_model_cache:/root/.cache
+    depends_on:
+      redis:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: 4096M
+    networks:
+      - meeting_prod_net
+
+  translation-worker:
+    build:
+      context: .
+      dockerfile: services/ai_workers/Dockerfile
+    container_name: meeting_prod_worker_translation
+    restart: always
+    environment:
+      APP_ENV: production
+      WORKER_TYPE: translation
+      REDIS_URL: redis://redis:6379/0
+    volumes:
+      - prod_model_cache:/root/.cache
+    depends_on:
+      redis:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: 4096M
+    networks:
+      - meeting_prod_net
+
+  tts-worker:
+    build:
+      context: .
+      dockerfile: services/ai_workers/Dockerfile
+    container_name: meeting_prod_worker_tts
+    restart: always
+    environment:
+      APP_ENV: production
+      WORKER_TYPE: tts
+      REDIS_URL: redis://redis:6379/0
+    volumes:
+      - prod_model_cache:/root/.cache
+    depends_on:
+      redis:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: 4096M
+    networks:
+      - meeting_prod_net
+
+  speaker-worker:
+    build:
+      context: .
+      dockerfile: services/ai_workers/Dockerfile
+    container_name: meeting_prod_worker_speaker
+    restart: always
+    environment:
+      APP_ENV: production
+      WORKER_TYPE: speaker
+      REDIS_URL: redis://redis:6379/0
+    volumes:
+      - prod_model_cache:/root/.cache
+    depends_on:
+      redis:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          cpus: "1.5"
+          memory: 2048M
+    networks:
+      - meeting_prod_net
+
+  assistant-worker:
+    build:
+      context: .
+      dockerfile: services/ai_workers/Dockerfile
+    container_name: meeting_prod_worker_assistant
+    restart: always
+    environment:
+      APP_ENV: production
+      WORKER_TYPE: assistant
+      REDIS_URL: redis://redis:6379/0
+    volumes:
+      - prod_model_cache:/root/.cache
+    depends_on:
+      redis:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          cpus: "1.5"
+          memory: 2048M
+    networks:
+      - meeting_prod_net
+
+  # --- Frontends ---
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    container_name: meeting_prod_web
+    restart: always
+    environment:
+      NODE_ENV: production
+      NEXT_PUBLIC_API_URL: http://localhost:8000
+      NEXT_PUBLIC_WS_URL: ws://localhost:8001
+      NEXT_PUBLIC_LIVEKIT_URL: ws://localhost:7880
+    ports:
+      - "3000:3000"
+    depends_on:
+      api:
+        condition: service_started
+      realtime-gateway:
+        condition: service_started
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 1024M
+    networks:
+      - meeting_prod_net
+
+  admin:
+    build:
+      context: .
+      dockerfile: apps/admin/Dockerfile
+    container_name: meeting_prod_admin
+    restart: always
+    environment:
+      NODE_ENV: production
+      NEXT_PUBLIC_API_URL: http://localhost:8000
+    ports:
+      - "3001:3001"
+    depends_on:
+      api:
+        condition: service_started
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 1024M
+    networks:
+      - meeting_prod_net

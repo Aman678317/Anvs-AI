@@ -1,0 +1,18 @@
+apiVersion: v2
+name: multilingual-meeting-platform
+description: Production-grade cloud-native Helm Chart for Multilingual AI Meeting Platform
+type: application
+version: 1.0.0
+appVersion: "1.0.0"
+maintainers:
+  - name: Platform Engineering Squad
+    email: devops@enterprise.ai
+keywords:
+  - multilingual
+  - webrtc
+  - livekit
+  - speech-to-text
+  - nmt
+  - tts
+  - rag
+  - ai-meetings

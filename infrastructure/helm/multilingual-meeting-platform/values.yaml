@@ -1,0 +1,169 @@
+# ==============================================================================
+# Production Helm Values: Multilingual AI Meeting Platform (PR-20)
+# ==============================================================================
+
+global:
+  environment: production
+  domain: meeting.enterprise.ai
+  imageRegistry: ghcr.io/aman678317/anvs-ai
+  imageTag: "1.0.0"
+  imagePullPolicy: IfNotPresent
+
+# Centralized External Service Bindings
+externalServices:
+  database:
+    host: "postgres-meeting-db.prod.internal"
+    port: 5432
+    name: "meeting_platform"
+    user: "dbadmin"
+    existingSecret: "meeting-db-credentials"
+    secretKeyRef: "password"
+  redis:
+    host: "redis-streams.prod.internal"
+    port: 6379
+  livekit:
+    url: "https://livekit.meeting.enterprise.ai"
+    apiKey: "prod-livekit-key"
+    existingSecret: "livekit-credentials"
+    secretKeyRef: "api-secret"
+
+# Control Plane API (FastAPI)
+api:
+  replicaCount: 3
+  image:
+    repository: api-control-plane
+  resources:
+    limits:
+      cpu: "2000m"
+      memory: "2048Mi"
+    requests:
+      cpu: "500m"
+      memory: "512Mi"
+  autoscaling:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 70
+    targetMemoryUtilizationPercentage: 80
+
+# Realtime WebSocket Gateway
+gateway:
+  replicaCount: 4
+  image:
+    repository: realtime-gateway
+  resources:
+    limits:
+      cpu: "2000m"
+      memory: "2048Mi"
+    requests:
+      cpu: "500m"
+      memory: "512Mi"
+  autoscaling:
+    enabled: true
+    minReplicas: 4
+    maxReplicas: 15
+    targetCPUUtilizationPercentage: 65
+
+# Pipeline Orchestrator & DLQ Manager
+orchestrator:
+  replicaCount: 2
+  image:
+    repository: orchestrator
+  resources:
+    limits:
+      cpu: "1000m"
+      memory: "1024Mi"
+    requests:
+      cpu: "250m"
+      memory: "256Mi"
+
+# AI Inference Fleet Workers
+aiWorkers:
+  image:
+    repository: ai-workers
+  stt:
+    replicaCount: 5
+    resources:
+      limits:
+        cpu: "4000m"
+        memory: "8192Mi"
+      requests:
+        cpu: "1000m"
+        memory: "2048Mi"
+  translation:
+    replicaCount: 5
+    resources:
+      limits:
+        cpu: "4000m"
+        memory: "8192Mi"
+      requests:
+        cpu: "1000m"
+        memory: "2048Mi"
+  tts:
+    replicaCount: 4
+    resources:
+      limits:
+        cpu: "4000m"
+        memory: "4096Mi"
+      requests:
+        cpu: "1000m"
+        memory: "1024Mi"
+  speaker:
+    replicaCount: 3
+    resources:
+      limits:
+        cpu: "2000m"
+        memory: "2048Mi"
+      requests:
+        cpu: "500m"
+        memory: "512Mi"
+  assistant:
+    replicaCount: 3
+    resources:
+      limits:
+        cpu: "2000m"
+        memory: "4096Mi"
+      requests:
+        cpu: "500m"
+        memory: "1024Mi"
+
+# Frontends
+web:
+  replicaCount: 3
+  image:
+    repository: web-app
+  resources:
+    limits:
+      cpu: "1000m"
+      memory: "1024Mi"
+    requests:
+      cpu: "200m"
+      memory: "256Mi"
+
+admin:
+  replicaCount: 2
+  image:
+    repository: admin-portal
+  resources:
+    limits:
+      cpu: "1000m"
+      memory: "1024Mi"
+    requests:
+      cpu: "200m"
+      memory: "256Mi"
+
+# Ingress & SSL
+ingress:
+  enabled: true
+  className: "nginx"
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
+    nginx.ingress.kubernetes.io/websocket-services: "realtime-gateway-service"
+  tls:
+    - secretName: meeting-platform-tls
+      hosts:
+        - meeting.enterprise.ai
+        - admin.meeting.enterprise.ai
+        - api.meeting.enterprise.ai

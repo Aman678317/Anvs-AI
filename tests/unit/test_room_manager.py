@@ -11,6 +11,7 @@ from fastapi.testclient import TestClient
 from packages.auth import AuthenticatedUser
 from packages.contracts import ParticipantRole
 from packages.database.models import Meeting
+from packages.security.rate_limit import default_rate_limiter
 from services.api.main import app
 from services.api.middleware.tenant import (
     get_authenticated_tenant_session,
@@ -206,6 +207,7 @@ def test_join_room_passcode_validation(
     app.dependency_overrides[get_authenticated_tenant_session] = override_session
 
     try:
+        default_rate_limiter.reset()
         client = TestClient(app)
 
         # 1. Incorrect passcode returns 403

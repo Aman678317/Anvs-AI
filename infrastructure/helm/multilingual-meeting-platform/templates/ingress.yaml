@@ -1,0 +1,58 @@
+# ==============================================================================
+# Production Ingress with WebSocket Upgrade & TLS Termination (PR-20)
+# ==============================================================================
+
+{{- if .Values.ingress.enabled -}}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "meeting-platform.fullname" . }}-ingress
+  labels:
+    {{- include "meeting-platform.labels" . | nindent 4 }}
+  annotations:
+    {{- toYaml .Values.ingress.annotations | nindent 4 }}
+spec:
+  ingressClassName: {{ .Values.ingress.className }}
+  tls:
+    {{- toYaml .Values.ingress.tls | nindent 4 }}
+  rules:
+    # 1. Main Meeting Web Application & API / WebSocket Routing
+    - host: {{ .Values.global.domain }}
+      http:
+        paths:
+          # Real-time WebSocket Gateway
+          - path: /ws
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ include "meeting-platform.fullname" . }}-gateway
+                port:
+                  number: 8001
+          # REST Control Plane API
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ include "meeting-platform.fullname" . }}-api
+                port:
+                  number: 8000
+          # Next.js Web UI
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ include "meeting-platform.fullname" . }}-web
+                port:
+                  number: 3000
+    # 2. Dedicated Admin & Organization Subdomain
+    - host: "admin.{{ .Values.global.domain }}"
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ include "meeting-platform.fullname" . }}-admin
+                port:
+                  number: 3001
+{{- end }}
