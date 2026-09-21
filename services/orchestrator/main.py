@@ -1,10 +1,10 @@
 """Pipeline Orchestrator daemon entrypoint adhering to Documents 08 and 16."""
 
 import asyncio
-from contextlib import suppress
 import logging
 import signal
 import sys
+from contextlib import suppress
 
 from packages.config.settings import settings
 from packages.event_schema import RedisStreamBus
