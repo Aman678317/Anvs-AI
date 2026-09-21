@@ -76,5 +76,15 @@ class Settings(BaseSettings):
         default=["spa", "fra", "deu", "zho", "jpn"], alias="NMT_DEFAULT_TARGET_LANGUAGES"
     )
 
+    # Text-to-Speech TTS Worker (PR-11)
+    tts_engine_type: str = Field(default="mock", alias="TTS_ENGINE_TYPE")
+    tts_model_name: str = Field(default="coqui/XTTS-v2", alias="TTS_MODEL_NAME")
+    tts_device: str = Field(default="cpu", alias="TTS_DEVICE")
+    tts_consumer_group: str = Field(default="tts-workers-group", alias="TTS_CONSUMER_GROUP")
+    tts_sample_rate: int = Field(default=48000, alias="TTS_SAMPLE_RATE")
+    tts_watermark_enabled: bool = Field(default=True, alias="TTS_WATERMARK_ENABLED")
+    tts_watermark_freq_hz: float = Field(default=20000.0, alias="TTS_WATERMARK_FREQ_HZ")
+    tts_default_voice_id: str = Field(default="default_neutral", alias="TTS_DEFAULT_VOICE_ID")
+
 
 settings = Settings()

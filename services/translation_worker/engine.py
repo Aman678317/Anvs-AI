@@ -137,6 +137,7 @@ class MockNMTEngine(BaseNMTEngine):
         target_lang: str,
         context: list[str] | None = None,
     ) -> TranslationResult:
+        _ = context
         src = normalize_code(source_lang)
         tgt = normalize_code(target_lang)
         cleaned_text = text.strip()

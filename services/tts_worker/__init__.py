@@ -1,13 +1,13 @@
-"""Text-to-Speech (TTS) Worker Service (Hyphenated Monorepo Alias)."""
+"""Text-to-Speech (TTS) Worker Service."""
 
-from services.tts_worker import (
+from .consumer import TTSConsumer
+from .engine import (
     BaseTTSEngine,
     MockTTSEngine,
-    TTSConsumer,
-    TTSResult,
     XTTSv2Engine,
     create_tts_engine,
 )
+from .types import TTSResult
 
 __all__ = [
     "BaseTTSEngine",
