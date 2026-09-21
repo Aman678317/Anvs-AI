@@ -84,5 +84,22 @@ class Settings(BaseSettings):
     tts_watermark_freq_hz: float = Field(default=20000.0, alias="TTS_WATERMARK_FREQ_HZ")
     tts_default_voice_id: str = Field(default="default_neutral", alias="TTS_DEFAULT_VOICE_ID")
 
+    # Speaker Diarization Worker (PR-12)
+    speaker_engine_type: str = Field(default="mock", alias="SPEAKER_ENGINE_TYPE")
+    speaker_model_name: str = Field(
+        default="pyannote/speaker-diarization-3.1",
+        alias="SPEAKER_MODEL_NAME",
+    )
+    speaker_device: str = Field(default="cpu", alias="SPEAKER_DEVICE")
+    speaker_consumer_group: str = Field(
+        default="speaker-workers-group",
+        alias="SPEAKER_CONSUMER_GROUP",
+    )
+    speaker_embedding_dim: int = Field(default=512, alias="SPEAKER_EMBEDDING_DIM")
+    speaker_similarity_threshold: float = Field(
+        default=0.75,
+        alias="SPEAKER_SIMILARITY_THRESHOLD",
+    )
+
 
 settings = Settings()

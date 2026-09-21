@@ -1,17 +1,19 @@
-"""Speaker Diarization Worker Service (Hyphenated Monorepo Alias)."""
+"""Speaker Diarization Worker Service adhering to Document 14."""
 
-from services.speaker_worker import (
+from .consumer import SpeakerConsumer
+from .engine import (
     BaseSpeakerEngine,
-    DiarizationResult,
     MockSpeakerEngine,
     PyAnnoteSpeakerEngine,
-    SpeakerConsumer,
+    create_speaker_engine,
+)
+from .profiles import (
     VoiceProfile,
     VoiceProfileRegistry,
     cosine_similarity,
-    create_speaker_engine,
     normalize_embedding,
 )
+from .types import DiarizationResult
 
 __all__ = [
     "BaseSpeakerEngine",
