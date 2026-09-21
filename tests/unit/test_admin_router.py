@@ -7,6 +7,7 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
+
 from packages.auth import AuthenticatedUser
 from packages.contracts import ParticipantRole
 from packages.database.models import Meeting, Organization, TranscriptSegment, User
