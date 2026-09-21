@@ -57,7 +57,10 @@ class MockSTTEngine(BaseSTTEngine):
             "eng": "Welcome everyone to our multilingual meeting, let's begin the review.",
             "spa": "Bienvenidos a todos a nuestra reunión multilingüe, comencemos la revisión.",
             "fra": "Bienvenue à tous à notre réunion multilingue, commençons la révision.",
-            "deu": "Willkommen alle zu unserem mehrsprachigen Treffen, beginnen wir die Überprüfung.",
+            "deu": (
+                "Willkommen alle zu unserem mehrsprachigen Treffen, "
+                "beginnen wir die Überprüfung."
+            ),
             "zho": "欢迎大家参加我们的多语言会议，让我们开始审查。",
             "jpn": "多言語ミーティングへようこそ、レビューを開始しましょう。",
         }

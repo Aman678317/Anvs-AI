@@ -9,7 +9,10 @@ from services.api.routers import auth_router, rooms_router
 
 app = FastAPI(
     title="Multilingual AI Meeting Platform - Control Plane API",
-    description="REST API for authentication, meeting lifecycle, participant coordination, and room state.",
+    description=(
+        "REST API for authentication, meeting lifecycle, "
+        "participant coordination, and room state."
+    ),
     version="1.0.0",
     docs_url="/docs",
     redoc_url="/redoc",

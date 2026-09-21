@@ -72,7 +72,8 @@ class MockNMTEngine(BaseNMTEngine):
             },
             ("eng", "deu"): {
                 "welcome everyone to our multilingual meeting, let's begin the review.": (
-                    "Willkommen alle zu unserem mehrsprachigen Treffen, beginnen wir die Überprüfung."
+                    "Willkommen alle zu unserem mehrsprachigen Treffen, "
+                    "beginnen wir die Überprüfung."
                 ),
                 "hello world contract verification": "Hallo Welt Vertragsüberprüfung",
                 "can everyone hear me clearly?": "Können mich alle deutlich hören?",
@@ -202,9 +203,7 @@ class NLLBTranslationEngine(BaseNMTEngine):
                     f"Failed to load NLLB model '{self.model_name}' and fallback is disabled: {exc}"
                 ) from exc
 
-            logger.warning(
-                "NLLB model unavailable (%s). Activating MockNMTEngine fallback.", exc
-            )
+            logger.warning("NLLB model unavailable (%s). Activating MockNMTEngine fallback.", exc)
             self._fallback_engine = MockNMTEngine(simulated_latency_ms=15)
 
     @property
@@ -219,9 +218,7 @@ class NLLBTranslationEngine(BaseNMTEngine):
         context: list[str] | None = None,
     ) -> TranslationResult:
         if self._fallback_engine is not None:
-            return await self._fallback_engine.translate(
-                text, source_lang, target_lang, context
-            )
+            return await self._fallback_engine.translate(text, source_lang, target_lang, context)
 
         src = normalize_code(source_lang)
         tgt = normalize_code(target_lang)

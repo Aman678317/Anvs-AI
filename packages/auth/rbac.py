@@ -93,7 +93,10 @@ def require_role(
         if not check_role_satisfies_minimum(user.role, minimum_role):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail=f"Forbidden: requires minimum role '{minimum_role.value}', have '{user.role.value}'",
+                detail=(
+                    f"Forbidden: requires minimum role '{minimum_role.value}', "
+                    f"have '{user.role.value}'"
+                ),
             )
         return user
 

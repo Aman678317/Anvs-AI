@@ -66,9 +66,7 @@ class Settings(BaseSettings):
 
     # Neural Machine Translation NMT Worker (PR-10)
     nmt_engine_type: str = Field(default="mock", alias="NMT_ENGINE_TYPE")
-    nmt_model_name: str = Field(
-        default="facebook/nllb-200-distilled-600M", alias="NMT_MODEL_NAME"
-    )
+    nmt_model_name: str = Field(default="facebook/nllb-200-distilled-600M", alias="NMT_MODEL_NAME")
     nmt_device: str = Field(default="cpu", alias="NMT_DEVICE")
     nmt_consumer_group: str = Field(default="nmt-workers-group", alias="NMT_CONSUMER_GROUP")
     nmt_context_window_size: int = Field(default=2, alias="NMT_CONTEXT_WINDOW_SIZE")

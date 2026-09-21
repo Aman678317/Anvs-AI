@@ -216,7 +216,8 @@ async def test_personalized_caption_routing() -> None:
         translated_frame=jpn_frame,
     )
 
-    # English and Japanese participants should receive frames; French participant receives nothing yet
+    # English and Japanese participants should receive frames;
+    # French participant receives nothing yet
     assert delivered == 2
     assert len(ws_eng.sent_messages) == 1
     assert len(ws_jpn.sent_messages) == 1

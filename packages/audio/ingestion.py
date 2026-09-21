@@ -103,7 +103,8 @@ class AudioIngestionPipeline:
             if is_watermarked:
                 self.watermarked_frames_dropped += 1
                 logger.warning(
-                    "Invariant #3: Dropped 20 kHz synthetic watermarked audio frame from participant %s in meeting %s",
+                    "Invariant #3: Dropped 20 kHz synthetic watermarked audio frame "
+                    "from participant %s in meeting %s",
                     self.participant_id,
                     self.meeting_id,
                 )

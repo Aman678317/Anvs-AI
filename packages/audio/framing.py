@@ -8,7 +8,7 @@ from scipy import signal
 
 
 def pcm_s16le_to_float32(pcm_bytes: bytes) -> np.ndarray:
-    """Converts 16-bit signed integer little-endian PCM bytes to normalized float32 array [-1.0, 1.0].
+    """Converts 16-bit signed integer little-endian PCM bytes to float32 array [-1.0, 1.0].
 
     Args:
         pcm_bytes: Raw 16-bit PCM byte buffer.
@@ -75,7 +75,7 @@ class AudioResampler:
 
 
 class AudioChunker:
-    """Accumulates arbitrary-sized audio input and emits fixed-duration PCM frames (default: 20ms)."""
+    """Accumulates arbitrary-sized audio input and emits fixed-duration PCM frames."""
 
     def __init__(
         self,

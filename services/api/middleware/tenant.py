@@ -36,7 +36,8 @@ class TenantContextMiddleware(BaseHTTPMiddleware):
                     request.state.user = user
                     request.state.tenant_id = user.tenant_id
                 except AuthenticationError as e:
-                    # If an explicit Bearer token is provided and invalid/expired, reject immediately with 401
+                    # If an explicit Bearer token is provided and invalid/expired,
+                    # reject immediately with 401
                     return JSONResponse(
                         status_code=status.HTTP_401_UNAUTHORIZED,
                         content={"detail": str(e)},

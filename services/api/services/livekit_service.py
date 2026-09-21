@@ -38,7 +38,8 @@ class LiveKitService:
         """Generate a cryptographically signed LiveKit WebRTC access token.
 
         Enforces media publishing permissions based on ParticipantRole:
-        - HOST / MODERATOR / PARTICIPANT: can_publish=True, can_subscribe=True, can_publish_data=True
+        - HOST / MODERATOR / PARTICIPANT:
+          can_publish=True, can_subscribe=True, can_publish_data=True
         - GUEST: can_publish=False (listen-only), can_subscribe=True, can_publish_data=False
         """
         now = int(time.time())
