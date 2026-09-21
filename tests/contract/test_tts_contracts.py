@@ -54,7 +54,7 @@ def test_audio_segment_event_strict_contract() -> None:
 @pytest.mark.contract
 @pytest.mark.asyncio
 async def test_full_stt_nmt_tts_lineage_pipeline_contract() -> None:
-    """Verifies complete end-to-end lineage chain from SourceSegmentEvent -> Translation -> Audio."""
+    """Verifies complete lineage chain from SourceSegmentEvent -> Translation -> Audio."""
     mock_bus = AsyncMock(spec=RedisStreamBus)
     mock_bus.publish.return_value = "msg-pipeline-id"
     mock_bus.ack_event.return_value = 1

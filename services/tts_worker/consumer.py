@@ -22,7 +22,7 @@ logger = logging.getLogger(__name__)
 
 
 class TTSConsumer:
-    """Consumes TranslationSegmentEvents, synthesizes watermarked speech, and publishes AudioSegmentEvents."""
+    """Consumes TranslationSegmentEvents, synthesizes speech, and publishes AudioSegmentEvents."""
 
     def __init__(
         self,
@@ -123,7 +123,9 @@ class TTSConsumer:
                 exc_info=True,
             )
             payload_str = (
-                json.dumps(raw_payload) if isinstance(raw_payload, dict) else str(raw_payload)
+                json.dumps(raw_payload)
+                if isinstance(raw_payload, dict)
+                else str(raw_payload)
             )
             await self.stream_bus.send_to_dlq(
                 meeting_id=meeting_id,

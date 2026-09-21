@@ -22,7 +22,10 @@ from services.tts_worker import (
 async def test_mock_tts_engine_synthesizes_audio() -> None:
     """Verifies that MockTTSEngine produces normalized float32 audio samples."""
     engine = MockTTSEngine(sample_rate=48000, simulated_latency_ms=0)
-    result = await engine.synthesize("Welcome everyone to our multilingual meeting.", language="eng")
+    result = await engine.synthesize(
+        "Welcome everyone to our multilingual meeting.",
+        language="eng",
+    )
 
     assert isinstance(result.audio_pcm, np.ndarray)
     assert result.audio_pcm.dtype == np.float32

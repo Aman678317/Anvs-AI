@@ -17,7 +17,7 @@ from services.translation_worker import MockNMTEngine, NMTConsumer
 
 @pytest.mark.contract
 def test_translation_segment_event_strict_contract() -> None:
-    """Verifies that TranslationSegmentEvent schema forbids extra attributes and validates bounds."""
+    """Verifies that TranslationSegmentEvent schema forbids extra fields and validates bounds."""
     valid_data = {
         "event_id": "evt_nmt_contract_001",
         "timestamp_ms": 1710000000000,

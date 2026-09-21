@@ -56,21 +56,15 @@ class MockNMTEngine(BaseNMTEngine):
                 "welcome everyone to our multilingual meeting, let's begin the review.": (
                     "Bienvenidos a todos a nuestra reunión multilingüe, comencemos la revisión."
                 ),
-                "hello world contract verification": (
-                    "Hola mundo verificación de contrato"
-                ),
+                "hello world contract verification": "Hola mundo verificación de contrato",
                 "can everyone hear me clearly?": "¿Todos me escuchan con claridad?",
-                "thank you for joining today's session.": (
-                    "Gracias por unirse a la sesión de hoy."
-                ),
+                "thank you for joining today's session.": "Gracias por unirse a la sesión de hoy.",
             },
             ("eng", "fra"): {
                 "welcome everyone to our multilingual meeting, let's begin the review.": (
                     "Bienvenue à tous à notre réunion multilingue, commençons la révision."
                 ),
-                "hello world contract verification": (
-                    "Bonjour le monde vérification du contrat"
-                ),
+                "hello world contract verification": "Bonjour le monde vérification du contrat",
                 "can everyone hear me clearly?": "Est-ce que tout le monde m'entend clairement?",
                 "thank you for joining today's session.": (
                     "Merci d'avoir rejoint la session d'aujourd'hui."
@@ -80,9 +74,7 @@ class MockNMTEngine(BaseNMTEngine):
                 "welcome everyone to our multilingual meeting, let's begin the review.": (
                     "Willkommen alle zu unserem mehrsprachigen Treffen, beginnen wir die Überprüfung."
                 ),
-                "hello world contract verification": (
-                    "Hallo Welt Vertragsüberprüfung"
-                ),
+                "hello world contract verification": "Hallo Welt Vertragsüberprüfung",
                 "can everyone hear me clearly?": "Können mich alle deutlich hören?",
                 "thank you for joining today's session.": (
                     "Vielen Dank für Ihre Teilnahme an der heutigen Sitzung."
