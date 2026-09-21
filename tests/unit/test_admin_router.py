@@ -16,8 +16,7 @@ from services.api.middleware.tenant import (
     get_authenticated_tenant_session,
     get_current_user,
 )
-from services.api.routers.admin import get_admin_user, router as admin_router
-
+from services.api.routers import admin_router, get_admin_user
 
 TEST_TENANT_ID = str(uuid.uuid4())
 TEST_ADMIN_USER_ID = str(uuid.uuid4())
@@ -92,9 +91,7 @@ def test_admin_rbac_guard_blocks_non_host(participant_app: FastAPI) -> None:
 
 
 @pytest.mark.unit
-def test_get_organization_details(
-    admin_app: FastAPI, mock_session: AsyncMock
-) -> None:
+def test_get_organization_details(admin_app: FastAPI, mock_session: AsyncMock) -> None:
     """Fetch organization profile with member and meeting count aggregates."""
     org_id = uuid.UUID(TEST_TENANT_ID)
     now = datetime.now(UTC)
@@ -172,9 +169,7 @@ def test_update_organization(admin_app: FastAPI, mock_session: AsyncMock) -> Non
 
 
 @pytest.mark.unit
-def test_list_organization_members(
-    admin_app: FastAPI, mock_session: AsyncMock
-) -> None:
+def test_list_organization_members(admin_app: FastAPI, mock_session: AsyncMock) -> None:
     """List team members belonging to tenant."""
     now = datetime.now(UTC)
     user1 = User(
@@ -291,9 +286,7 @@ def test_remove_member(admin_app: FastAPI, mock_session: AsyncMock) -> None:
 
 
 @pytest.mark.unit
-def test_meeting_history_and_transcripts(
-    admin_app: FastAPI, mock_session: AsyncMock
-) -> None:
+def test_meeting_history_and_transcripts(admin_app: FastAPI, mock_session: AsyncMock) -> None:
     """Fetch meeting compliance summaries and lineaged transcript segments."""
     meeting_id = uuid.uuid4()
     now = datetime.now(UTC)
@@ -361,9 +354,7 @@ def test_meeting_history_and_transcripts(
 
 
 @pytest.mark.unit
-def test_analytics_and_audit_logs(
-    admin_app: FastAPI, mock_session: AsyncMock
-) -> None:
+def test_analytics_and_audit_logs(admin_app: FastAPI, mock_session: AsyncMock) -> None:
     """Verify live analytics metrics and compliance audit trail."""
     # Mock analytics aggregations
     mock_active = MagicMock()
