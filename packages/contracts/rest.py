@@ -215,11 +215,15 @@ class AdminAuditLogsResponse(BaseContract):
 
 
 class WorkerHeartbeatPayload(BaseContract):
-    worker_type: str = Field(..., description="Worker service type (stt, nmt, tts, speaker, assistant)")
+    worker_type: str = Field(
+        ..., description="Worker service type (stt, nmt, tts, speaker, assistant)"
+    )
     worker_id: str = Field(..., description="Unique instance identifier of the worker")
     timestamp_ms: int = Field(..., description="Epoch millisecond timestamp of the heartbeat")
     queue_depth: int = Field(default=0, ge=0, description="Observed queue depth for this worker")
-    gpu_utilization_pct: float | None = Field(default=None, ge=0.0, le=100.0, description="Optional GPU load %")
+    gpu_utilization_pct: float | None = Field(
+        default=None, ge=0.0, le=100.0, description="Optional GPU load %"
+    )
 
 
 class PipelineStatusResponse(BaseContract):

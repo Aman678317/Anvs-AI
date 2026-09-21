@@ -120,11 +120,26 @@ class Settings(BaseSettings):
     )
 
     # Pipeline Orchestrator & Backpressure (PR-16)
-    orchestrator_queue_high_threshold: int = Field(default=50, alias="ORCHESTRATOR_QUEUE_HIGH_THRESHOLD")
-    orchestrator_queue_critical_threshold: int = Field(default=100, alias="ORCHESTRATOR_QUEUE_CRITICAL_THRESHOLD")
-    orchestrator_worker_timeout_sec: float = Field(default=3.0, alias="ORCHESTRATOR_WORKER_TIMEOUT_SEC")
-    orchestrator_dlq_max_retries: int = Field(default=3, alias="ORCHESTRATOR_DLQ_MAX_RETRIES")
-    orchestrator_cooldown_period_sec: float = Field(default=10.0, alias="ORCHESTRATOR_COOLDOWN_PERIOD_SEC")
+    orchestrator_queue_high_threshold: int = Field(
+        default=50,
+        alias="ORCHESTRATOR_QUEUE_HIGH_THRESHOLD",
+    )
+    orchestrator_queue_critical_threshold: int = Field(
+        default=100,
+        alias="ORCHESTRATOR_QUEUE_CRITICAL_THRESHOLD",
+    )
+    orchestrator_worker_timeout_sec: float = Field(
+        default=3.0,
+        alias="ORCHESTRATOR_WORKER_TIMEOUT_SEC",
+    )
+    orchestrator_dlq_max_retries: int = Field(
+        default=3,
+        alias="ORCHESTRATOR_DLQ_MAX_RETRIES",
+    )
+    orchestrator_cooldown_period_sec: float = Field(
+        default=10.0,
+        alias="ORCHESTRATOR_COOLDOWN_PERIOD_SEC",
+    )
 
 
 settings = Settings()
