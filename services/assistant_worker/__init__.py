@@ -1,17 +1,14 @@
-"""Meeting Assistant Worker Service (Hyphenated Monorepo Alias)."""
+"""Meeting Assistant Worker Service adhering to Document 14."""
 
-from services.assistant_worker import (
-    AssistantAnswer,
-    AssistantConsumer,
+from .consumer import AssistantConsumer
+from .engine import (
     BaseAssistantEngine,
-    IndexedSegment,
-    MeetingSummary,
     MockAssistantEngine,
     OpenAIAssistantEngine,
-    TranscriptVectorStore,
-    cosine_similarity,
     create_assistant_engine,
 )
+from .types import AssistantAnswer, IndexedSegment, MeetingSummary
+from .vector_store import TranscriptVectorStore, cosine_similarity
 
 __all__ = [
     "AssistantAnswer",

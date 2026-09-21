@@ -101,5 +101,23 @@ class Settings(BaseSettings):
         alias="SPEAKER_SIMILARITY_THRESHOLD",
     )
 
+    # Meeting Assistant Worker (PR-13)
+    assistant_engine_type: str = Field(default="mock", alias="ASSISTANT_ENGINE_TYPE")
+    assistant_model_name: str = Field(default="gpt-4o-mini", alias="ASSISTANT_MODEL_NAME")
+    assistant_embedding_model: str = Field(
+        default="text-embedding-3-small",
+        alias="ASSISTANT_EMBEDDING_MODEL",
+    )
+    assistant_embedding_dim: int = Field(default=1536, alias="ASSISTANT_EMBEDDING_DIM")
+    assistant_consumer_group: str = Field(
+        default="assistant-workers-group",
+        alias="ASSISTANT_CONSUMER_GROUP",
+    )
+    assistant_top_k: int = Field(default=5, alias="ASSISTANT_TOP_K")
+    assistant_similarity_threshold: float = Field(
+        default=0.60,
+        alias="ASSISTANT_SIMILARITY_THRESHOLD",
+    )
+
 
 settings = Settings()
