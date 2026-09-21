@@ -12,7 +12,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from packages.auth import AuthenticatedUser, require_role
+from packages.auth import AuthenticatedUser, check_role_satisfies_minimum
 from packages.contracts import (
     AdminAnalyticsResponse,
     AdminAuditLogsResponse,
@@ -28,13 +28,29 @@ from packages.contracts import (
     UpdateOrganizationRequest,
 )
 from packages.database.models import Meeting, Organization, Participant, TranscriptSegment, User
-from services.api.middleware.tenant import get_authenticated_tenant_session
+from services.api.middleware.tenant import get_authenticated_tenant_session, get_current_user
+
+
+def get_admin_user(
+    user: AuthenticatedUser = Depends(get_current_user),
+) -> AuthenticatedUser:
+    """FastAPI dependency: require HOST role for all admin endpoints."""
+    if not check_role_satisfies_minimum(user.role, ParticipantRole.HOST):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=(
+                f"Forbidden: requires minimum role '{ParticipantRole.HOST.value}', "
+                f"have '{user.role.value}'"
+            ),
+        )
+    return user
+
 
 router = APIRouter(
     prefix="/api/v1/admin",
     tags=["Admin & Organization Portal"],
-    dependencies=[Depends(require_role(ParticipantRole.HOST))],
 )
+
 
 
 # -----------------------------------------------------------------------------
@@ -48,7 +64,7 @@ router = APIRouter(
     summary="Get current organization profile",
 )
 async def get_organization(
-    current_user: AuthenticatedUser = Depends(require_role(ParticipantRole.HOST)),
+    current_user: AuthenticatedUser = Depends(get_admin_user),
     session: AsyncSession = Depends(get_authenticated_tenant_session),
 ) -> OrganizationResponse:
     """Fetch organization details, user count, and meeting counts for the current tenant."""
@@ -89,7 +105,7 @@ async def get_organization(
 )
 async def update_organization(
     payload: UpdateOrganizationRequest,
-    current_user: AuthenticatedUser = Depends(require_role(ParticipantRole.HOST)),
+    current_user: AuthenticatedUser = Depends(get_admin_user),
     session: AsyncSession = Depends(get_authenticated_tenant_session),
 ) -> OrganizationResponse:
     """Update organization settings such as display name and custom slug."""
@@ -155,7 +171,7 @@ async def update_organization(
     summary="List organization team members",
 )
 async def list_members(
-    current_user: AuthenticatedUser = Depends(require_role(ParticipantRole.HOST)),
+    current_user: AuthenticatedUser = Depends(get_admin_user),
     session: AsyncSession = Depends(get_authenticated_tenant_session),
 ) -> list[OrganizationMemberResponse]:
     """Retrieve full roster of team members within the current organization."""
@@ -185,7 +201,7 @@ async def list_members(
 )
 async def invite_member(
     payload: InviteMemberRequest,
-    current_user: AuthenticatedUser = Depends(require_role(ParticipantRole.HOST)),
+    current_user: AuthenticatedUser = Depends(get_admin_user),
     session: AsyncSession = Depends(get_authenticated_tenant_session),
 ) -> OrganizationMemberResponse:
     """Invite and provision a new member in the organization with an assigned role."""
@@ -234,7 +250,7 @@ async def invite_member(
 async def update_member_role(
     user_id: uuid.UUID,
     payload: UpdateMemberRoleRequest,
-    current_user: AuthenticatedUser = Depends(require_role(ParticipantRole.HOST)),
+    current_user: AuthenticatedUser = Depends(get_admin_user),
     session: AsyncSession = Depends(get_authenticated_tenant_session),
 ) -> OrganizationMemberResponse:
     """Promote, demote, or change active status of a tenant member."""
@@ -295,7 +311,7 @@ async def update_member_role(
 )
 async def remove_member(
     user_id: uuid.UUID,
-    current_user: AuthenticatedUser = Depends(require_role(ParticipantRole.HOST)),
+    current_user: AuthenticatedUser = Depends(get_admin_user),
     session: AsyncSession = Depends(get_authenticated_tenant_session),
 ) -> None:
     """Remove a user from the organization."""
@@ -333,7 +349,7 @@ async def remove_member(
     summary="List organization meeting history",
 )
 async def list_meetings(
-    current_user: AuthenticatedUser = Depends(require_role(ParticipantRole.HOST)),
+    current_user: AuthenticatedUser = Depends(get_admin_user),
     session: AsyncSession = Depends(get_authenticated_tenant_session),
     limit: int = Query(default=50, ge=1, le=200),
 ) -> list[AdminMeetingSummaryResponse]:
@@ -393,7 +409,7 @@ async def list_meetings(
 )
 async def get_compliance_transcripts(
     meeting_id: uuid.UUID,
-    current_user: AuthenticatedUser = Depends(require_role(ParticipantRole.HOST)),
+    current_user: AuthenticatedUser = Depends(get_admin_user),
     session: AsyncSession = Depends(get_authenticated_tenant_session),
 ) -> list[TranscriptSegmentResponse]:
     """Retrieve full lineaged transcript segments with source segment IDs for compliance export."""
@@ -448,7 +464,7 @@ async def get_compliance_transcripts(
     summary="Get aggregated organization usage analytics",
 )
 async def get_analytics_overview(
-    current_user: AuthenticatedUser = Depends(require_role(ParticipantRole.HOST)),
+    current_user: AuthenticatedUser = Depends(get_admin_user),
     session: AsyncSession = Depends(get_authenticated_tenant_session),
 ) -> AdminAnalyticsResponse:
     """Retrieve live statistics: active rooms, transcribed minutes, language coverage."""
@@ -516,7 +532,7 @@ async def get_analytics_overview(
     summary="Get organization compliance audit trail",
 )
 async def get_audit_logs(
-    current_user: AuthenticatedUser = Depends(require_role(ParticipantRole.HOST)),
+    current_user: AuthenticatedUser = Depends(get_admin_user),
     _session: AsyncSession = Depends(get_authenticated_tenant_session),
     limit: int = Query(default=20, ge=1, le=100),
 ) -> AdminAuditLogsResponse:

@@ -3,7 +3,7 @@
 from collections.abc import Callable
 from enum import StrEnum
 
-from fastapi import HTTPException, Request, status
+from fastapi import HTTPException, status
 
 from packages.contracts import ParticipantRole
 
@@ -89,17 +89,7 @@ def require_role(
 ) -> Callable[..., AuthenticatedUser]:
     """FastAPI dependency factory enforcing a minimum role hierarchy."""
 
-    def role_checker(request: Request | AuthenticatedUser) -> AuthenticatedUser:
-        if isinstance(request, AuthenticatedUser):
-            user = request
-        else:
-            user = getattr(request.state, "user", None)
-            if not user or not isinstance(user, AuthenticatedUser):
-                raise HTTPException(
-                    status_code=status.HTTP_401_UNAUTHORIZED,
-                    detail="Authentication required.",
-                    headers={"WWW-Authenticate": "Bearer"},
-                )
+    def role_checker(user: AuthenticatedUser) -> AuthenticatedUser:
         if not check_role_satisfies_minimum(user.role, minimum_role):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
@@ -118,17 +108,7 @@ def require_permission(
 ) -> Callable[..., AuthenticatedUser]:
     """FastAPI dependency factory enforcing a specific permission."""
 
-    def permission_checker(request: Request | AuthenticatedUser) -> AuthenticatedUser:
-        if isinstance(request, AuthenticatedUser):
-            user = request
-        else:
-            user = getattr(request.state, "user", None)
-            if not user or not isinstance(user, AuthenticatedUser):
-                raise HTTPException(
-                    status_code=status.HTTP_401_UNAUTHORIZED,
-                    detail="Authentication required.",
-                    headers={"WWW-Authenticate": "Bearer"},
-                )
+    def permission_checker(user: AuthenticatedUser) -> AuthenticatedUser:
         if not has_permission(user.role, permission):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,

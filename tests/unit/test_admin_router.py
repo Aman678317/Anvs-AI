@@ -8,14 +8,15 @@ import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-from packages.auth import AuthenticatedUser, create_access_token
+from packages.auth import AuthenticatedUser
 from packages.contracts import ParticipantRole
 from packages.database.models import Meeting, Organization, TranscriptSegment, User
 from services.api.middleware.tenant import (
     TenantContextMiddleware,
     get_authenticated_tenant_session,
+    get_current_user,
 )
-from services.api.routers.admin import router as admin_router
+from services.api.routers.admin import get_admin_user, router as admin_router
 
 TEST_TENANT_ID = str(uuid.uuid4())
 TEST_ADMIN_USER_ID = str(uuid.uuid4())
@@ -32,41 +33,48 @@ def mock_session() -> AsyncMock:
     return session
 
 
+HOST_USER = AuthenticatedUser(
+    user_id=TEST_ADMIN_USER_ID,
+    tenant_id=TEST_TENANT_ID,
+    email="admin@enterprise.org",
+    role=ParticipantRole.HOST,
+    display_name="Enterprise Admin",
+)
+
+PARTICIPANT_USER = AuthenticatedUser(
+    user_id=TEST_MEMBER_USER_ID,
+    tenant_id=TEST_TENANT_ID,
+    email="member@enterprise.org",
+    role=ParticipantRole.PARTICIPANT,
+    display_name="Regular Member",
+)
+
+
 @pytest.fixture
 def admin_app(mock_session: AsyncMock) -> FastAPI:
     app = FastAPI()
     app.add_middleware(TenantContextMiddleware)
     app.include_router(admin_router)
 
-    # Dependency overrides
+    # Override both auth dependencies: skip JWT entirely, inject HOST user directly
     app.dependency_overrides[get_authenticated_tenant_session] = lambda: mock_session
+    app.dependency_overrides[get_current_user] = lambda: HOST_USER
+    app.dependency_overrides[get_admin_user] = lambda: HOST_USER
     return app
 
 
 @pytest.fixture
-def host_token() -> str:
-    return create_access_token(
-        AuthenticatedUser(
-            user_id=TEST_ADMIN_USER_ID,
-            tenant_id=TEST_TENANT_ID,
-            email="admin@enterprise.org",
-            role=ParticipantRole.HOST,
-            display_name="Enterprise Admin",
-        )
-    )
+def participant_app(mock_session: AsyncMock) -> FastAPI:
+    """App fixture with a PARTICIPANT user — should receive 403 on admin routes."""
+    app = FastAPI()
+    app.add_middleware(TenantContextMiddleware)
+    app.include_router(admin_router)
 
+    app.dependency_overrides[get_authenticated_tenant_session] = lambda: mock_session
+    app.dependency_overrides[get_current_user] = lambda: PARTICIPANT_USER
+    # Do NOT override get_admin_user — let it run so the role check fires
+    return app
 
-@pytest.fixture
-def participant_token() -> str:
-    return create_access_token(
-        AuthenticatedUser(
-            user_id=TEST_MEMBER_USER_ID,
-            tenant_id=TEST_TENANT_ID,
-            email="member@enterprise.org",
-            role=ParticipantRole.PARTICIPANT,
-            display_name="Regular Member",
-        )
-    )
 
 
 # -----------------------------------------------------------------------------
@@ -75,20 +83,17 @@ def participant_token() -> str:
 
 
 @pytest.mark.unit
-def test_admin_rbac_guard_blocks_non_host(admin_app: FastAPI, participant_token: str) -> None:
+def test_admin_rbac_guard_blocks_non_host(participant_app: FastAPI) -> None:
     """Non-host users must receive 403 Forbidden on all admin routes."""
-    client = TestClient(admin_app)
-    response = client.get(
-        "/api/v1/admin/organization",
-        headers={"Authorization": f"Bearer {participant_token}"},
-    )
+    client = TestClient(participant_app)
+    response = client.get("/api/v1/admin/organization")
     assert response.status_code == 403
     assert "requires minimum role 'host'" in response.json()["detail"].lower()
 
 
 @pytest.mark.unit
 def test_get_organization_details(
-    admin_app: FastAPI, mock_session: AsyncMock, host_token: str
+    admin_app: FastAPI, mock_session: AsyncMock
 ) -> None:
     """Fetch organization profile with member and meeting count aggregates."""
     org_id = uuid.UUID(TEST_TENANT_ID)
@@ -114,10 +119,7 @@ def test_get_organization_details(
     mock_session.execute.side_effect = [mock_res_org, mock_res_users, mock_res_meetings]
 
     client = TestClient(admin_app)
-    response = client.get(
-        "/api/v1/admin/organization",
-        headers={"Authorization": f"Bearer {host_token}"},
-    )
+    response = client.get("/api/v1/admin/organization")
     assert response.status_code == 200
     data = response.json()
     assert data["id"] == TEST_TENANT_ID
@@ -128,7 +130,7 @@ def test_get_organization_details(
 
 
 @pytest.mark.unit
-def test_update_organization(admin_app: FastAPI, mock_session: AsyncMock, host_token: str) -> None:
+def test_update_organization(admin_app: FastAPI, mock_session: AsyncMock) -> None:
     """Update organization name and slug."""
     org_id = uuid.UUID(TEST_TENANT_ID)
     now = datetime.now(UTC)
@@ -163,7 +165,6 @@ def test_update_organization(admin_app: FastAPI, mock_session: AsyncMock, host_t
     response = client.patch(
         "/api/v1/admin/organization",
         json={"name": "Acme Global", "slug": "acme-global"},
-        headers={"Authorization": f"Bearer {host_token}"},
     )
     assert response.status_code == 200
     assert mock_org.name == "Acme Global"
@@ -172,7 +173,7 @@ def test_update_organization(admin_app: FastAPI, mock_session: AsyncMock, host_t
 
 @pytest.mark.unit
 def test_list_organization_members(
-    admin_app: FastAPI, mock_session: AsyncMock, host_token: str
+    admin_app: FastAPI, mock_session: AsyncMock
 ) -> None:
     """List team members belonging to tenant."""
     now = datetime.now(UTC)
@@ -200,10 +201,7 @@ def test_list_organization_members(
     mock_session.execute.return_value = mock_res
 
     client = TestClient(admin_app)
-    response = client.get(
-        "/api/v1/admin/members",
-        headers={"Authorization": f"Bearer {host_token}"},
-    )
+    response = client.get("/api/v1/admin/members")
     assert response.status_code == 200
     members = response.json()
     assert len(members) == 2
@@ -214,7 +212,7 @@ def test_list_organization_members(
 
 
 @pytest.mark.unit
-def test_invite_member(admin_app: FastAPI, mock_session: AsyncMock, host_token: str) -> None:
+def test_invite_member(admin_app: FastAPI, mock_session: AsyncMock) -> None:
     """Invite and provision a new member in the organization."""
     # Existing check returns None
     mock_res_existing = MagicMock()
@@ -229,7 +227,6 @@ def test_invite_member(admin_app: FastAPI, mock_session: AsyncMock, host_token: 
             "role": "MODERATOR",
             "display_name": "New Hire",
         },
-        headers={"Authorization": f"Bearer {host_token}"},
     )
     assert response.status_code == 201
     data = response.json()
@@ -241,7 +238,7 @@ def test_invite_member(admin_app: FastAPI, mock_session: AsyncMock, host_token: 
 
 
 @pytest.mark.unit
-def test_update_member_role(admin_app: FastAPI, mock_session: AsyncMock, host_token: str) -> None:
+def test_update_member_role(admin_app: FastAPI, mock_session: AsyncMock) -> None:
     """Promote or update member role and status."""
     now = datetime.now(UTC)
     target_user = User(
@@ -262,7 +259,6 @@ def test_update_member_role(admin_app: FastAPI, mock_session: AsyncMock, host_to
     response = client.patch(
         f"/api/v1/admin/members/{TEST_MEMBER_USER_ID}",
         json={"role": "MODERATOR", "is_active": True},
-        headers={"Authorization": f"Bearer {host_token}"},
     )
     assert response.status_code == 200
     data = response.json()
@@ -271,7 +267,7 @@ def test_update_member_role(admin_app: FastAPI, mock_session: AsyncMock, host_to
 
 
 @pytest.mark.unit
-def test_remove_member(admin_app: FastAPI, mock_session: AsyncMock, host_token: str) -> None:
+def test_remove_member(admin_app: FastAPI, mock_session: AsyncMock) -> None:
     """Remove a non-self member from the organization."""
     now = datetime.now(UTC)
     target_user = User(
@@ -289,17 +285,14 @@ def test_remove_member(admin_app: FastAPI, mock_session: AsyncMock, host_token: 
     mock_session.execute.return_value = mock_res
 
     client = TestClient(admin_app)
-    response = client.delete(
-        f"/api/v1/admin/members/{TEST_MEMBER_USER_ID}",
-        headers={"Authorization": f"Bearer {host_token}"},
-    )
+    response = client.delete(f"/api/v1/admin/members/{TEST_MEMBER_USER_ID}")
     assert response.status_code == 204
     assert mock_session.delete.awaited
 
 
 @pytest.mark.unit
 def test_meeting_history_and_transcripts(
-    admin_app: FastAPI, mock_session: AsyncMock, host_token: str
+    admin_app: FastAPI, mock_session: AsyncMock
 ) -> None:
     """Fetch meeting compliance summaries and lineaged transcript segments."""
     meeting_id = uuid.uuid4()
@@ -325,10 +318,7 @@ def test_meeting_history_and_transcripts(
     mock_session.execute.side_effect = [mock_res_meetings, mock_res_parts, mock_res_segs]
 
     client = TestClient(admin_app)
-    res_meetings = client.get(
-        "/api/v1/admin/meetings",
-        headers={"Authorization": f"Bearer {host_token}"},
-    )
+    res_meetings = client.get("/api/v1/admin/meetings")
     assert res_meetings.status_code == 200
     summaries = res_meetings.json()
     assert len(summaries) == 1
@@ -361,10 +351,7 @@ def test_meeting_history_and_transcripts(
 
     mock_session.execute.side_effect = [mock_res_meet_verify, mock_res_trans]
 
-    res_transcripts = client.get(
-        f"/api/v1/admin/meetings/{meeting_id}/transcripts",
-        headers={"Authorization": f"Bearer {host_token}"},
-    )
+    res_transcripts = client.get(f"/api/v1/admin/meetings/{meeting_id}/transcripts")
     assert res_transcripts.status_code == 200
     segments = res_transcripts.json()
     assert len(segments) == 1
@@ -375,7 +362,7 @@ def test_meeting_history_and_transcripts(
 
 @pytest.mark.unit
 def test_analytics_and_audit_logs(
-    admin_app: FastAPI, mock_session: AsyncMock, host_token: str
+    admin_app: FastAPI, mock_session: AsyncMock
 ) -> None:
     """Verify live analytics metrics and compliance audit trail."""
     # Mock analytics aggregations
@@ -403,10 +390,7 @@ def test_analytics_and_audit_logs(
     ]
 
     client = TestClient(admin_app)
-    res_analytics = client.get(
-        "/api/v1/admin/analytics/overview",
-        headers={"Authorization": f"Bearer {host_token}"},
-    )
+    res_analytics = client.get("/api/v1/admin/analytics/overview")
     assert res_analytics.status_code == 200
     analytics = res_analytics.json()
     assert analytics["active_meetings_count"] == 3
@@ -416,10 +400,7 @@ def test_analytics_and_audit_logs(
     assert analytics["language_breakdown"]["eng"] == 50
 
     # Audit logs
-    res_audit = client.get(
-        "/api/v1/admin/audit-logs",
-        headers={"Authorization": f"Bearer {host_token}"},
-    )
+    res_audit = client.get("/api/v1/admin/audit-logs")
     assert res_audit.status_code == 200
     audit_data = res_audit.json()
     assert audit_data["total"] >= 1
