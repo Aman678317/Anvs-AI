@@ -5,11 +5,7 @@ from unittest.mock import AsyncMock
 import numpy as np
 import pytest
 
-from packages.event_schema import (
-    AssistantQueryEvent,
-    RedisStreamBus,
-    SourceSegmentEvent,
-)
+from packages.event_schema import AssistantQueryEvent, RedisStreamBus, SourceSegmentEvent
 from services.assistant_worker import (
     AssistantAnswer,
     AssistantConsumer,
@@ -56,9 +52,7 @@ def test_vector_store_add_and_similarity_search() -> None:
         source_segment_id="src_seg_design_02",
         text="The mobile user interface navigation needs larger buttons.",
         speaker_name="Bob",
-        embedding=engine.embed_text(
-            "The mobile user interface navigation needs larger buttons."
-        ),
+        embedding=engine.embed_text("The mobile user interface navigation needs larger buttons."),
         meeting_id="meeting_store_test",
         tenant_id="tenant_alpha",
     )

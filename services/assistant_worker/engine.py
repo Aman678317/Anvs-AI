@@ -10,11 +10,7 @@ from collections import Counter
 import numpy as np
 
 from packages.config.settings import settings
-from services.assistant_worker.types import (
-    AssistantAnswer,
-    IndexedSegment,
-    MeetingSummary,
-)
+from services.assistant_worker.types import AssistantAnswer, IndexedSegment, MeetingSummary
 
 logger = logging.getLogger(__name__)
 
@@ -126,7 +122,7 @@ class MockAssistantEngine(BaseAssistantEngine):
             if seg.source_segment_id not in citations:
                 citations.append(seg.source_segment_id)
             speaker_prefix = f"{seg.speaker_name or 'Speaker'}: "
-            snippets.append(f"{speaker_prefix}\"{seg.text}\"")
+            snippets.append(f'{speaker_prefix}"{seg.text}"')
 
             # Check for embedded action items
             for pat in self._action_patterns:
@@ -193,8 +189,7 @@ class MockAssistantEngine(BaseAssistantEngine):
         summary_text = (
             f"The meeting covered {total_segments} discussion segment{plural}. "
             f"Key discussion centered around: {topic_str}. "
-            f"Total action items identified: {len(action_items)}; "
-            f"decisions finalized: {len(key_decisions)}."
+            f"Total action items: {len(action_items)}; decisions: {len(key_decisions)}."
         )
 
         return MeetingSummary(

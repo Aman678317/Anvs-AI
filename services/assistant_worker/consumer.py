@@ -73,9 +73,13 @@ class AssistantConsumer:
     ) -> IndexedSegment | None:
         """Indexes a final SourceSegmentEvent into the localized vector store."""
         try:
-            payload_dict = (
-                json.loads(raw_payload) if isinstance(raw_payload, str) else raw_payload
-            )
+            if isinstance(raw_payload, str):
+                payload_dict = json.loads(raw_payload)
+            elif isinstance(raw_payload, dict):
+                payload_dict = raw_payload
+            else:
+                payload_dict = json.loads(str(raw_payload))
+
             event = SourceSegmentEvent.model_validate(payload_dict)
 
             # Only index completed final transcript utterances for RAG
@@ -132,9 +136,13 @@ class AssistantConsumer:
     ) -> AssistantResponseEvent | None:
         """Processes an AssistantQueryEvent and emits an AssistantResponseEvent with citations."""
         try:
-            payload_dict = (
-                json.loads(raw_payload) if isinstance(raw_payload, str) else raw_payload
-            )
+            if isinstance(raw_payload, str):
+                payload_dict = json.loads(raw_payload)
+            elif isinstance(raw_payload, dict):
+                payload_dict = raw_payload
+            else:
+                payload_dict = json.loads(str(raw_payload))
+
             query_event = AssistantQueryEvent.model_validate(payload_dict)
 
             # 1. Embed query text
