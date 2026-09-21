@@ -9,11 +9,11 @@ import base64
 import os
 from typing import Any
 
+import numpy as np
 from cryptography.exceptions import InvalidTag
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 from cryptography.hazmat.primitives.kdf.hkdf import HKDF
-import numpy as np
 from sqlalchemy.types import String, TypeDecorator
 
 from packages.config import settings
@@ -166,12 +166,12 @@ class EncryptedString(TypeDecorator):
     impl = String
     cache_ok = True
 
-    def process_bind_param(self, value: Any, dialect: Any) -> Any:
+    def process_bind_param(self, value: Any, _dialect: Any) -> Any:
         if value is None:
             return None
         return default_crypto_engine.encrypt_text(str(value))
 
-    def process_result_value(self, value: Any, dialect: Any) -> Any:
+    def process_result_value(self, value: Any, _dialect: Any) -> Any:
         if value is None:
             return None
         return default_crypto_engine.decrypt_text(str(value))

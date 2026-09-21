@@ -8,7 +8,6 @@ import pytest
 from fastapi.testclient import TestClient
 
 from packages.observability import (
-    StructuredJsonFormatter,
     active_meetings_count,
     backpressure_dropped_partials_total,
     extract_trace_context,
@@ -16,6 +15,7 @@ from packages.observability import (
     get_current_span_id,
     get_current_trace_id,
     inject_trace_context,
+    StructuredJsonFormatter,
     stt_inference_duration_seconds,
     trace_span,
 )

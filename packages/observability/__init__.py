@@ -1,6 +1,6 @@
 """Observability package with OpenTelemetry distributed tracing and Prometheus metrics (PR-17)."""
 
-import logging
+from logging import getLogger
 
 from .logging import StructuredJsonFormatter, configure_logging
 from .metrics import (
@@ -30,7 +30,7 @@ from .tracer import (
     trace_span,
 )
 
-logger = logging.getLogger("multilingual-meeting-platform")
+logger = getLogger("multilingual-meeting-platform")
 tracer = get_tracer("multilingual-meeting-platform")
 
 __all__ = [

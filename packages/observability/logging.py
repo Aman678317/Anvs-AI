@@ -11,6 +11,8 @@ from typing import Any
 
 from packages.observability.tracer import get_current_span_id, get_current_trace_id
 
+getLogger = logging.getLogger
+
 
 class StructuredJsonFormatter(logging.Formatter):
     """Formats log records as structured JSON with distributed tracing metadata."""

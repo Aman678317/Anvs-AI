@@ -10,7 +10,12 @@ from typing import Any
 from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from packages.database.models import Participant, TranscriptEmbedding, TranscriptSegment, User
+from packages.database.models import (
+    Participant,
+    TranscriptEmbedding,
+    TranscriptSegment,
+    User,
+)
 
 
 class ComplianceManager:
