@@ -141,5 +141,23 @@ class Settings(BaseSettings):
         alias="ORCHESTRATOR_COOLDOWN_PERIOD_SEC",
     )
 
+    # Security Hardening & Cryptography (PR-18)
+    security_master_encryption_key: str = Field(
+        default="0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+        alias="SECURITY_MASTER_ENCRYPTION_KEY",
+    )
+    security_rate_limit_per_minute: int = Field(
+        default=120,
+        alias="SECURITY_RATE_LIMIT_PER_MINUTE",
+    )
+    security_rate_limit_burst: int = Field(
+        default=30,
+        alias="SECURITY_RATE_LIMIT_BURST",
+    )
+    security_rate_limit_enabled: bool = Field(
+        default=True,
+        alias="SECURITY_RATE_LIMIT_ENABLED",
+    )
+
 
 settings = Settings()

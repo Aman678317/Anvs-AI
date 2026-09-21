@@ -1,10 +1,15 @@
 """FastAPI Control Plane Entrypoint (Services / API)."""
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Response
 from fastapi.middleware.cors import CORSMiddleware
 
 from packages.config import settings
-from services.api.middleware import TenantContextMiddleware
+from packages.observability import generate_metrics_response
+from services.api.middleware import (
+    RateLimitMiddleware,
+    SecurityHeadersMiddleware,
+    TenantContextMiddleware,
+)
 from services.api.routers import admin_router, auth_router, rooms_router
 
 app = FastAPI(
@@ -18,8 +23,10 @@ app = FastAPI(
     redoc_url="/redoc",
 )
 
-# Middleware stack (LIFO: TenantContextMiddleware runs after CORS)
+# Middleware stack (LIFO execution order)
+app.add_middleware(RateLimitMiddleware)
 app.add_middleware(TenantContextMiddleware)
+app.add_middleware(SecurityHeadersMiddleware)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins,
@@ -43,6 +50,13 @@ async def health_check() -> dict:
         "version": "1.0.0",
         "environment": settings.app_env,
     }
+
+
+@app.get("/metrics", tags=["System"])
+async def get_prometheus_metrics() -> Response:
+    """Prometheus exposition metrics endpoint."""
+    content, media_type = generate_metrics_response()
+    return Response(content=content, media_type=media_type)
 
 
 @app.get("/", tags=["System"])

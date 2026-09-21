@@ -3,13 +3,11 @@
 import json
 import logging
 import re
-from unittest.mock import MagicMock
 
 import pytest
 from fastapi.testclient import TestClient
 
 from packages.observability import (
-    REGISTRY,
     StructuredJsonFormatter,
     active_meetings_count,
     backpressure_dropped_partials_total,
