@@ -7,7 +7,6 @@ Strictly protected by ParticipantRole.HOST hierarchy (Invariant DoD).
 
 import uuid
 from datetime import UTC, datetime
-from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import func, select
@@ -531,7 +530,7 @@ async def get_analytics_overview(
 )
 async def get_audit_logs(
     current_user: AuthenticatedUser = Depends(require_role(ParticipantRole.HOST)),
-    session: AsyncSession = Depends(get_authenticated_tenant_session),
+    _session: AsyncSession = Depends(get_authenticated_tenant_session),
     limit: int = Query(default=20, ge=1, le=100),
 ) -> AdminAuditLogsResponse:
     """Retrieve compliance audit records for data access, role changes, and member invites."""

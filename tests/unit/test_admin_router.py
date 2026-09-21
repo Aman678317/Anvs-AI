@@ -9,12 +9,11 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 from packages.auth import AuthenticatedUser, create_access_token
-from packages.contracts import MeetingStatus, ParticipantRole
-from packages.database.models import Meeting, Organization, Participant, TranscriptSegment, User
+from packages.contracts import ParticipantRole
+from packages.database.models import Meeting, Organization, TranscriptSegment, User
 from services.api.middleware.tenant import (
     TenantContextMiddleware,
     get_authenticated_tenant_session,
-    get_current_user,
 )
 from services.api.routers.admin import router as admin_router
 
