@@ -1,6 +1,7 @@
 """REST API Request and Response Contracts."""
 
 from datetime import datetime
+from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -134,3 +135,75 @@ class GetTranscriptResponse(BaseContract):
     total_segments: int
     format: TranscriptFormat
     segments: list[TranscriptSegmentResponse]
+
+
+class OrganizationResponse(BaseContract):
+    id: str
+    name: str
+    slug: str
+    created_at: datetime
+    member_count: int = 0
+    meeting_count: int = 0
+
+
+class UpdateOrganizationRequest(BaseContract):
+    name: str | None = Field(default=None, min_length=1, max_length=200)
+    slug: str | None = Field(default=None, min_length=1, max_length=100)
+
+
+class OrganizationMemberResponse(BaseContract):
+    user_id: str
+    email: str
+    role: ParticipantRole
+    display_name: str | None = None
+    is_active: bool = True
+    created_at: datetime
+
+
+class InviteMemberRequest(BaseContract):
+    email: str = Field(..., min_length=3, max_length=255)
+    role: ParticipantRole = Field(default=ParticipantRole.PARTICIPANT)
+    display_name: str | None = Field(default=None, max_length=100)
+
+
+class UpdateMemberRoleRequest(BaseContract):
+    role: ParticipantRole | None = None
+    is_active: bool | None = None
+
+
+class AdminMeetingSummaryResponse(BaseContract):
+    meeting_id: str
+    title: str
+    status: MeetingStatus
+    scheduled_start: datetime | None = None
+    started_at: datetime | None = None
+    ended_at: datetime | None = None
+    duration_seconds: int | None = None
+    participant_count: int = 0
+    transcript_segment_count: int = 0
+    created_at: datetime
+
+
+class AdminAnalyticsResponse(BaseContract):
+    tenant_id: str
+    active_meetings_count: int
+    total_meetings_count: int
+    total_transcribed_minutes: float
+    total_participants_count: int
+    language_breakdown: dict[str, int]
+    average_translation_latency_ms: float
+
+
+class AuditLogEntry(BaseContract):
+    id: str
+    event_type: str
+    actor_email: str
+    target: str
+    timestamp: datetime
+    details: dict[str, Any] = Field(default_factory=dict)
+
+
+class AdminAuditLogsResponse(BaseContract):
+    logs: list[AuditLogEntry]
+    total: int
+

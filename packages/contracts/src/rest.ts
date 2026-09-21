@@ -112,3 +112,74 @@ export interface GetTranscriptResponse {
   format: TranscriptFormat;
   segments: TranscriptSegmentResponse[];
 }
+
+export interface OrganizationResponse {
+  id: string;
+  name: string;
+  slug: string;
+  created_at: string;
+  member_count: number;
+  meeting_count: number;
+}
+
+export interface UpdateOrganizationRequest {
+  name?: string;
+  slug?: string;
+}
+
+export interface OrganizationMemberResponse {
+  user_id: string;
+  email: string;
+  role: ParticipantRole;
+  display_name?: string | null;
+  is_active: boolean;
+  created_at: string;
+}
+
+export interface InviteMemberRequest {
+  email: string;
+  role?: ParticipantRole;
+  display_name?: string | null;
+}
+
+export interface UpdateMemberRoleRequest {
+  role?: ParticipantRole;
+  is_active?: boolean;
+}
+
+export interface AdminMeetingSummaryResponse {
+  meeting_id: string;
+  title: string;
+  status: MeetingStatus;
+  scheduled_start?: string | null;
+  started_at?: string | null;
+  ended_at?: string | null;
+  duration_seconds?: number | null;
+  participant_count: number;
+  transcript_segment_count: number;
+  created_at: string;
+}
+
+export interface AdminAnalyticsResponse {
+  tenant_id: string;
+  active_meetings_count: number;
+  total_meetings_count: number;
+  total_transcribed_minutes: number;
+  total_participants_count: number;
+  language_breakdown: Record<string, number>;
+  average_translation_latency_ms: number;
+}
+
+export interface AuditLogEntry {
+  id: string;
+  event_type: string;
+  actor_email: string;
+  target: string;
+  timestamp: string;
+  details: Record<string, unknown>;
+}
+
+export interface AdminAuditLogsResponse {
+  logs: AuditLogEntry[];
+  total: number;
+}
