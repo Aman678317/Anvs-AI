@@ -109,21 +109,20 @@ async def update_organization(
 
     if payload.name is not None:
         org.name = payload.name
-    if payload.slug is not None:
+    if payload.slug is not None and payload.slug != org.slug:
         # Check slug uniqueness if changed
-        if payload.slug != org.slug:
-            existing = await session.execute(
-                select(Organization).where(
-                    Organization.slug == payload.slug,
-                    Organization.id != tenant_uuid,
-                )
+        existing = await session.execute(
+            select(Organization).where(
+                Organization.slug == payload.slug,
+                Organization.id != tenant_uuid,
             )
-            if existing.scalar_one_or_none():
-                raise HTTPException(
-                    status_code=status.HTTP_409_CONFLICT,
-                    detail=f"Slug '{payload.slug}' is already in use by another organization",
-                )
-            org.slug = payload.slug
+        )
+        if existing.scalar_one_or_none():
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=f"Slug '{payload.slug}' is already in use by another organization",
+            )
+        org.slug = payload.slug
 
     org.updated_at = datetime.now(UTC)
     await session.commit()
