@@ -6,7 +6,7 @@ fan-out, TTS 20 kHz watermarked synthesis, RAG assistant citation provenance, an
 """
 
 import uuid
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, MagicMock
 
 import numpy as np
 import pytest
@@ -27,7 +27,7 @@ from packages.event_schema.events import (
 from services.api.routers.rooms import create_room, end_room, join_room
 from services.assistant_worker.consumer import AssistantConsumer
 from services.assistant_worker.engine import MockAssistantEngine
-from services.realtime_gateway.manager import ConnectionManager
+from services.realtime_gateway.manager import ClientSession, ConnectionManager
 from services.realtime_gateway.subscriber import RedisStreamSubscriber
 from services.stt_worker.engine import MockSTTEngine
 from services.translation_worker.engine import MockNMTEngine
@@ -54,6 +54,7 @@ async def test_multiuser_polyglot_meeting_lifecycle() -> None:
         host_listening_language="eng",
     )
     mock_session = AsyncMock()
+    mock_session.add = MagicMock()
     room_resp = await create_room(
         payload=create_req,
         current_user=host_user,
@@ -74,7 +75,9 @@ async def test_multiuser_polyglot_meeting_lifecycle() -> None:
         host_spoken_language="eng",
         host_listening_language="eng",
     )
-    mock_session.execute.return_value.scalar_one_or_none.return_value = meeting_obj
+    mock_result = MagicMock()
+    mock_result.scalar_one_or_none.return_value = meeting_obj
+    mock_session.execute.return_value = mock_result
 
     # 2. Host & 3 Multilingual Participants Join
     attendees_meta = [
@@ -111,22 +114,24 @@ async def test_multiuser_polyglot_meeting_lifecycle() -> None:
         join_frame = WSClientJoinFrame(
             type=WSClientMessageType.JOIN,
             ticket=join_resp.ws_ticket,
-            meeting_id=meeting_id,
             participant_id=att["id"],
-            listening_language=att["lang"],
         )
         assert join_frame.ticket == join_resp.ws_ticket
 
         # Connect to Realtime WebSocket Connection Manager
         mock_ws = AsyncMock(spec=WebSocket)
-        client_session = await conn_manager.connect(
+        client_session = ClientSession(
             websocket=mock_ws,
-            meeting_id=meeting_id,
             participant_id=att["id"],
             user_id=att["id"],
             tenant_id=tenant_id,
             role=att["role"],
             listening_language=att["lang"],
+        )
+        await conn_manager.connect(
+            meeting_id=meeting_id,
+            participant_id=att["id"],
+            session=client_session,
         )
         assert client_session.participant_id == att["id"]
 
@@ -136,15 +141,20 @@ async def test_multiuser_polyglot_meeting_lifecycle() -> None:
     stt_engine = MockSTTEngine(default_phrase="We are expanding international operations.")
     dummy_audio = np.zeros(16000, dtype=np.float32)
     stt_result = await stt_engine.transcribe_segment(
-        dummy_audio, sample_rate=16000, language="eng"
+        dummy_audio,
+        sample_rate=16000,
+        language="eng",
     )
 
     source_segment_id = str(uuid.uuid4())
     source_event = SourceSegmentEvent(
-        source_segment_id=source_segment_id,
+        event_id=str(uuid.uuid4()),
+        timestamp_ms=1710000000000,
         meeting_id=meeting_id,
+        session_id=str(uuid.uuid4()),
         participant_id=host_id,
-        source_language="eng",
+        source_segment_id=source_segment_id,
+        language="eng",
         text=stt_result.text,
         is_final=True,
         confidence=0.98,
@@ -155,7 +165,7 @@ async def test_multiuser_polyglot_meeting_lifecycle() -> None:
 
     # 4. NMT Multi-Target Fan-out
     nmt_engine = MockNMTEngine()
-    subscriber = RedisStreamSubscriber(conn_manager)
+    subscriber = RedisStreamSubscriber(manager=conn_manager)
     subscriber_captions: list[dict] = []
 
     for target_lang in ["spa", "fra", "deu"]:
@@ -165,26 +175,23 @@ async def test_multiuser_polyglot_meeting_lifecycle() -> None:
             target_lang=target_lang,
         )
         trans_event = TranslationSegmentEvent(
-            source_segment_id=source_segment_id,
+            event_id=str(uuid.uuid4()),
+            timestamp_ms=1710000000000,
             meeting_id=meeting_id,
-            participant_id=host_id,
+            source_segment_id=source_segment_id,
             source_language="eng",
             target_language=target_lang,
-            original_text=source_event.text,
             translated_text=nmt_res.translated_text,
             is_final=True,
-            start_ms=0,
-            end_ms=2500,
-            latency_ms=45.0,
+            latency_ms=45,
         )
         # Lineage Invariant #2: source_segment_id strictly preserved
         assert trans_event.source_segment_id == source_segment_id
 
         # Route caption to listening participants
-        caption_frame = subscriber.convert_translation_event(trans_event)
-        assert caption_frame.type == WSServerMessageType.CAPTION
+        caption_frame = await subscriber.handle_translation_segment(trans_event)
+        assert caption_frame.type == WSServerMessageType.CAPTION_UPDATE
         assert caption_frame.source_segment_id == source_segment_id
-        await conn_manager.deliver_caption_event(meeting_id, trans_event)
         subscriber_captions.append(trans_event.model_dump())
 
     # Verify all 3 target translations were generated
@@ -200,12 +207,13 @@ async def test_multiuser_polyglot_meeting_lifecycle() -> None:
     assert detect_watermark(tts_result.audio_pcm, sample_rate=48000) is True
 
     audio_event = AudioSegmentEvent(
-        source_segment_id=source_segment_id,
+        event_id=str(uuid.uuid4()),
+        timestamp_ms=1710000000000,
         meeting_id=meeting_id,
-        participant_id=host_id,
+        source_segment_id=source_segment_id,
         target_language="spa",
         audio_uri="base64://dummy-audio",
-        duration_ms=tts_result.duration_ms,
+        duration_ms=int(tts_result.duration_ms),
         watermarked=True,
     )
     assert audio_event.watermarked is True
@@ -222,19 +230,21 @@ async def test_multiuser_polyglot_meeting_lifecycle() -> None:
     )
 
     query_event = AssistantQueryEvent(
-        query_id=str(uuid.uuid4()),
+        event_id=str(uuid.uuid4()),
+        timestamp_ms=1710000000000,
         meeting_id=meeting_id,
+        query_id=str(uuid.uuid4()),
         participant_id=attendees_meta[1]["id"],
-        query_text="What operations are expanding?",
+        question="What operations are expanding?",
     )
-    query_emb = assistant_engine.embed_text(query_event.query_text)
+    query_emb = assistant_engine.embed_text(query_event.question)
     retrieved_segments = assistant_consumer.vector_store.similarity_search(
         query_embedding=query_emb,
         meeting_id=meeting_id,
         threshold=0.1,
     )
     answer = await assistant_engine.answer_query(
-        query=query_event.query_text,
+        query=query_event.question,
         retrieved_segments=retrieved_segments,
         query_id=query_event.query_id,
     )

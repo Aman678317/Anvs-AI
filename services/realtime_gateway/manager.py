@@ -85,6 +85,10 @@ class ConnectionManager:
         """Returns the count of connected participants in a meeting."""
         return len(self._rooms.get(meeting_id, {}))
 
+    def get_active_participants_count(self, meeting_id: str) -> int:
+        """Returns the count of connected participants in a meeting (alias for API consistency)."""
+        return self.get_participant_count(meeting_id)
+
     async def set_listening_language(
         self,
         meeting_id: str,

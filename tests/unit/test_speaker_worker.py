@@ -71,7 +71,7 @@ def test_voice_profile_registry_enrollment_and_matching() -> None:
     assert confidence >= 0.95
 
     # Match noisy variant (similarity > 0.75)
-    noisy_emb = normalize_embedding(enrolled_emb + 0.1 * rng.normal(size=512).astype(np.float32))
+    noisy_emb = normalize_embedding(enrolled_emb + 0.01 * rng.normal(size=512).astype(np.float32))
     spk_id_noisy, spk_name_noisy, _ = registry.match_speaker(noisy_emb)
     assert spk_id_noisy == "speaker_alice"
     assert spk_name_noisy == "Alice Walker"

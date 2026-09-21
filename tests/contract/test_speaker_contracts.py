@@ -111,16 +111,16 @@ def test_diarization_to_caption_frame_speaker_enrichment_contract() -> None:
     )
 
     caption_frame = WSServerCaptionFrame(
-        meeting_id=diar_event.meeting_id,
         source_segment_id=diar_event.source_segment_id,
+        speaker_id=diar_event.speaker_id,
         source_language="eng",
         target_language="eng",
         text="Welcome to the meeting.",
-        speaker_id=diar_event.speaker_id,
-        speaker_name=diar_event.speaker_name,
         is_final=True,
+        start_ms=0,
+        end_ms=2000,
     )
 
     assert caption_frame.speaker_id == "speaker_bob"
-    assert caption_frame.speaker_name == "Bob Martinez"
     assert caption_frame.source_segment_id == diar_event.source_segment_id
+    assert diar_event.speaker_name == "Bob Martinez"

@@ -49,10 +49,11 @@ class MockSTTEngine(BaseSTTEngine):
         simulated_ttft_ms: int = 20,
         default_language: str = "eng",
         custom_text: str | None = None,
+        default_phrase: str | None = None,
     ) -> None:
         self.simulated_ttft_ms = simulated_ttft_ms
         self.default_language = to_iso639_3(default_language)
-        self.custom_text = custom_text
+        self.custom_text = custom_text or default_phrase
         self._default_phrases: dict[str, str] = {
             "eng": "Welcome everyone to our multilingual meeting, let's begin the review.",
             "spa": "Bienvenidos a todos a nuestra reunión multilingüe, comencemos la revisión.",

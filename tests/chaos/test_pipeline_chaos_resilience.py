@@ -14,7 +14,7 @@ import pytest
 
 from packages.audio.ingestion import AudioIngestionPipeline
 from packages.audio.watermark import embed_watermark
-from packages.contracts import WorkerHealthStatus
+from packages.contracts import WorkerHealthStatus, WorkerHeartbeatPayload
 from packages.event_schema.events import DeadLetterEvent
 from services.orchestrator.dlq_retry import DLQRetryManager, DLQRetryOutcome
 from services.orchestrator.heartbeat import WorkerHealthMonitor
@@ -30,15 +30,25 @@ async def test_worker_crash_detected_within_three_seconds() -> None:
     worker_type = "stt"
 
     # Worker reports healthy heartbeat at t=100.0
-    monitor.record_heartbeat(worker_id, worker_type, now=100.0)
-    assert monitor.get_worker_health(worker_id, now=101.5) == WorkerHealthStatus.HEALTHY
+    payload = WorkerHeartbeatPayload(
+        worker_id=worker_id,
+        worker_type=worker_type,
+        timestamp_ms=100000,
+    )
+    monitor.record_heartbeat(payload)
+    key = monitor.get_worker_key(worker_type, worker_id)
+    monitor._workers[key]["last_seen"] = 100.0
+
+    st_1 = monitor.evaluate_liveness(now=101.5)
+    assert st_1[key] == WorkerHealthStatus.HEALTHY
 
     # At t=103.5 (> 3.0s without heartbeat), worker must be classified DEAD or DEGRADED
-    health = monitor.get_worker_health(worker_id, now=103.5)
-    assert health in (WorkerHealthStatus.DEGRADED, WorkerHealthStatus.DEAD)
+    st_2 = monitor.evaluate_liveness(now=103.5)
+    assert st_2[key] in (WorkerHealthStatus.DEGRADED, WorkerHealthStatus.DEAD)
 
     # At t=107.0 (> 2x timeout), worker is strictly DEAD
-    assert monitor.get_worker_health(worker_id, now=107.0) == WorkerHealthStatus.DEAD
+    st_3 = monitor.evaluate_liveness(now=107.0)
+    assert st_3[key] == WorkerHealthStatus.DEAD
 
 
 @pytest.mark.asyncio
@@ -103,6 +113,9 @@ async def test_poison_pill_flooding_quarantined_after_retries() -> None:
     retry_manager = DLQRetryManager(stream_bus=mock_bus, max_retries=3, base_backoff_sec=0.01)
 
     corrupt_event = DeadLetterEvent(
+        event_id="dlq_evt_001",
+        timestamp_ms=1710000000000,
+        meeting_id="meet_chaos_poison",
         failed_event_id="evt_poison_001",
         original_stream="events:meeting:test:audio",
         error_reason="Corrupted unparsable Opus bitstream",
@@ -122,6 +135,9 @@ async def test_poison_pill_flooding_quarantined_after_retries() -> None:
 
     # Advance retry count to maximum limit (3)
     corrupt_event_final = DeadLetterEvent(
+        event_id="dlq_evt_002",
+        timestamp_ms=1710000000100,
+        meeting_id="meet_chaos_poison",
         failed_event_id="evt_poison_001",
         original_stream="events:meeting:test:audio",
         error_reason="Corrupted unparsable Opus bitstream",

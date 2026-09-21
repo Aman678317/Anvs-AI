@@ -140,5 +140,14 @@ markers = [
     "realtime: WebRTC and WebSocket real-time tests",
     "ai: Speech, translation, and model evaluation tests",
     "e2e: End-to-end full system tests",
-    "security: Security and authorization tests"
+    "security: Security and authorization tests",
+    "chaos: Chaos engineering and fault tolerance tests",
+    "load: Concurrency and load performance tests"
 ]
+filterwarnings = [
+    "ignore::DeprecationWarning",
+    "ignore::UserWarning",
+    "ignore::RuntimeWarning",
+    "ignore::pytest.PytestUnraisableExceptionWarning"
+]
+

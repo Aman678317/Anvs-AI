@@ -13,9 +13,8 @@ from unittest.mock import AsyncMock
 import pytest
 from starlette.websockets import WebSocket
 
-from packages.contracts import ParticipantRole
-from packages.event_schema.events import TranslationSegmentEvent
-from services.realtime_gateway.manager import ConnectionManager
+from packages.contracts import ParticipantRole, WSServerCaptionFrame
+from services.realtime_gateway.manager import ClientSession, ConnectionManager
 
 
 @pytest.mark.asyncio
@@ -37,14 +36,18 @@ async def test_concurrent_multiroon_caption_fanout() -> None:
         tenant_id = str(uuid.uuid4())
         lang = languages[idx % len(languages)]
         mock_ws = AsyncMock(spec=WebSocket)
-        session = await conn_manager.connect(
+        session = ClientSession(
             websocket=mock_ws,
-            meeting_id=room_id,
             participant_id=part_id,
             user_id=part_id,
             tenant_id=tenant_id,
             role=ParticipantRole.PARTICIPANT,
             listening_language=lang,
+        )
+        await conn_manager.connect(
+            meeting_id=room_id,
+            participant_id=part_id,
+            session=session,
         )
         return {"room_id": room_id, "part_id": part_id, "session": session, "ws": mock_ws}
 
@@ -64,20 +67,17 @@ async def test_concurrent_multiroon_caption_fanout() -> None:
     # 2. Concurrently broadcast translation events across all 20 rooms
     async def dispatch_room_event(r_idx: int) -> int:
         room_id = f"bench_room_{r_idx:03d}"
-        trans_event = TranslationSegmentEvent(
+        caption_frame = WSServerCaptionFrame(
             source_segment_id=str(uuid.uuid4()),
-            meeting_id=room_id,
-            participant_id=f"speaker_{r_idx}",
+            speaker_id=f"speaker_{r_idx}",
             source_language="eng",
             target_language="spa",
-            original_text="Simultaneous high-concurrency translation test.",
-            translated_text="Prueba de traducción concurrente simultánea.",
+            text="Prueba de traducción concurrente simultánea.",
             is_final=True,
             start_ms=0,
             end_ms=2000,
-            latency_ms=30.0,
         )
-        await conn_manager.deliver_caption_event(room_id, trans_event)
+        await conn_manager.deliver_caption_event(room_id, caption_frame)
         return conn_manager.get_active_participants_count(room_id)
 
     dispatch_start = time.perf_counter()
@@ -91,8 +91,7 @@ async def test_concurrent_multiroon_caption_fanout() -> None:
 
     # 3. Concurrently disconnect all 100 participants
     disconnect_tasks = [
-        conn_manager.disconnect(p["room_id"], p["part_id"])
-        for p in connected_participants
+        conn_manager.disconnect(p["room_id"], p["part_id"]) for p in connected_participants
     ]
     await asyncio.gather(*disconnect_tasks)
 

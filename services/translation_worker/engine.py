@@ -60,6 +60,7 @@ class MockNMTEngine(BaseNMTEngine):
                 "hello world contract verification": "Hola mundo verificación de contrato",
                 "can everyone hear me clearly?": "¿Todos me escuchan con claridad?",
                 "thank you for joining today's session.": "Gracias por unirse a la sesión de hoy.",
+                "good morning everyone": "Buenos días a todos",
             },
             ("eng", "fra"): {
                 "welcome everyone to our multilingual meeting, let's begin the review.": (
