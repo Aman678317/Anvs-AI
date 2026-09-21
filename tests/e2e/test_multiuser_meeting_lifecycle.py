@@ -17,13 +17,14 @@ from packages.auth.models import AuthenticatedUser
 from packages.contracts import ParticipantRole, WSClientMessageType, WSServerMessageType
 from packages.contracts.rest import CreateMeetingRequest, JoinMeetingRequest
 from packages.contracts.websocket import WSClientJoinFrame
+from packages.database.models import Meeting
 from packages.event_schema.events import (
     AssistantQueryEvent,
     AudioSegmentEvent,
     SourceSegmentEvent,
     TranslationSegmentEvent,
 )
-from services.api.routers.rooms import create_room, end_meeting, join_meeting
+from services.api.routers.rooms import create_room, end_room, join_room
 from services.assistant_worker.consumer import AssistantConsumer
 from services.assistant_worker.engine import MockAssistantEngine
 from services.realtime_gateway.manager import ConnectionManager
@@ -49,8 +50,8 @@ async def test_multiuser_polyglot_meeting_lifecycle() -> None:
     # 1. Host Provisions Room
     create_req = CreateMeetingRequest(
         title="Q4 Polyglot Strategic Sync",
-        source_language="eng",
-        target_languages=["spa", "fra", "deu"],
+        host_spoken_language="eng",
+        host_listening_language="eng",
     )
     mock_session = AsyncMock()
     room_resp = await create_room(
@@ -58,8 +59,22 @@ async def test_multiuser_polyglot_meeting_lifecycle() -> None:
         current_user=host_user,
         session=mock_session,
     )
-    meeting_id = room_resp.id
+    meeting_id = room_resp.meeting_id
     assert room_resp.status.value == "SCHEDULED"
+
+    # Setup database meeting instance for subsequent room operations
+    target_uuid = uuid.UUID(meeting_id)
+    meeting_obj = Meeting(
+        id=target_uuid,
+        tenant_id=uuid.UUID(tenant_id),
+        created_by=uuid.UUID(host_id),
+        title=create_req.title,
+        status="SCHEDULED",
+        state_version=1,
+        host_spoken_language="eng",
+        host_listening_language="eng",
+    )
+    mock_session.execute.return_value.scalar_one_or_none.return_value = meeting_obj
 
     # 2. Host & 3 Multilingual Participants Join
     attendees_meta = [
@@ -69,12 +84,11 @@ async def test_multiuser_polyglot_meeting_lifecycle() -> None:
         {"id": str(uuid.uuid4()), "role": ParticipantRole.PARTICIPANT, "lang": "deu"},
     ]
 
-    joined_sessions: dict[str, dict] = {}
     conn_manager = ConnectionManager()
 
     for att in attendees_meta:
         join_req = JoinMeetingRequest(
-            participant_name=f"User-{att['lang']}",
+            display_name=f"User-{att['lang']}",
             spoken_language=att["lang"],
             listening_language=att["lang"],
         )
@@ -84,7 +98,7 @@ async def test_multiuser_polyglot_meeting_lifecycle() -> None:
             email=f"{att['lang']}@enterprise.com",
             role=att["role"],
         )
-        join_resp = await join_meeting(
+        join_resp = await join_room(
             meeting_id=meeting_id,
             payload=join_req,
             current_user=user_ctx,
@@ -93,8 +107,7 @@ async def test_multiuser_polyglot_meeting_lifecycle() -> None:
         assert join_resp.livekit_token is not None
         assert join_resp.ws_ticket is not None
 
-        # Connect to Realtime WebSocket Connection Manager
-        mock_ws = AsyncMock(spec=WebSocket)
+        # Verify WebSocket join frame contract
         join_frame = WSClientJoinFrame(
             type=WSClientMessageType.JOIN,
             ticket=join_resp.ws_ticket,
@@ -102,6 +115,10 @@ async def test_multiuser_polyglot_meeting_lifecycle() -> None:
             participant_id=att["id"],
             listening_language=att["lang"],
         )
+        assert join_frame.ticket == join_resp.ws_ticket
+
+        # Connect to Realtime WebSocket Connection Manager
+        mock_ws = AsyncMock(spec=WebSocket)
         client_session = await conn_manager.connect(
             websocket=mock_ws,
             meeting_id=meeting_id,
@@ -111,19 +128,16 @@ async def test_multiuser_polyglot_meeting_lifecycle() -> None:
             role=att["role"],
             listening_language=att["lang"],
         )
-        joined_sessions[att["lang"]] = {
-            "session": client_session,
-            "ws": mock_ws,
-            "ticket": join_resp.ws_ticket,
-            "frame": join_frame,
-        }
+        assert client_session.participant_id == att["id"]
 
     assert conn_manager.get_active_participants_count(meeting_id) == 4
 
     # 3. Host Speaks (STT Inference)
     stt_engine = MockSTTEngine(default_phrase="We are expanding international operations.")
     dummy_audio = np.zeros(16000, dtype=np.float32)
-    stt_result = await stt_engine.transcribe_segment(dummy_audio, sample_rate=16000, language="eng")
+    stt_result = await stt_engine.transcribe_segment(
+        dummy_audio, sample_rate=16000, language="eng"
+    )
 
     source_segment_id = str(uuid.uuid4())
     source_event = SourceSegmentEvent(
@@ -198,9 +212,14 @@ async def test_multiuser_polyglot_meeting_lifecycle() -> None:
 
     # 6. In-Meeting RAG Copilot Query with Citation Provenance
     assistant_engine = MockAssistantEngine()
-    assistant_consumer = AssistantConsumer(bus=AsyncMock(), engine=assistant_engine)
+    assistant_consumer = AssistantConsumer(stream_bus=AsyncMock(), engine=assistant_engine)
     # Index completed transcript segment
-    await assistant_consumer.process_transcript_message(source_event.model_dump(mode="json"))
+    await assistant_consumer.process_transcript_message(
+        stream_name="events:transcripts",
+        message_id="1-0",
+        raw_payload=source_event.model_dump(mode="json"),
+        meeting_id=meeting_id,
+    )
 
     query_event = AssistantQueryEvent(
         query_id=str(uuid.uuid4()),
@@ -208,24 +227,27 @@ async def test_multiuser_polyglot_meeting_lifecycle() -> None:
         participant_id=attendees_meta[1]["id"],
         query_text="What operations are expanding?",
     )
+    query_emb = assistant_engine.embed_text(query_event.query_text)
+    retrieved_segments = assistant_consumer.vector_store.similarity_search(
+        query_embedding=query_emb,
+        meeting_id=meeting_id,
+        threshold=0.1,
+    )
     answer = await assistant_engine.answer_query(
         query=query_event.query_text,
-        retrieved_segments=assistant_consumer.vector_store.similarity_search(
-            query_event.query_text,
-            meeting_id,
-        ),
+        retrieved_segments=retrieved_segments,
         query_id=query_event.query_id,
     )
     assert answer.query_id == query_event.query_id
     assert source_segment_id in answer.citations
 
     # 7. Host Ends Meeting
-    end_resp = await end_meeting(
+    end_resp = await end_room(
         meeting_id=meeting_id,
         current_user=host_user,
         session=mock_session,
     )
-    assert end_resp.status.value == "ENDED"
+    assert end_resp["status"] == "ENDED"
 
     # Clean disconnect all sessions
     for att in attendees_meta:

@@ -81,7 +81,7 @@ async def test_nmt_translation_accuracy_and_latency_sla() -> None:
         # Sub-250ms SLA requirement
         assert latency_ms < 250.0
         assert len(res.translated_text) > 0
-        assert res.target_lang == target_lang
+        assert res.target_language == target_lang
 
 
 @pytest.mark.asyncio

@@ -2,6 +2,7 @@
 
 import asyncio
 import logging
+import sys
 import time
 from abc import ABC, abstractmethod
 
@@ -189,6 +190,11 @@ class NLLBTranslationEngine(BaseNMTEngine):
         self._initialize_model()
 
     def _initialize_model(self) -> None:
+        if sys.version_info >= (3, 14) and sys.platform == "win32":
+            logger.info("Python 3.14 on Windows detected: activating MockNMTEngine fallback")
+            self._fallback_engine = MockNMTEngine(simulated_latency_ms=15)
+            return
+
         try:
             from transformers import AutoModelForSeq2SeqLM, AutoTokenizer
 

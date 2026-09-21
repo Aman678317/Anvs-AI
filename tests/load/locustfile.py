@@ -19,7 +19,7 @@ except ImportError:
     def task(func):  # type: ignore[no-redef]
         return func
 
-    def between(a, b):  # type: ignore[no-redef]
+    def between(_a, _b):  # type: ignore[no-redef]
         return lambda: 1
 
 
@@ -58,7 +58,7 @@ class MeetingParticipantUser(HttpUser):
     def join_meeting_room(self) -> None:
         """Perform dual-token join handshake."""
         payload = {
-            "participant_name": f"LoadUser-{self.user_id[:6]}",
+            "display_name": f"LoadUser-{self.user_id[:6]}",
             "spoken_language": "eng",
             "listening_language": self.listening_lang,
         }

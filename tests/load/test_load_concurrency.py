@@ -13,7 +13,6 @@ from unittest.mock import AsyncMock
 import pytest
 from starlette.websockets import WebSocket
 
-from packages.auth.tokens import create_session_ticket
 from packages.contracts import ParticipantRole
 from packages.event_schema.events import TranslationSegmentEvent
 from services.realtime_gateway.manager import ConnectionManager
@@ -37,12 +36,6 @@ async def test_concurrent_multiroon_caption_fanout() -> None:
         part_id = str(uuid.uuid4())
         tenant_id = str(uuid.uuid4())
         lang = languages[idx % len(languages)]
-        ticket = create_session_ticket(
-            user_id=part_id,
-            tenant_id=tenant_id,
-            meeting_id=room_id,
-            role=ParticipantRole.PARTICIPANT,
-        )
         mock_ws = AsyncMock(spec=WebSocket)
         session = await conn_manager.connect(
             websocket=mock_ws,

@@ -16,7 +16,7 @@ from packages.audio.ingestion import AudioIngestionPipeline
 from packages.audio.watermark import embed_watermark
 from packages.contracts import WorkerHealthStatus
 from packages.event_schema.events import DeadLetterEvent
-from services.orchestrator.dlq_retry import DLQRetryManager
+from services.orchestrator.dlq_retry import DLQRetryManager, DLQRetryOutcome
 from services.orchestrator.heartbeat import WorkerHealthMonitor
 from services.orchestrator.pipeline import PipelineOrchestrator
 
@@ -46,22 +46,23 @@ async def test_worker_crash_detected_within_three_seconds() -> None:
 async def test_pel_recovery_after_worker_crash() -> None:
     """Orchestrator re-claims abandoned pending messages (PEL) from crashed workers."""
     mock_bus = AsyncMock()
-    # Mock xautoclaim returning 2 abandoned messages
-    mock_bus.claim_abandoned_messages.return_value = [
+    # Mock claim_pending_events returning 2 abandoned messages
+    mock_bus.claim_pending_events.return_value = [
         ("1700000000000-0", {"source_segment_id": "seg_001", "is_final": "true"}),
         ("1700000000001-0", {"source_segment_id": "seg_002", "is_final": "true"}),
     ]
 
-    orchestrator = PipelineOrchestrator(bus=mock_bus)
-    reclaimed = await orchestrator.recover_abandoned_messages(
-        stream_name="events:meeting:test:transcripts",
+    orchestrator = PipelineOrchestrator(stream_bus=mock_bus)
+    reclaimed = await orchestrator.recover_stuck_messages(
+        meeting_id="test_meeting",
+        stream_type="transcripts",
         group_name="nmt-workers-group",
         consumer_name="orchestrator_reclaim_worker",
-        min_idle_time_ms=3000,
+        min_idle_ms=3000,
     )
 
     assert len(reclaimed) == 2
-    mock_bus.claim_abandoned_messages.assert_awaited_once()
+    mock_bus.claim_pending_events.assert_awaited_once()
 
 
 @pytest.mark.asyncio
@@ -71,7 +72,8 @@ async def test_acoustic_watermark_feedback_storm_rejected() -> None:
     mock_bus = AsyncMock()
     pipeline = AudioIngestionPipeline(
         meeting_id="meet_chaos_feedback",
-        bus=mock_bus,
+        participant_id="part_loop_attacker",
+        stream_bus=mock_bus,
     )
 
     sample_rate = 48000
@@ -84,40 +86,53 @@ async def test_acoustic_watermark_feedback_storm_rejected() -> None:
     # Ingest 250 consecutive watermarked frames (5 seconds of synthetic audio loop)
     watermarked_bytes = (watermarked_audio * 32767.0).astype(np.int16).tobytes()
     for _ in range(250):
-        await pipeline.process_audio_chunk(
-            audio_data=watermarked_bytes,
-            participant_id="part_loop_attacker",
-        )
+        await pipeline.process_pcm_bytes(watermarked_bytes)
 
     # Every single watermarked frame must be dropped
     assert pipeline.watermarked_frames_dropped == 250
-    # Zero audio segments should have been published to Redis
-    mock_bus.publish.assert_not_called()
+    # Zero audio segments should have been produced
+    assert pipeline.voiced_segments_produced == 0
 
 
 @pytest.mark.asyncio
 @pytest.mark.chaos
 async def test_poison_pill_flooding_quarantined_after_retries() -> None:
-    """Poison-pill payloads are retried with backoff and permanently quarantined after 3 attempts."""
+    """Poison-pill payloads retried with backoff and permanently quarantined after 3 attempts."""
     mock_bus = AsyncMock()
-    retry_manager = DLQRetryManager(bus=mock_bus, max_retries=3, base_backoff_sec=0.01)
+    mock_bus.client = AsyncMock()
+    retry_manager = DLQRetryManager(stream_bus=mock_bus, max_retries=3, base_backoff_sec=0.01)
 
     corrupt_event = DeadLetterEvent(
+        failed_event_id="evt_poison_001",
         original_stream="events:meeting:test:audio",
-        error_message="Corrupted unparsable Opus bitstream",
+        error_reason="Corrupted unparsable Opus bitstream",
         retry_count=0,
-        payload={"corrupted": True, "magic_byte": "0xFF"},
+        raw_payload='{"corrupted": true, "magic_byte": "0xFF"}',
     )
 
     # First attempt: Retry count incremented and re-enqueued
-    should_retry = await retry_manager.handle_dlq_event(corrupt_event)
-    assert should_retry is True
-    assert corrupt_event.retry_count == 1
-    mock_bus.publish.assert_awaited()
+    outcome = await retry_manager.process_dlq_event(
+        dlq_event=corrupt_event,
+        dlq_message_id="1700000000000-0",
+        dlq_stream="events:meeting:test:dlq",
+    )
+    assert outcome == DLQRetryOutcome.RETRIED
+    assert retry_manager.retried_count == 1
+    mock_bus.client.xadd.assert_awaited()
 
     # Advance retry count to maximum limit (3)
-    corrupt_event.retry_count = 3
-    should_retry_final = await retry_manager.handle_dlq_event(corrupt_event)
+    corrupt_event_final = DeadLetterEvent(
+        failed_event_id="evt_poison_001",
+        original_stream="events:meeting:test:audio",
+        error_reason="Corrupted unparsable Opus bitstream",
+        retry_count=3,
+        raw_payload='{"corrupted": true, "magic_byte": "0xFF"}',
+    )
+    outcome_final = await retry_manager.process_dlq_event(
+        dlq_event=corrupt_event_final,
+        dlq_message_id="1700000000001-0",
+        dlq_stream="events:meeting:test:dlq",
+    )
     # Exceeded max retries: must be permanently quarantined
-    assert should_retry_final is False
+    assert outcome_final == DLQRetryOutcome.QUARANTINED
     assert retry_manager.quarantined_count == 1
