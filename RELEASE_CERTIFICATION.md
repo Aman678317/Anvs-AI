@@ -18,12 +18,12 @@ The platform delivers real-time, polyglot video/audio collaboration across 18 la
 
 ## 2. Architectural Invariant Compliance Audit
 
-| Invariant # | Architectural Invariant | Enforcement Mechanism | Verification Status |
-| :--- | :--- | :--- | :--- |
-| **Invariant #1** | **Multi-Tenant Isolation (RLS)** | PostgreSQL 16 `FORCE ROW LEVEL SECURITY` across `organizations`, `users`, `meetings`, `participants`, `transcript_segments`, and `transcript_embeddings`. Session setting `app.current_tenant_id` enforced on every connection context. | **PASSED (0 leaks across tenant test boundaries)** |
-| **Invariant #2** | **Immutable Lineage Propagation** | Mandatory `source_segment_id` UUID propagated across `SourceSegmentEvent` $\rightarrow$ `TranslationSegmentEvent` $\rightarrow$ `AudioSegmentEvent` $\rightarrow$ `DiarizationSegmentEvent` $\rightarrow$ `AssistantResponseEvent`. | **PASSED (100% strict lineage traceability)** |
-| **Invariant #3** | **Synthetic Audio Watermarking** | Compulsory 20 kHz ultrasonic acoustic pilot tone embedded in all synthesized audio ($SNR \ge 20$ dB). Real-time rejection of watermarked audio frames in ingestion pipelines prevents acoustic feedback loops. | **PASSED (100% watermark detection & loop drop)** |
-| **Invariant #4** | **Poison Pill DLQ Quarantine** | Redis Streams Dead Letter Queue with exponential backoff and terminal quarantine after exactly 3 failed processing attempts. | **PASSED (3-retry backoff & permanent quarantine)** |
+| Invariant #      | Architectural Invariant           | Enforcement Mechanism                                                                                                                                                                                                                   | Verification Status                                 |
+| :--------------- | :-------------------------------- | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :-------------------------------------------------- |
+| **Invariant #1** | **Multi-Tenant Isolation (RLS)**  | PostgreSQL 16 `FORCE ROW LEVEL SECURITY` across `organizations`, `users`, `meetings`, `participants`, `transcript_segments`, and `transcript_embeddings`. Session setting `app.current_tenant_id` enforced on every connection context. | **PASSED (0 leaks across tenant test boundaries)**  |
+| **Invariant #2** | **Immutable Lineage Propagation** | Mandatory `source_segment_id` UUID propagated across `SourceSegmentEvent` -> `TranslationSegmentEvent` -> `AudioSegmentEvent` -> `DiarizationSegmentEvent` -> `AssistantResponseEvent`.                                                 | **PASSED (100% strict lineage traceability)**       |
+| **Invariant #3** | **Synthetic Audio Watermarking**  | Compulsory 20 kHz ultrasonic acoustic pilot tone embedded in all synthesized audio (SNR >= 20 dB). Real-time rejection of watermarked audio frames in ingestion pipelines prevents acoustic feedback loops.                             | **PASSED (100% watermark detection & loop drop)**   |
+| **Invariant #4** | **Poison Pill DLQ Quarantine**    | Redis Streams Dead Letter Queue with exponential backoff and terminal quarantine after exactly 3 failed processing attempts.                                                                                                            | **PASSED (3-retry backoff & permanent quarantine)** |
 
 ---
 
@@ -49,6 +49,7 @@ tests/e2e/         ................................................... [PASS]
 ```
 
 ### Key Performance SLA Benchmarks
+
 - **STT Word Error Rate (WER)**: $< 12\%$ on Tier 1 benchmark speech datasets.
 - **STT Time-To-First-Token (TTFT)**: $< 350$ms.
 - **NMT Translation Latency**: $< 250$ms across all Tier 1 language pairs.
@@ -77,20 +78,20 @@ tests/e2e/         ................................................... [PASS]
 
 4. **Standard Operating Runbooks**:
    - `docs/runbooks/disaster-recovery.md`: Database PITR, snapshot restoration, and PEL recovery.
-   - `docs/runbooks/canary-deployment.md`: Progressive traffic shifting (10% $\rightarrow$ 25% $\rightarrow$ 50% $\rightarrow$ 100%) and automated rollback.
+   - `docs/runbooks/canary-deployment.md`: Progressive traffic shifting (10% -> 25% -> 50% -> 100%) and automated rollback.
    - `docs/runbooks/incident-response.md`: Sev-1 / Sev-2 escalation, poison-pill triage, and worker degradation mitigation.
 
 ---
 
 ## 5. Formal Engineering Sign-Off
 
-| Engineering Domain | Sign-Off Authority | Status | Date |
-| :--- | :--- | :--- | :--- |
-| **Backend & Data (Group 1)** | Lead Backend Architect | **APPROVED** | 2026-09-22 |
-| **Realtime & Media (Group 2)** | Principal WebRTC Engineer | **APPROVED** | 2026-09-22 |
-| **AI/ML Fleet (Group 3)** | Principal AI/ML Engineer | **APPROVED** | 2026-09-22 |
-| **Frontend & UX (Group 4)** | Staff Frontend Engineer | **APPROVED** | 2026-09-22 |
-| **DevOps & SRE (Group 5)** | Principal SRE / Cloud Architect| **APPROVED** | 2026-09-22 |
-| **Security & QA (Group 6)** | Chief Information Security Officer| **APPROVED** | 2026-09-22 |
+| Engineering Domain             | Sign-Off Authority                 | Status       | Date       |
+| :----------------------------- | :--------------------------------- | :----------- | :--------- |
+| **Backend & Data (Group 1)**   | Lead Backend Architect             | **APPROVED** | 2026-09-22 |
+| **Realtime & Media (Group 2)** | Principal WebRTC Engineer          | **APPROVED** | 2026-09-22 |
+| **AI/ML Fleet (Group 3)**      | Principal AI/ML Engineer           | **APPROVED** | 2026-09-22 |
+| **Frontend & UX (Group 4)**    | Staff Frontend Engineer            | **APPROVED** | 2026-09-22 |
+| **DevOps & SRE (Group 5)**     | Principal SRE / Cloud Architect    | **APPROVED** | 2026-09-22 |
+| **Security & QA (Group 6)**    | Chief Information Security Officer | **APPROVED** | 2026-09-22 |
 
 **Final Verdict**: Certified for General Availability (GA) Production Release `v1.0.0`.

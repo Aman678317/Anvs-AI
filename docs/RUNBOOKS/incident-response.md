@@ -7,15 +7,16 @@
 
 ## 1. Incident Severity Definitions
 
-- **SEV-1 (Critical)**: Meeting audio unroutable, control plane down, or cross-tenant data leak breach (Invariant #1 violation). MTTR SLA: $< 15$ minutes.
-- **SEV-2 (Major)**: Real-time caption or translation delayed ($> 2000$ms), or single worker fleet degraded (e.g., TTS synthesis failure). MTTR SLA: $< 30$ minutes.
-- **SEV-3 (Minor)**: Non-critical dashboard telemetry failure, localized admin portal rendering defect. MTTR SLA: $< 4$ hours.
+- **SEV-1 (Critical)**: Meeting audio unroutable, control plane down, or cross-tenant data leak breach (Invariant #1 violation). MTTR SLA: < 15 minutes.
+- **SEV-2 (Major)**: Real-time caption or translation delayed (> 2000ms), or single worker fleet degraded (e.g., TTS synthesis failure). MTTR SLA: < 30 minutes.
+- **SEV-3 (Minor)**: Non-critical dashboard telemetry failure, localized admin portal rendering defect. MTTR SLA: < 4 hours.
 
 ---
 
 ## 2. Specific Triage Playbooks
 
 ### Playbook A: Dead Letter Queue (DLQ) Poison Pill Flooding
+
 - **Symptoms**: `quarantined_count` spike in Orchestrator metrics.
 - **Root Cause**: Corrupted audio bitstream or schema mismatch packet circulating in Redis streams.
 - **Mitigation**:
@@ -27,6 +28,7 @@
   3. Purge bad messages or patch client encoding if systemic.
 
 ### Playbook B: AI Worker Fleet Crash / Hang
+
 - **Symptoms**: `WorkerHealthStatus.DEAD` emitted by `WorkerHealthMonitor` after 3.0s timeout.
 - **Mitigation**:
   1. Check worker logs:
@@ -43,6 +45,7 @@
      ```
 
 ### Playbook C: Acoustic Watermark Feedback Storm
+
 - **Symptoms**: Watermark detector rejecting $> 50\%$ incoming frames.
 - **Mitigation**:
   - `AudioIngestionPipeline` will reject watermarked frames automatically without crashing (Invariant #3).

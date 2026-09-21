@@ -55,9 +55,12 @@ services:
     command:
       [
         "redis-server",
-        "--appendonly", "yes",
-        "--maxmemory", "2048mb",
-        "--maxmemory-policy", "noeviction"
+        "--appendonly",
+        "yes",
+        "--maxmemory",
+        "2048mb",
+        "--maxmemory-policy",
+        "noeviction",
       ]
     ports:
       - "6379:6379"

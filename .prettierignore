@@ -10,3 +10,8 @@ coverage
 pnpm-lock.yaml
 package-lock.json
 yarn.lock
+
+# Helm templates (Go templating syntax is incompatible with generic YAML parsers)
+infrastructure/helm/**
+charts/**
+
