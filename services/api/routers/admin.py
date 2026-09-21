@@ -238,7 +238,7 @@ async def invite_member(
         role=ParticipantRole(new_user.role),
         display_name=new_user.full_name,
         is_active=new_user.is_active,
-        created_at=new_user.created_at,
+        created_at=new_user.created_at or datetime.now(UTC),
     )
 
 
@@ -369,8 +369,8 @@ async def list_meetings(
     for m in meetings:
         # Calculate duration in seconds if started and ended
         duration_sec = None
-        if m.started_at and m.ended_at:
-            duration_sec = int((m.ended_at - m.started_at).total_seconds())
+        if m.actual_start and m.actual_end:
+            duration_sec = int((m.actual_end - m.actual_start).total_seconds())
 
         # Count participants
         part_res = await session.execute(
@@ -390,8 +390,8 @@ async def list_meetings(
                 title=m.title,
                 status=MeetingStatus(m.status),
                 scheduled_start=m.scheduled_start,
-                started_at=m.started_at,
-                ended_at=m.ended_at,
+                started_at=m.actual_start,
+                ended_at=m.actual_end,
                 duration_seconds=duration_sec,
                 participant_count=part_count,
                 transcript_segment_count=seg_count,
