@@ -14,7 +14,6 @@ from packages.event_schema import (
 )
 from services.assistant_worker import (
     AssistantConsumer,
-    IndexedSegment,
     MockAssistantEngine,
     TranscriptVectorStore,
 )

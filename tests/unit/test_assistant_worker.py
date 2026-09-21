@@ -19,7 +19,6 @@ from services.assistant_worker import (
     MockAssistantEngine,
     OpenAIAssistantEngine,
     TranscriptVectorStore,
-    cosine_similarity,
     create_assistant_engine,
 )
 

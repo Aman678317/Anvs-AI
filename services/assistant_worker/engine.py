@@ -5,6 +5,7 @@ import logging
 import re
 import time
 from abc import ABC, abstractmethod
+from collections import Counter
 
 import numpy as np
 
@@ -100,6 +101,7 @@ class MockAssistantEngine(BaseAssistantEngine):
         query_id: str,
     ) -> AssistantAnswer:
         """Synthesizes grounded response citing exact source_segment_ids (Invariant #2)."""
+        _ = query
         t0 = time.perf_counter()
         if self.simulated_latency_ms > 0:
             await asyncio.sleep(self.simulated_latency_ms / 1000.0)
@@ -182,8 +184,6 @@ class MockAssistantEngine(BaseAssistantEngine):
                     break
 
         # Extract top frequent keywords as topics
-        from collections import Counter
-
         counts = Counter(all_words)
         common_topics = [w.capitalize() for w, _ in counts.most_common(5)]
 
@@ -267,6 +267,7 @@ class OpenAIAssistantEngine(BaseAssistantEngine):
         if self._fallback_engine is not None:
             return await self._fallback_engine.answer_query(query, retrieved_segments, query_id)
 
+        _ = query
         # In production with API, query OpenAI model
         citations = [seg.source_segment_id for seg, _ in retrieved_segments]
         return AssistantAnswer(
