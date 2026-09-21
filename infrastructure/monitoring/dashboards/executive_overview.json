@@ -1,0 +1,131 @@
+{
+  "annotations": {
+    "list": []
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "id": null,
+  "links": [],
+  "liveNow": false,
+  "panels": [
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 0,
+        "y": 0
+      },
+      "id": 1,
+      "title": "Active Meetings",
+      "type": "stat",
+      "targets": [
+        {
+          "expr": "active_meetings_count",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 6,
+        "y": 0
+      },
+      "id": 2,
+      "title": "Total Meeting Hours Transcribed",
+      "type": "stat",
+      "targets": [
+        {
+          "expr": "sum(rate(meeting_e2e_latency_seconds_count[1h])) / 3600",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 12,
+        "y": 0
+      },
+      "id": 3,
+      "title": "P95 End-to-End Latency",
+      "type": "stat",
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(meeting_e2e_latency_seconds_bucket[5m])) by (le))",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 18,
+        "y": 0
+      },
+      "id": 4,
+      "title": "Audio Watermark Protection",
+      "type": "stat",
+      "targets": [
+        {
+          "expr": "sum(watermark_detections_total{status=\"synthetic_loop_prevented\"})",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 4
+      },
+      "id": 5,
+      "title": "Speech Activity by Language",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "sum(rate(stt_inference_duration_seconds_count[5m])) by (language)",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 4
+      },
+      "id": 6,
+      "title": "Translation Throughput by Language Pair",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "sum(rate(nmt_inference_duration_seconds_count[5m])) by (source_lang, target_lang)",
+          "refId": "A"
+        }
+      ]
+    }
+  ],
+  "refresh": "10s",
+  "schemaVersion": 38,
+  "style": "dark",
+  "tags": ["executive", "overview", "multilingual"],
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  },
+  "title": "Executive Overview: Multilingual AI Meeting Platform",
+  "uid": "mmp-exec-overview"
+}

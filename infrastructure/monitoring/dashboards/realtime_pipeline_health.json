@@ -1,0 +1,101 @@
+{
+  "annotations": {
+    "list": []
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "id": null,
+  "links": [],
+  "liveNow": false,
+  "panels": [
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 0
+      },
+      "id": 1,
+      "title": "Redis Stream Queue Depths by Channel",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "sum(pipeline_queue_depth) by (stream_type)",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 0
+      },
+      "id": 2,
+      "title": "Backpressure Partial Segment Shedding Rate",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "sum(rate(backpressure_dropped_partials_total[1m]))",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 8
+      },
+      "id": 3,
+      "title": "Degradation Tier Transitions",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "sum(rate(degradation_tier_transitions_total[5m])) by (from_tier, to_tier)",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 8
+      },
+      "id": 4,
+      "title": "Dead Letter Queue (DLQ) Recovery vs Quarantine",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "sum(rate(dlq_retries_total[5m]))",
+          "legendFormat": "Retried",
+          "refId": "A"
+        },
+        {
+          "expr": "sum(rate(dlq_quarantined_total[5m]))",
+          "legendFormat": "Quarantined (Poison)",
+          "refId": "B"
+        }
+      ]
+    }
+  ],
+  "refresh": "5s",
+  "schemaVersion": 38,
+  "style": "dark",
+  "tags": ["pipeline", "health", "realtime"],
+  "time": {
+    "from": "now-30m",
+    "to": "now"
+  },
+  "title": "Realtime Pipeline Health & Backpressure",
+  "uid": "mmp-pipeline-health"
+}
