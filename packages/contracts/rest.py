@@ -206,4 +206,3 @@ class AuditLogEntry(BaseContract):
 class AdminAuditLogsResponse(BaseContract):
     logs: list[AuditLogEntry]
     total: int
-

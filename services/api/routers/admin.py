@@ -54,9 +54,7 @@ async def get_organization(
     """Fetch organization details, user count, and meeting counts for the current tenant."""
     tenant_uuid = uuid.UUID(current_user.tenant_id)
 
-    org_res = await session.execute(
-        select(Organization).where(Organization.id == tenant_uuid)
-    )
+    org_res = await session.execute(select(Organization).where(Organization.id == tenant_uuid))
     org = org_res.scalar_one_or_none()
     if not org:
         raise HTTPException(
@@ -97,9 +95,7 @@ async def update_organization(
     """Update organization settings such as display name and custom slug."""
     tenant_uuid = uuid.UUID(current_user.tenant_id)
 
-    org_res = await session.execute(
-        select(Organization).where(Organization.id == tenant_uuid)
-    )
+    org_res = await session.execute(select(Organization).where(Organization.id == tenant_uuid))
     org = org_res.scalar_one_or_none()
     if not org:
         raise HTTPException(
@@ -164,11 +160,7 @@ async def list_members(
 ) -> list[OrganizationMemberResponse]:
     """Retrieve full roster of team members within the current organization."""
     tenant_uuid = uuid.UUID(current_user.tenant_id)
-    stmt = (
-        select(User)
-        .where(User.tenant_id == tenant_uuid)
-        .order_by(User.created_at.asc())
-    )
+    stmt = select(User).where(User.tenant_id == tenant_uuid).order_by(User.created_at.asc())
     res = await session.execute(stmt)
     users = res.scalars().all()
 
@@ -372,9 +364,7 @@ async def list_meetings(
 
         # Count transcript segments
         seg_res = await session.execute(
-            select(func.count(TranscriptSegment.id)).where(
-                TranscriptSegment.meeting_id == m.id
-            )
+            select(func.count(TranscriptSegment.id)).where(TranscriptSegment.meeting_id == m.id)
         )
         seg_count = seg_res.scalar() or 0
 
@@ -488,9 +478,7 @@ async def get_analytics_overview(
     # Total transcribed minutes: calculate sum of transcript segment durations
     duration_res = await session.execute(
         select(
-            func.coalesce(
-                func.sum(TranscriptSegment.end_ms - TranscriptSegment.start_ms), 0
-            )
+            func.coalesce(func.sum(TranscriptSegment.end_ms - TranscriptSegment.start_ms), 0)
         ).where(TranscriptSegment.tenant_id == tenant_uuid)
     )
     total_ms = duration_res.scalar() or 0

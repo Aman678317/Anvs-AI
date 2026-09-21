@@ -128,9 +128,7 @@ def test_get_organization_details(
 
 
 @pytest.mark.unit
-def test_update_organization(
-    admin_app: FastAPI, mock_session: AsyncMock, host_token: str
-) -> None:
+def test_update_organization(admin_app: FastAPI, mock_session: AsyncMock, host_token: str) -> None:
     """Update organization name and slug."""
     org_id = uuid.UUID(TEST_TENANT_ID)
     now = datetime.now(UTC)
@@ -216,9 +214,7 @@ def test_list_organization_members(
 
 
 @pytest.mark.unit
-def test_invite_member(
-    admin_app: FastAPI, mock_session: AsyncMock, host_token: str
-) -> None:
+def test_invite_member(admin_app: FastAPI, mock_session: AsyncMock, host_token: str) -> None:
     """Invite and provision a new member in the organization."""
     # Existing check returns None
     mock_res_existing = MagicMock()
@@ -245,9 +241,7 @@ def test_invite_member(
 
 
 @pytest.mark.unit
-def test_update_member_role(
-    admin_app: FastAPI, mock_session: AsyncMock, host_token: str
-) -> None:
+def test_update_member_role(admin_app: FastAPI, mock_session: AsyncMock, host_token: str) -> None:
     """Promote or update member role and status."""
     now = datetime.now(UTC)
     target_user = User(
@@ -277,9 +271,7 @@ def test_update_member_role(
 
 
 @pytest.mark.unit
-def test_remove_member(
-    admin_app: FastAPI, mock_session: AsyncMock, host_token: str
-) -> None:
+def test_remove_member(admin_app: FastAPI, mock_session: AsyncMock, host_token: str) -> None:
     """Remove a non-self member from the organization."""
     now = datetime.now(UTC)
     target_user = User(
