@@ -1,6 +1,7 @@
 """Pipeline Orchestrator daemon entrypoint adhering to Documents 08 and 16."""
 
 import asyncio
+from contextlib import suppress
 import logging
 import signal
 import sys
@@ -47,10 +48,8 @@ async def main() -> None:
             except Exception as exc:
                 logger.warning("Error in orchestrator periodic evaluation: %s", exc)
 
-            try:
+            with suppress(TimeoutError):
                 await asyncio.wait_for(stop_event.wait(), timeout=1.0)
-            except asyncio.TimeoutError:
-                pass
     finally:
         await bus.disconnect()
         logger.info("Pipeline Orchestrator disconnected from Redis bus.")
