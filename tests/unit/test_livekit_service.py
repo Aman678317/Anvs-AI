@@ -123,3 +123,92 @@ def test_verify_webhook_mismatch_raises_error(livekit_svc: LiveKitService) -> No
 
     with pytest.raises(ValueError, match="sha256 mismatch"):
         livekit_svc.verify_webhook(raw_body, auth_token)
+
+
+@pytest.mark.unit
+def test_verify_webhook_missing_header_raises_error(livekit_svc: LiveKitService) -> None:
+    raw_body = b'{"event":"test"}'
+    with pytest.raises(ValueError, match="Missing LiveKit webhook Authorization header"):
+        livekit_svc.verify_webhook(raw_body, "")
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_list_participants_default(livekit_svc: LiveKitService) -> None:
+    participants = await livekit_svc.list_participants("room_empty_test")
+    assert isinstance(participants, list)
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_dispatch_webhook_event_participant_lifecycle(
+    livekit_svc: LiveKitService,
+) -> None:
+    # 1. participant_joined
+    joined_event = {
+        "event": "participant_joined",
+        "room": {"name": "room_11111111-1111-1111-1111-111111111111"},
+        "participant": {"identity": "part_alex_01"},
+    }
+    res_joined = await livekit_svc.dispatch_webhook_event(joined_event)
+    assert res_joined["action"] == "participant_joined_recorded"
+    assert res_joined["participant_identity"] == "part_alex_01"
+
+    # 2. participant_left
+    left_event = {
+        "event": "participant_left",
+        "room": {"name": "room_11111111-1111-1111-1111-111111111111"},
+        "participant": {"identity": "part_alex_01"},
+    }
+    res_left = await livekit_svc.dispatch_webhook_event(left_event)
+    assert res_left["action"] == "participant_left_recorded"
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_dispatch_webhook_event_track_lifecycle(
+    livekit_svc: LiveKitService,
+) -> None:
+    # 1. track_published
+    pub_event = {
+        "event": "track_published",
+        "room": {"name": "room_11111111-1111-1111-1111-111111111111"},
+        "participant": {"identity": "part_alex_01"},
+        "track": {"sid": "TR_12345", "type": "AUDIO"},
+    }
+    res_pub = await livekit_svc.dispatch_webhook_event(pub_event)
+    assert res_pub["action"] == "track_published_registered"
+    assert res_pub["track_type"] == "AUDIO"
+    assert res_pub["track_sid"] == "TR_12345"
+
+    # 2. track_unpublished
+    unpub_event = {
+        "event": "track_unpublished",
+        "room": {"name": "room_11111111-1111-1111-1111-111111111111"},
+        "participant": {"identity": "part_alex_01"},
+        "track": {"sid": "TR_12345"},
+    }
+    res_unpub = await livekit_svc.dispatch_webhook_event(unpub_event)
+    assert res_unpub["action"] == "track_unpublished_registered"
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_dispatch_webhook_event_room_lifecycle(
+    livekit_svc: LiveKitService,
+) -> None:
+    # 1. room_started
+    start_event = {
+        "event": "room_started",
+        "room": {"name": "room_11111111-1111-1111-1111-111111111111"},
+    }
+    res_start = await livekit_svc.dispatch_webhook_event(start_event)
+    assert res_start["action"] == "room_started_synchronized"
+
+    # 2. room_finished
+    finish_event = {
+        "event": "room_finished",
+        "room": {"name": "room_11111111-1111-1111-1111-111111111111"},
+    }
+    res_finish = await livekit_svc.dispatch_webhook_event(finish_event)
+    assert res_finish["action"] == "room_finished_synchronized"

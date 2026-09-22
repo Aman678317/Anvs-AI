@@ -281,6 +281,25 @@ async def end_room(
     }
 
 
+@router.get(
+    "/{meeting_id}/sfu-participants",
+    status_code=status.HTTP_200_OK,
+    summary="List active LiveKit SFU participants",
+)
+async def list_sfu_participants(
+    meeting_id: str,
+    _current_user: AuthenticatedUser = Depends(get_current_user),
+    _session: AsyncSession = Depends(get_authenticated_tenant_session),
+) -> dict[str, Any]:
+    """Retrieves active WebRTC peer participants directly from LiveKit SFU."""
+    participants = await livekit_service.list_participants(room_name=f"room_{meeting_id}")
+    return {
+        "meeting_id": meeting_id,
+        "participants": participants,
+        "count": len(participants),
+    }
+
+
 @router.post(
     "/webhook",
     status_code=status.HTTP_200_OK,
@@ -299,8 +318,11 @@ async def livekit_webhook(request: Request) -> dict[str, Any]:
             detail=f"Webhook verification failed: {e}",
         ) from e
 
+    dispatched = await livekit_service.dispatch_webhook_event(event)
+
     return {
         "status": "processed",
         "event": event.get("event"),
         "room": event.get("room", {}).get("name"),
+        "details": dispatched,
     }
