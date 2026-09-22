@@ -1,6 +1,7 @@
 """Unit tests for Realtime Gateway ConnectionManager and Personalized Routing."""
 
 import json
+from unittest.mock import AsyncMock
 
 import pytest
 
@@ -249,3 +250,69 @@ async def test_personalized_caption_routing() -> None:
     fra_data = json.loads(ws_fra.sent_messages[0])
     assert fra_data["text"] == "Le rapport trimestriel est prêt."
     assert fra_data["target_language"] == "fra"
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_redis_presence_tracking() -> None:
+    mock_redis = AsyncMock()
+    mock_redis.sadd = AsyncMock()
+    mock_redis.set = AsyncMock()
+    mock_redis.srem = AsyncMock()
+    mock_redis.delete = AsyncMock()
+
+    manager = ConnectionManager(redis_client=mock_redis)
+    ws = MockWebSocket()
+    session = ClientSession(
+        websocket=ws,
+        participant_id="part-redis-1",
+        user_id="user-redis-1",
+        tenant_id="tenant-redis-1",
+        role=ParticipantRole.HOST,
+    )
+
+    # 1. Connect participant -> should sadd & set presence key
+    await manager.connect("meeting-redis-1", "part-redis-1", session)
+    mock_redis.sadd.assert_awaited_once_with("presence:meeting:meeting-redis-1", "part-redis-1")
+    mock_redis.set.assert_awaited_once_with(
+        "presence:meeting:meeting-redis-1:part-redis-1",
+        "user-redis-1",
+        ex=300,
+    )
+
+    # 2. Disconnect participant -> should srem & delete presence key
+    await manager.disconnect("meeting-redis-1", "part-redis-1")
+    mock_redis.srem.assert_awaited_once_with("presence:meeting:meeting-redis-1", "part-redis-1")
+    mock_redis.delete.assert_awaited_once_with("presence:meeting:meeting-redis-1:part-redis-1")
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_cluster_participant_count() -> None:
+    mock_redis = AsyncMock()
+    mock_redis.scard = AsyncMock(return_value=42)
+
+    manager = ConnectionManager(redis_client=mock_redis)
+    count = await manager.get_cluster_participant_count("meeting-distributed")
+    assert count == 42
+    mock_redis.scard.assert_awaited_once_with("presence:meeting:meeting-distributed")
+
+
+@pytest.mark.unit
+def test_stale_sessions_detection() -> None:
+    manager = ConnectionManager()
+    ws = MockWebSocket()
+    session = ClientSession(
+        websocket=ws,
+        participant_id="part-stale",
+        user_id="user-stale",
+        tenant_id="tenant-stale",
+        role=ParticipantRole.PARTICIPANT,
+        last_heartbeat_at=100.0,
+    )
+    manager._rooms["meeting-stale"] = {"part-stale": session}
+
+    # At current time, session is idle for > 60s
+    stale_list = manager.get_stale_sessions(max_idle_sec=10.0)
+    assert len(stale_list) == 1
+    assert stale_list[0] == ("meeting-stale", "part-stale")

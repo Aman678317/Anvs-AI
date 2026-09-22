@@ -24,15 +24,28 @@ class ClientSession:
     display_name: str = ""
     spoken_language: str = "eng"
     connected_at: float = field(default_factory=time.time)
+    last_heartbeat_at: float = field(default_factory=time.time)
+    message_timestamps: list[float] = field(default_factory=list)
+    rate_limit_max_msgs: int = 50
+    rate_limit_window_sec: float = 1.0
+
+    def check_rate_limit(self) -> bool:
+        """Check if incoming frame rate exceeds configured threshold per window."""
+        now = time.time()
+        cutoff = now - self.rate_limit_window_sec
+        self.message_timestamps = [ts for ts in self.message_timestamps if ts > cutoff]
+        self.message_timestamps.append(now)
+        return len(self.message_timestamps) <= self.rate_limit_max_msgs
 
 
 class ConnectionManager:
     """Manages active meeting WebSocket connections, session state, and personalized routing."""
 
-    def __init__(self) -> None:
+    def __init__(self, redis_client: Any = None) -> None:
         # Structure: {meeting_id: {participant_id: ClientSession}}
         self._rooms: dict[str, dict[str, ClientSession]] = {}
         self._lock = asyncio.Lock()
+        self.redis_client = redis_client
 
     async def connect(
         self,
@@ -51,6 +64,17 @@ class ConnectionManager:
                 meeting_id,
                 session.listening_language,
             )
+
+        if self.redis_client:
+            try:
+                await self.redis_client.sadd(f"presence:meeting:{meeting_id}", participant_id)
+                await self.redis_client.set(
+                    f"presence:meeting:{meeting_id}:{participant_id}",
+                    session.user_id,
+                    ex=300,
+                )
+            except Exception as e:
+                logger.warning("Redis presence update failed for %s: %s", participant_id, e)
 
     async def disconnect(
         self,
@@ -71,7 +95,15 @@ class ConnectionManager:
                     participant_id,
                     meeting_id,
                 )
-            return session
+
+        if self.redis_client and session:
+            try:
+                await self.redis_client.srem(f"presence:meeting:{meeting_id}", participant_id)
+                await self.redis_client.delete(f"presence:meeting:{meeting_id}:{participant_id}")
+            except Exception as e:
+                logger.warning("Redis presence cleanup failed for %s: %s", participant_id, e)
+
+        return session
 
     def get_session(self, meeting_id: str, participant_id: str) -> ClientSession | None:
         """Retrieves a specific participant session if connected."""
@@ -88,6 +120,26 @@ class ConnectionManager:
     def get_active_participants_count(self, meeting_id: str) -> int:
         """Returns the count of connected participants in a meeting (alias for API consistency)."""
         return self.get_participant_count(meeting_id)
+
+    async def get_cluster_participant_count(self, meeting_id: str) -> int:
+        """Returns total participant count across all gateway instances via Redis (P1-05)."""
+        if self.redis_client:
+            try:
+                count = await self.redis_client.scard(f"presence:meeting:{meeting_id}")
+                return int(count)
+            except Exception as e:
+                logger.warning("Failed querying Redis presence count for %s: %s", meeting_id, e)
+        return self.get_participant_count(meeting_id)
+
+    def get_stale_sessions(self, max_idle_sec: float = 60.0) -> list[tuple[str, str]]:
+        """Identify sessions that haven't sent a heartbeat within max_idle_sec."""
+        now = time.time()
+        stale: list[tuple[str, str]] = []
+        for meeting_id, room in self._rooms.items():
+            for participant_id, session in room.items():
+                if now - session.last_heartbeat_at > max_idle_sec:
+                    stale.append((meeting_id, participant_id))
+        return stale
 
     async def set_listening_language(
         self,
