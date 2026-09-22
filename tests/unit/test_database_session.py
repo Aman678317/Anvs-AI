@@ -71,5 +71,8 @@ async def test_seed_database_execution() -> None:
 
     assert seed_result["tenant_id"] == str(DEFAULT_TENANT_ID)
     assert seed_result["secondary_tenant_id"] == str(SECONDARY_TENANT_ID)
-    assert mock_session.add.call_count == 6
+    assert "source_segment_id" in seed_result
+    assert "setting_id" in seed_result
+    assert "member_id" in seed_result
+    assert mock_session.add.call_count == 9
     mock_session.commit.assert_awaited_once()

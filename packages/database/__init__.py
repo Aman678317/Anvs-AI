@@ -4,12 +4,20 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_asyn
 
 from .base import Base
 from .models import (
+    IdempotencyKey,
     Meeting,
+    MeetingChatMessage,
+    MeetingSetting,
     Organization,
+    OrganizationMember,
+    OutboxEvent,
     Participant,
+    SourceSegment,
     TranscriptEmbedding,
     TranscriptSegment,
     User,
+    UserSession,
+    VoiceProfile,
 )
 from .seed import seed_database
 from .session import (
@@ -23,12 +31,20 @@ from .session import (
 __all__ = [
     "AsyncSession",
     "Base",
+    "IdempotencyKey",
     "Meeting",
+    "MeetingChatMessage",
+    "MeetingSetting",
     "Organization",
+    "OrganizationMember",
+    "OutboxEvent",
     "Participant",
+    "SourceSegment",
     "TranscriptEmbedding",
     "TranscriptSegment",
     "User",
+    "UserSession",
+    "VoiceProfile",
     "async_sessionmaker",
     "create_async_engine",
     "get_async_engine",
