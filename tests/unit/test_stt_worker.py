@@ -229,3 +229,54 @@ async def test_stt_consumer_dlq_on_malformed_payload() -> None:
     assert emitted == []
     assert consumer.metrics["errors_count"] == 1
     mock_bus.send_to_dlq.assert_awaited_once()
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_stt_consumer_poll_and_process() -> None:
+    mock_bus = AsyncMock(spec=RedisStreamBus)
+    pcm_bytes = float32_to_pcm_s16le(np.zeros(1600, dtype=np.float32))
+    b64_audio = base64.b64encode(pcm_bytes).decode("utf-8")
+
+    payload = {
+        "event_id": "aud_poll_01",
+        "timestamp_ms": 1000,
+        "meeting_id": "m_poll",
+        "tenant_id": "ten_poll",
+        "source_segment_id": "src_part_poll_100",
+        "target_language": "eng",
+        "audio_uri": f"base64://{b64_audio}",
+        "duration_ms": 100,
+        "sample_rate": 16000,
+        "watermarked": False,
+    }
+
+    mock_bus.consume_events.return_value = [("msg-poll-1", payload)]
+    mock_bus.publish.return_value = "msg-pub-1"
+    mock_bus.ack_event.return_value = 1
+
+    engine = MockSTTEngine(simulated_ttft_ms=0)
+    consumer = STTConsumer(stream_bus=mock_bus, engine=engine)
+
+    events = await consumer.poll_and_process("m_poll")
+    assert len(events) >= 1
+    assert mock_bus.ack_event.called
+
+
+@pytest.mark.unit
+def test_faster_whisper_engine_fallback_property() -> None:
+    # When Faster-Whisper is absent or fallback enabled, fallback engine is active
+    engine = FasterWhisperEngine(allow_fallback=True)
+    assert engine.is_using_fallback is True or engine._model is not None
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_mock_stt_engine_all_supported_languages() -> None:
+    for lang in ("eng", "spa", "fra", "deu", "zho", "jpn"):
+        engine = MockSTTEngine(simulated_ttft_ms=0, default_language=lang)
+        audio = np.zeros(8000, dtype=np.float32)
+        res = await engine.transcribe_segment(audio, language=lang)
+        assert res.language == lang
+        assert res.is_final is True
+        assert len(res.text) > 0
