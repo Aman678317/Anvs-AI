@@ -1,4 +1,4 @@
-"""Contract tests for Assistant worker schemas and downstream WebSocket compatibility."""
+"""Contract tests for AI In-Meeting Copilot & RAG Assistant (PR-12)."""
 
 from unittest.mock import AsyncMock
 
@@ -15,6 +15,8 @@ from packages.event_schema import (
 from services.assistant_worker import (
     AssistantConsumer,
     MockAssistantEngine,
+    QueryIntent,
+    QueryRouter,
     TranscriptVectorStore,
 )
 
@@ -150,3 +152,64 @@ def test_assistant_response_to_websocket_frame_compatibility() -> None:
     assert "ultrasonic 20 kHz" in ws_frame.answer
     assert ws_frame.citations == ["src_seg_wm_01"]
     assert len(ws_frame.action_items) == 1
+
+
+@pytest.mark.contract
+def test_query_router_intent_contract_all_intents_reachable() -> None:
+    """Verifies all QueryIntent variants are reachable through QueryRouter classification."""
+    router = QueryRouter()
+
+    test_cases: list[tuple[str, QueryIntent]] = [
+        ("What are the next steps and action items from today?", QueryIntent.ACTION_ITEM),
+        ("Summarize what was discussed in this meeting.", QueryIntent.SUMMARY),
+        ("What decisions did the team make about the roadmap?", QueryIntent.DECISION),
+        ("Can you elaborate on the security architecture point?", QueryIntent.CLARIFICATION),
+        ("When is the quarterly review scheduled?", QueryIntent.FACTUAL),
+    ]
+
+    achieved_intents = set()
+    for question, expected_intent in test_cases:
+        result = router.classify(question)
+        if result.intent == expected_intent:
+            achieved_intents.add(expected_intent)
+
+    # All 5 intents must be reachable
+    assert len(achieved_intents) == len(
+        QueryIntent
+    ), f"Not all intents reachable. Got: {achieved_intents}"
+
+
+@pytest.mark.contract
+@pytest.mark.asyncio
+async def test_rolling_summary_and_citation_contract() -> None:
+    """Verifies MeetingStreamSummarizer tracks source_segment_ids for full citation lineage."""
+    from services.assistant_worker import MeetingStreamSummarizer
+
+    engine = MockAssistantEngine(simulated_latency_ms=0)
+    summarizer = MeetingStreamSummarizer(
+        engine=engine,
+        meeting_id="meet_citation_sum",
+        tenant_id="tenant_cit",
+        batch_watermark=3,
+    )
+
+    canonical_ids = ["src_cit_sum_01", "src_cit_sum_02", "src_cit_sum_03"]
+    from services.assistant_worker import IndexedSegment
+
+    for seg_id in canonical_ids:
+        summarizer.add_segment(
+            IndexedSegment(
+                source_segment_id=seg_id,
+                text="The team agreed to adopt microservices architecture.",
+                meeting_id="meet_citation_sum",
+            )
+        )
+
+    # Batch summary fires at watermark=3
+    summary = await summarizer.maybe_generate_batch_summary()
+    assert summary is not None
+
+    # All contributing segment IDs must be tracked (Invariant #2 at summary level)
+    tracked_ids = summarizer.get_source_segment_ids()
+    for seg_id in canonical_ids:
+        assert seg_id in tracked_ids

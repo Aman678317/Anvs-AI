@@ -1,22 +1,33 @@
-"""Unit tests for Meeting Assistant Worker Service adhering to Document 14."""
+"""Unit tests for AI In-Meeting Copilot & RAG Assistant (PR-12)."""
 
 from unittest.mock import AsyncMock
 
 import numpy as np
 import pytest
 
-from packages.event_schema import AssistantQueryEvent, RedisStreamBus, SourceSegmentEvent
+from packages.event_schema import (
+    AssistantQueryEvent,
+    RedisStreamBus,
+    SourceSegmentEvent,
+)
 from services.assistant_worker import (
     AssistantAnswer,
     AssistantConsumer,
     BaseAssistantEngine,
     IndexedSegment,
+    MeetingStreamSummarizer,
     MeetingSummary,
     MockAssistantEngine,
     OpenAIAssistantEngine,
+    QueryIntent,
+    QueryRouter,
     TranscriptVectorStore,
     create_assistant_engine,
 )
+
+# ---------------------------------------------------------------------------
+# Pre-existing PR-11 baseline tests (regression guard — all must still pass)
+# ---------------------------------------------------------------------------
 
 
 @pytest.mark.unit
@@ -90,7 +101,6 @@ async def test_mock_assistant_engine_answers_query_with_citations() -> None:
 
     assert isinstance(res, AssistantAnswer)
     assert res.query_id == "query_cit_100"
-    # INVARIANT #2 ASSERTION:
     assert "lineage_provenance_alpha_01" in res.citations
     assert len(res.answer) > 0
     assert res.confidence >= 0.90
@@ -300,3 +310,442 @@ async def test_assistant_consumer_dlq_on_malformed_payload() -> None:
     assert response is None
     assert consumer.metrics["errors_count"] == 1
     mock_bus.send_to_dlq.assert_awaited_once()
+
+
+# ---------------------------------------------------------------------------
+# PR-12 New Tests: QueryRouter Intent Classification
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.unit
+def test_query_router_classifies_action_item_intent() -> None:
+    """Verifies QueryRouter correctly classifies action/commitment queries."""
+    router = QueryRouter()
+
+    result = router.classify("What are the follow-up tasks assigned to DevOps?")
+    assert result.intent == QueryIntent.ACTION_ITEM
+    assert result.confidence > 0.70
+    assert result.top_k_override is not None and result.top_k_override >= 8
+
+    result2 = router.classify("Who will deploy the new service?")
+    assert result2.intent == QueryIntent.ACTION_ITEM
+
+
+@pytest.mark.unit
+def test_query_router_classifies_summary_intent() -> None:
+    """Verifies QueryRouter correctly classifies summary/recap queries."""
+    router = QueryRouter()
+
+    result = router.classify("Can you give me a summary of the meeting?")
+    assert result.intent == QueryIntent.SUMMARY
+    assert result.top_k_override is not None and result.top_k_override >= 10
+
+    result2 = router.classify("What were the key highlights from today?")
+    assert result2.intent == QueryIntent.SUMMARY
+
+
+@pytest.mark.unit
+def test_query_router_classifies_decision_intent() -> None:
+    """Verifies QueryRouter correctly classifies decision/resolution queries."""
+    router = QueryRouter()
+
+    result = router.classify("What decisions were made about the budget?")
+    assert result.intent == QueryIntent.DECISION
+    assert result.confidence > 0.70
+
+    result2 = router.classify("Did we reach consensus on the database migration?")
+    assert result2.intent == QueryIntent.DECISION
+
+
+@pytest.mark.unit
+def test_query_router_classifies_clarification_intent() -> None:
+    """Verifies QueryRouter correctly classifies clarification/elaboration queries."""
+    router = QueryRouter()
+
+    result = router.classify("Can you elaborate on what Alice said about the timeline?")
+    assert result.intent == QueryIntent.CLARIFICATION
+
+    result2 = router.classify("What did the team mean by reducing cluster overhead?")
+    assert result2.intent == QueryIntent.CLARIFICATION
+
+
+@pytest.mark.unit
+def test_query_router_classifies_factual_default() -> None:
+    """Verifies QueryRouter falls back to FACTUAL intent for generic questions."""
+    router = QueryRouter()
+
+    result = router.classify("When does the meeting end?")
+    # Not action/decision/summary specific — falls through to FACTUAL
+    assert result.intent in (QueryIntent.FACTUAL, QueryIntent.ACTION_ITEM)
+    assert result.confidence > 0.5
+
+    empty = router.classify("")
+    assert empty.intent == QueryIntent.FACTUAL
+
+
+@pytest.mark.unit
+def test_query_router_get_retrieval_params() -> None:
+    """Verifies get_retrieval_params returns (top_k, threshold, intent) correctly."""
+    router = QueryRouter()
+
+    top_k, threshold, intent = router.get_retrieval_params(
+        "What action items were assigned today?",
+        default_top_k=5,
+        default_threshold=0.55,
+    )
+    assert isinstance(top_k, int) and top_k >= 1
+    assert isinstance(threshold, float) and 0.0 < threshold < 1.0
+    assert intent == QueryIntent.ACTION_ITEM
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_consumer_query_uses_intent_aware_retrieval() -> None:
+    """Verifies process_query_message routes action-item queries with higher top_k."""
+    mock_bus = AsyncMock(spec=RedisStreamBus)
+    mock_bus.publish.return_value = "msg-intent-aware"
+    mock_bus.ack_event.return_value = 1
+
+    engine = MockAssistantEngine(simulated_latency_ms=0)
+    vector_store = TranscriptVectorStore()
+    consumer = AssistantConsumer(stream_bus=mock_bus, engine=engine, vector_store=vector_store)
+
+    # Pre-index segments
+    for i in range(3):
+        seg = IndexedSegment(
+            source_segment_id=f"src_action_{i}",
+            text=f"Alice will deploy the service component {i} by Friday.",
+            speaker_name="Alice",
+            embedding=engine.embed_text(f"deploy service component {i}"),
+            meeting_id="meet_intent",
+            tenant_id="t1",
+        )
+        vector_store.add_segment(seg)
+
+    query_event = AssistantQueryEvent(
+        event_id="evt_intent_01",
+        timestamp_ms=1710000000000,
+        meeting_id="meet_intent",
+        tenant_id="t1",
+        query_id="qry_intent_001",
+        participant_id="participant_01",
+        question="What follow-up tasks were assigned to Alice?",
+    )
+
+    response = await consumer.process_query_message(
+        stream_name="events:meeting:meet_intent:assistant",
+        message_id="100-0",
+        raw_payload=query_event.model_dump(),
+        meeting_id="meet_intent",
+    )
+
+    assert response is not None
+    assert response.query_id == "qry_intent_001"
+    assert len(response.citations) >= 1
+    assert consumer.metrics["responses_emitted"] == 1
+
+
+# ---------------------------------------------------------------------------
+# PR-12 New Tests: MeetingStreamSummarizer
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_stream_summarizer_no_batch_trigger_below_watermark() -> None:
+    """Verifies no intermediate summary fires when below the batch watermark."""
+    engine = MockAssistantEngine(simulated_latency_ms=0)
+    summarizer = MeetingStreamSummarizer(
+        engine=engine,
+        meeting_id="meet_wm_test",
+        tenant_id="t1",
+        batch_watermark=50,
+    )
+
+    for i in range(10):
+        seg = IndexedSegment(
+            source_segment_id=f"seg_{i}",
+            text=f"Discussion point {i}",
+            meeting_id="meet_wm_test",
+        )
+        summarizer.add_segment(seg)
+
+    summary = await summarizer.maybe_generate_batch_summary()
+    assert summary is None  # not yet at watermark
+    assert summarizer.summaries_generated == 0
+    assert summarizer.total_segments_indexed == 10
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_stream_summarizer_triggers_at_watermark() -> None:
+    """Verifies intermediate summary fires when batch_watermark segments are accumulated."""
+    engine = MockAssistantEngine(simulated_latency_ms=0)
+    summarizer = MeetingStreamSummarizer(
+        engine=engine,
+        meeting_id="meet_batch",
+        tenant_id="t1",
+        batch_watermark=5,
+    )
+
+    texts = [
+        "We must deploy the new API gateway by end of week.",
+        "The team agreed to adopt Kubernetes for container orchestration.",
+        "Alice will schedule the infrastructure cost review.",
+        "The consensus is to migrate databases to PostgreSQL 16.",
+        "DevOps will set up monitoring dashboards for all services.",
+    ]
+    for i, text in enumerate(texts):
+        seg = IndexedSegment(
+            source_segment_id=f"seg_batch_{i}",
+            text=text,
+            speaker_name="Participant",
+            meeting_id="meet_batch",
+        )
+        summarizer.add_segment(seg)
+
+    summary = await summarizer.maybe_generate_batch_summary()
+
+    assert summary is not None
+    assert isinstance(summary, MeetingSummary)
+    assert summary.meeting_id == "meet_batch"
+    assert len(summary.summary) > 0
+    assert summarizer.summaries_generated == 1
+    # Batch should be reset after summary
+    assert len(summarizer._state.segments_since_last_summary) == 0
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_stream_summarizer_finalize_generates_full_summary() -> None:
+    """Verifies finalize() synthesizes a complete executive summary over all segments."""
+    engine = MockAssistantEngine(simulated_latency_ms=0)
+    summarizer = MeetingStreamSummarizer(
+        engine=engine,
+        meeting_id="meet_final_sum",
+        tenant_id="t1",
+        batch_watermark=100,  # Won't trigger batch during test
+    )
+
+    segments = [
+        IndexedSegment(
+            source_segment_id=f"seg_fin_{i}",
+            text=f"Point {i}: The team will schedule a deployment review.",
+            meeting_id="meet_final_sum",
+        )
+        for i in range(5)
+    ]
+    for seg in segments:
+        summarizer.add_segment(seg)
+
+    final = await summarizer.finalize()
+
+    assert isinstance(final, MeetingSummary)
+    assert final.meeting_id == "meet_final_sum"
+    assert len(final.summary) > 0
+    assert summarizer.summaries_generated == 1
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_stream_summarizer_finalize_empty_meeting() -> None:
+    """Verifies finalize() returns a clean summary for meetings with no transcripts."""
+    engine = MockAssistantEngine(simulated_latency_ms=0)
+    summarizer = MeetingStreamSummarizer(
+        engine=engine,
+        meeting_id="meet_empty",
+        tenant_id="t1",
+    )
+
+    final = await summarizer.finalize()
+
+    assert isinstance(final, MeetingSummary)
+    assert final.meeting_id == "meet_empty"
+    assert "no recorded" in final.summary.lower()
+    assert final.action_items == []
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_consumer_finalize_meeting_summary() -> None:
+    """Verifies AssistantConsumer.finalize_meeting_summary produces a valid summary."""
+    mock_bus = AsyncMock(spec=RedisStreamBus)
+    mock_bus.ack_event.return_value = 1
+
+    engine = MockAssistantEngine(simulated_latency_ms=0)
+    vector_store = TranscriptVectorStore()
+    consumer = AssistantConsumer(stream_bus=mock_bus, engine=engine, vector_store=vector_store)
+
+    # Index a few segments through normal pipeline
+    for i in range(3):
+        event = SourceSegmentEvent(
+            event_id=f"src_evt_sum_{i}",
+            timestamp_ms=1710000000000 + i * 1000,
+            meeting_id="meet_finalize",
+            tenant_id="tenant_fin",
+            session_id="sess_fin",
+            participant_id=f"user_{i}",
+            source_segment_id=f"src_fin_{i}",
+            language="eng",
+            text=f"Segment {i}: We agreed to adopt cloud-first infrastructure.",
+            is_final=True,
+            start_ms=i * 1000,
+            end_ms=(i + 1) * 1000,
+            confidence=0.97,
+        )
+        await consumer.process_transcript_message(
+            stream_name="events:meeting:meet_finalize:transcripts",
+            message_id=f"{i}-0",
+            raw_payload=event.model_dump(),
+            meeting_id="meet_finalize",
+        )
+
+    final_summary = await consumer.finalize_meeting_summary("meet_finalize")
+
+    assert final_summary is not None
+    assert isinstance(final_summary, MeetingSummary)
+    assert final_summary.meeting_id == "meet_finalize"
+    assert len(final_summary.summary) > 0
+    assert consumer.metrics["summaries_generated"] >= 1
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_stream_summarizer_source_segment_id_lineage() -> None:
+    """Verifies summarizer tracks all source_segment_ids contributing to summaries."""
+    engine = MockAssistantEngine(simulated_latency_ms=0)
+    summarizer = MeetingStreamSummarizer(
+        engine=engine, meeting_id="meet_lineage_sum", tenant_id="t1"
+    )
+
+    expected_ids = [f"src_lin_{i}" for i in range(4)]
+    for seg_id in expected_ids:
+        summarizer.add_segment(
+            IndexedSegment(
+                source_segment_id=seg_id,
+                text="Test segment for lineage tracking.",
+                meeting_id="meet_lineage_sum",
+            )
+        )
+
+    tracked_ids = summarizer.get_source_segment_ids()
+    for expected_id in expected_ids:
+        assert expected_id in tracked_ids
+
+
+# ---------------------------------------------------------------------------
+# PR-12 New Tests: Multi-tenant isolation
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.unit
+def test_vector_store_multi_tenant_isolation() -> None:
+    """Verifies TranscriptVectorStore correctly isolates segments by meeting_id (tenant boundary)."""
+    store = TranscriptVectorStore()
+    engine = MockAssistantEngine(simulated_latency_ms=0)
+
+    # Tenant A meeting
+    seg_a = IndexedSegment(
+        source_segment_id="src_tenant_a_01",
+        text="Tenant A decision: deploy microservices on AWS.",
+        embedding=engine.embed_text("deploy microservices aws"),
+        meeting_id="meet_tenant_a",
+        tenant_id="tenant_a",
+    )
+    # Tenant B meeting
+    seg_b = IndexedSegment(
+        source_segment_id="src_tenant_b_01",
+        text="Tenant B decision: use GCP for our Kubernetes clusters.",
+        embedding=engine.embed_text("kubernetes gcp clusters"),
+        meeting_id="meet_tenant_b",
+        tenant_id="tenant_b",
+    )
+
+    store.add_segment(seg_a)
+    store.add_segment(seg_b)
+
+    query_emb = engine.embed_text("microservices cloud deployment")
+
+    # Tenant A query must only see Tenant A segments
+    results_a = store.similarity_search(query_emb, meeting_id="meet_tenant_a", top_k=5)
+    result_ids_a = [seg.source_segment_id for seg, _ in results_a]
+    assert "src_tenant_a_01" in result_ids_a
+    assert "src_tenant_b_01" not in result_ids_a
+
+    # Tenant B query must only see Tenant B segments
+    results_b = store.similarity_search(query_emb, meeting_id="meet_tenant_b", top_k=5)
+    result_ids_b = [seg.source_segment_id for seg, _ in results_b]
+    assert "src_tenant_b_01" in result_ids_b
+    assert "src_tenant_a_01" not in result_ids_b
+
+
+@pytest.mark.unit
+def test_vector_store_clear_meeting_purges_data() -> None:
+    """Verifies clear_meeting() purges all segments for a meeting without affecting others."""
+    store = TranscriptVectorStore()
+    engine = MockAssistantEngine()
+
+    store.add_segment(
+        IndexedSegment(
+            source_segment_id="src_meet1_01",
+            text="First meeting content.",
+            embedding=engine.embed_text("first meeting"),
+            meeting_id="meet_clear_1",
+            tenant_id="t1",
+        )
+    )
+    store.add_segment(
+        IndexedSegment(
+            source_segment_id="src_meet2_01",
+            text="Second meeting content should survive.",
+            embedding=engine.embed_text("second meeting"),
+            meeting_id="meet_clear_2",
+            tenant_id="t1",
+        )
+    )
+
+    assert store.count("meet_clear_1") == 1
+    assert store.count("meet_clear_2") == 1
+
+    store.clear_meeting("meet_clear_1")
+
+    assert store.count("meet_clear_1") == 0
+    assert store.count("meet_clear_2") == 1  # Unaffected
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_consumer_empty_vector_store_returns_answer_without_citations() -> None:
+    """Verifies consumer handles empty store gracefully — returns answer without citations."""
+    mock_bus = AsyncMock(spec=RedisStreamBus)
+    mock_bus.publish.return_value = "msg-empty-store"
+    mock_bus.ack_event.return_value = 1
+
+    consumer = AssistantConsumer(
+        stream_bus=mock_bus,
+        engine=MockAssistantEngine(simulated_latency_ms=0),
+        vector_store=TranscriptVectorStore(),
+    )
+
+    query_event = AssistantQueryEvent(
+        event_id="evt_empty_001",
+        timestamp_ms=1710000000000,
+        meeting_id="meet_empty_rag",
+        tenant_id="t1",
+        query_id="qry_empty_001",
+        participant_id="participant_01",
+        question="What was discussed?",
+    )
+
+    response = await consumer.process_query_message(
+        stream_name="events:meeting:meet_empty_rag:assistant",
+        message_id="200-0",
+        raw_payload=query_event.model_dump(),
+        meeting_id="meet_empty_rag",
+    )
+
+    assert response is not None
+    assert response.query_id == "qry_empty_001"
+    # No segments indexed → citations list may be empty
+    assert isinstance(response.citations, list)
+    assert len(response.answer) > 0

@@ -18,7 +18,9 @@ from packages.event_schema import (
     get_stream_key,
 )
 from services.assistant_worker.engine import BaseAssistantEngine, create_assistant_engine
-from services.assistant_worker.types import IndexedSegment
+from services.assistant_worker.query_router import QueryRouter
+from services.assistant_worker.stream_summarizer import MeetingStreamSummarizer
+from services.assistant_worker.types import IndexedSegment, MeetingSummary
 from services.assistant_worker.vector_store import TranscriptVectorStore
 
 logger = logging.getLogger(__name__)
@@ -40,6 +42,10 @@ class AssistantConsumer:
         self.vector_store = vector_store or TranscriptVectorStore()
         self.group_name = group_name or settings.assistant_consumer_group
         self.consumer_name = consumer_name or f"assistant-worker-{uuid.uuid4().hex[:8]}"
+        self.query_router = QueryRouter()
+
+        # Per-meeting rolling summarizers: meeting_id -> MeetingStreamSummarizer
+        self._summarizers: dict[str, MeetingStreamSummarizer] = {}
 
         # Operational metrics
         self.metrics = {
@@ -48,6 +54,7 @@ class AssistantConsumer:
             "responses_emitted": 0,
             "action_items_extracted": 0,
             "errors_count": 0,
+            "summaries_generated": 0,
         }
 
     async def setup(self, meeting_id: str) -> None:
@@ -63,6 +70,36 @@ class AssistantConsumer:
             stream=assistant_stream,
             group_name=self.group_name,
         )
+
+    def get_or_create_summarizer(
+        self,
+        meeting_id: str,
+        tenant_id: str = "default",
+        batch_watermark: int = 50,
+    ) -> MeetingStreamSummarizer:
+        """Returns the existing MeetingStreamSummarizer for a meeting, or creates one."""
+        if meeting_id not in self._summarizers:
+            self._summarizers[meeting_id] = MeetingStreamSummarizer(
+                engine=self.engine,
+                meeting_id=meeting_id,
+                tenant_id=tenant_id,
+                batch_watermark=batch_watermark,
+            )
+        return self._summarizers[meeting_id]
+
+    async def finalize_meeting_summary(self, meeting_id: str) -> MeetingSummary | None:
+        """Generates the final executive summary for a meeting and evicts its summarizer."""
+        summarizer = self._summarizers.get(meeting_id)
+        if summarizer is None:
+            all_segs = self.vector_store.get_transcript(meeting_id)
+            if not all_segs:
+                return None
+            return await self.engine.generate_summary(all_segs, meeting_id)
+
+        summary = await summarizer.finalize()
+        self.metrics["summaries_generated"] += 1
+        self._summarizers.pop(meeting_id, None)
+        return summary
 
     async def process_transcript_message(
         self,
@@ -101,6 +138,17 @@ class AssistantConsumer:
 
             self.vector_store.add_segment(indexed_seg)
             self.metrics["transcripts_indexed"] += 1
+
+            # Notify per-meeting rolling summarizer
+            summarizer = self.get_or_create_summarizer(
+                meeting_id=meeting_id, tenant_id=event.tenant_id
+            )
+            summarizer.add_segment(indexed_seg)
+
+            # Trigger intermediate summary if batch watermark reached
+            batch_summary = await summarizer.maybe_generate_batch_summary()
+            if batch_summary is not None:
+                self.metrics["summaries_generated"] += 1
 
             await self.stream_bus.ack_event(stream_name, self.group_name, message_id)
             return indexed_seg
@@ -145,25 +193,39 @@ class AssistantConsumer:
 
             query_event = AssistantQueryEvent.model_validate(payload_dict)
 
-            # 1. Embed query text
+            # 1. Classify query intent to select retrieval parameters
+            top_k, threshold, intent = self.query_router.get_retrieval_params(
+                question=query_event.question,
+                default_top_k=settings.assistant_top_k,
+                default_threshold=settings.assistant_similarity_threshold,
+            )
+            logger.debug(
+                "Query intent classified as '%s' for query_id=%s (top_k=%d, threshold=%.2f)",
+                intent.value,
+                query_event.query_id,
+                top_k,
+                threshold,
+            )
+
+            # 2. Embed query text
             query_emb = self.engine.embed_text(query_event.question)
 
-            # 2. Semantic search over meeting transcript segments
+            # 3. Semantic search over meeting transcript segments using intent-tuned params
             retrieved = self.vector_store.similarity_search(
                 query_embedding=query_emb,
                 meeting_id=meeting_id,
-                top_k=settings.assistant_top_k,
-                threshold=settings.assistant_similarity_threshold,
+                top_k=top_k,
+                threshold=threshold,
             )
 
-            # 3. Formulate grounded answer with Invariant #2 citation lineage
+            # 4. Formulate grounded answer with Invariant #2 citation lineage
             answer_res = await self.engine.answer_query(
                 query=query_event.question,
                 retrieved_segments=retrieved,
                 query_id=query_event.query_id,
             )
 
-            # 4. Construct and publish AssistantResponseEvent
+            # 5. Construct and publish AssistantResponseEvent
             assistant_stream = get_stream_key(meeting_id, STREAM_ASSISTANT)
             response_event = AssistantResponseEvent(
                 event_id=f"asst_resp_{uuid.uuid4()}",
@@ -181,7 +243,7 @@ class AssistantConsumer:
             self.metrics["responses_emitted"] += 1
             self.metrics["action_items_extracted"] += len(answer_res.action_items)
 
-            # 5. Acknowledge query message
+            # 6. Acknowledge query message
             await self.stream_bus.ack_event(stream_name, self.group_name, message_id)
             return response_event
 
