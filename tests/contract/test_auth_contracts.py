@@ -138,4 +138,3 @@ def test_register_contracts_validation() -> None:
     )
     assert resp.token_type == "Bearer"
     assert resp.expires_in_sec == 3600
-

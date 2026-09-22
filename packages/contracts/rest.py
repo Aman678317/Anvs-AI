@@ -52,12 +52,8 @@ class RegisterRequest(BaseContract):
     organization_name: str | None = Field(
         default=None, max_length=200, description="Optional organization name to create"
     )
-    tenant_id: str | None = Field(
-        default=None, description="Optional existing tenant UUID to join"
-    )
-    role: ParticipantRole = Field(
-        default=ParticipantRole.PARTICIPANT, description="Initial role"
-    )
+    tenant_id: str | None = Field(default=None, description="Optional existing tenant UUID to join")
+    role: ParticipantRole = Field(default=ParticipantRole.PARTICIPANT, description="Initial role")
     default_spoken_language: str = Field(
         default="eng", min_length=3, max_length=3, description="ISO-639-3 spoken language"
     )
