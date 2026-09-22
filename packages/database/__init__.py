@@ -15,6 +15,7 @@ from .seed import seed_database
 from .session import (
     get_async_engine,
     get_db_session,
+    get_db_session_dependency,
     get_session_factory,
     get_tenant_session,
 )
@@ -32,6 +33,7 @@ __all__ = [
     "create_async_engine",
     "get_async_engine",
     "get_db_session",
+    "get_db_session_dependency",
     "get_session_factory",
     "get_tenant_session",
     "seed_database",

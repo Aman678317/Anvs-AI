@@ -1,0 +1,19 @@
+1
+00:00:00,000 --> 00:00:09,000
+HOOK: Kya aap jaante hain ki qlora loads models in 4-bit precision.?
+
+2
+00:00:09,000 --> 00:00:18,000
+EXPLANATION: QLoRA loads models in 4-bit precision.
+
+3
+00:00:18,000 --> 00:00:27,000
+EXAMPLE: QLoRA fine-tunes a 65B model on a single 48GB GPU.
+
+4
+00:00:27,000 --> 00:00:36,000
+PRACTICAL TAKEAWAY: Iska use karke aap apne AI workflow mein yeh technique directly laga sakte ho.
+
+5
+00:00:36,000 --> 00:00:45,000
+CTA: Follow for daily 60-second AI education shorts.

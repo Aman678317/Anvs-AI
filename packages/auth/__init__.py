@@ -1,6 +1,7 @@
 """Authentication and Authorization package (Supabase JWT & RBAC)."""
 
 from .models import AuthenticatedUser, JWTPayload, SessionTicket
+from .passwords import hash_password, verify_password
 from .rbac import (
     ROLE_HIERARCHY,
     ROLE_PERMISSIONS,
@@ -36,8 +37,10 @@ __all__ = [
     "create_access_token",
     "create_session_ticket",
     "has_permission",
+    "hash_password",
     "require_permission",
     "require_role",
+    "verify_password",
     "verify_session_ticket",
     "verify_token",
 ]

@@ -13,6 +13,8 @@ from packages.auth import (
     TokenExpiredError,
     create_access_token,
     create_session_ticket,
+    hash_password,
+    verify_password,
     verify_session_ticket,
     verify_token,
 )
@@ -102,3 +104,23 @@ def test_expired_session_ticket_raises_error(sample_user: AuthenticatedUser) -> 
 
     with pytest.raises(TokenExpiredError, match="Session ticket has expired"):
         verify_session_ticket(expired_ticket)
+
+
+@pytest.mark.unit
+def test_password_hashing_and_verification() -> None:
+    plaintext = "SuperSecretP@ssword2026!"
+    hashed = hash_password(plaintext)
+
+    assert isinstance(hashed, str)
+    assert hashed != plaintext
+    assert hashed.startswith("$2b$") or hashed.startswith("$2a$")
+
+    # Verify correct password
+    assert verify_password(plaintext, hashed) is True
+
+    # Verify wrong password
+    assert verify_password("WrongPassword123!", hashed) is False
+
+    # Verify empty/None hashed password returns False
+    assert verify_password(plaintext, None) is False
+    assert verify_password(plaintext, "") is False
