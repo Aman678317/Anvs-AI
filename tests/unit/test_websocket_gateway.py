@@ -10,6 +10,7 @@ from packages.auth.models import AuthenticatedUser
 from packages.auth.tokens import create_session_ticket
 from packages.contracts import (
     ParticipantRole,
+    WSClientChatMessageFrame,
     WSClientJoinFrame,
     WSClientMessageType,
     WSClientPingFrame,
@@ -200,3 +201,81 @@ def test_websocket_rejects_invalid_first_frame(
         ws.receive_text()
 
     assert exc_info.value.code == 1008
+
+
+@pytest.mark.unit
+def test_websocket_rate_limiting(
+    test_client: tuple[TestClient, ConnectionManager],
+    auth_user: AuthenticatedUser,
+) -> None:
+    client, _ = test_client
+    meeting_id = "meeting_test_rate_limit"
+    valid_ticket = create_session_ticket(auth_user, meeting_id=meeting_id)
+
+    with (
+        pytest.raises(WebSocketDisconnect) as exc_info,
+        client.websocket_connect(f"/ws/meetings/{meeting_id}") as ws,
+    ):
+        join_frame = WSClientJoinFrame(
+            type=WSClientMessageType.JOIN,
+            ticket=valid_ticket,
+            participant_id="part_rate_limit",
+        )
+        ws.send_text(join_frame.model_dump_json())
+        ws.receive_text()  # Room state
+
+        # Exceed rate limit (> 50 messages)
+        ping_frame = WSClientPingFrame(
+            type=WSClientMessageType.PING,
+            timestamp_ms=1000,
+        )
+        ping_json = ping_frame.model_dump_json()
+
+        for _ in range(55):
+            ws.send_text(ping_json)
+
+        # One of the responses should be RATE_LIMIT_EXCEEDED
+        found_rate_limit_error = False
+        while True:
+            raw = ws.receive_text()
+            data = json.loads(raw)
+            if data.get("code") == "RATE_LIMIT_EXCEEDED":
+                found_rate_limit_error = True
+                break
+
+        assert found_rate_limit_error is True
+        ws.receive_text()
+
+    assert exc_info.value.code == 1008
+
+
+@pytest.mark.unit
+def test_websocket_chat_message_broadcast(
+    test_client: tuple[TestClient, ConnectionManager],
+    auth_user: AuthenticatedUser,
+) -> None:
+    client, _ = test_client
+    meeting_id = "meeting_test_chat"
+    valid_ticket = create_session_ticket(auth_user, meeting_id=meeting_id)
+
+    with client.websocket_connect(f"/ws/meetings/{meeting_id}") as ws:
+        join_frame = WSClientJoinFrame(
+            type=WSClientMessageType.JOIN,
+            ticket=valid_ticket,
+            participant_id="part_chat_user",
+        )
+        ws.send_text(join_frame.model_dump_json())
+        ws.receive_text()  # Room state
+
+        # Send chat message
+        chat_frame = WSClientChatMessageFrame(
+            type=WSClientMessageType.CHAT_MESSAGE,
+            text="Hello real-time team!",
+        )
+        ws.send_text(chat_frame.model_dump_json())
+
+        # Receive broadcast caption update
+        msg_raw = ws.receive_text()
+        msg = json.loads(msg_raw)
+        assert msg["type"] == WSServerMessageType.CAPTION_UPDATE
+        assert "Hello real-time team!" in msg["text"]

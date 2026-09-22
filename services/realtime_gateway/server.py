@@ -20,11 +20,13 @@ from packages.config import settings
 from packages.contracts import (
     MeetingStatus,
     ParticipantContract,
+    WSClientChatMessageFrame,
     WSClientJoinFrame,
     WSClientMessageType,
     WSClientPingFrame,
     WSClientQueryAssistantFrame,
     WSClientSetLanguageFrame,
+    WSServerCaptionFrame,
     WSServerErrorFrame,
     WSServerParticipantJoinedFrame,
     WSServerParticipantLeftFrame,
@@ -196,6 +198,17 @@ def create_realtime_gateway_app(
         try:
             while True:
                 msg_text = await websocket.receive_text()
+
+                # Inbound frame rate limit check (PR-04 DoS protection)
+                if not session.check_rate_limit():
+                    err = WSServerErrorFrame(
+                        code="RATE_LIMIT_EXCEEDED",
+                        message="Message rate limit exceeded (maximum 50 messages per second).",
+                    )
+                    await websocket.send_text(err.model_dump_json())
+                    await websocket.close(code=1008)
+                    break
+
                 try:
                     payload = json.loads(msg_text)
                 except Exception:
@@ -204,11 +217,13 @@ def create_realtime_gateway_app(
                 msg_type = payload.get("type")
 
                 if msg_type == WSClientMessageType.PING:
+                    session.last_heartbeat_at = time.time()
                     ping_frame = WSClientPingFrame.model_validate(payload)
                     pong_frame = WSServerPongFrame(timestamp_ms=ping_frame.timestamp_ms)
                     await websocket.send_text(pong_frame.model_dump_json())
 
                 elif msg_type == WSClientMessageType.SET_LISTENING_LANGUAGE:
+                    session.last_heartbeat_at = time.time()
                     lang_frame = WSClientSetLanguageFrame.model_validate(payload)
                     await ws_manager.set_listening_language(
                         meeting_id,
@@ -217,6 +232,7 @@ def create_realtime_gateway_app(
                     )
 
                 elif msg_type == WSClientMessageType.QUERY_ASSISTANT:
+                    session.last_heartbeat_at = time.time()
                     asst_frame = WSClientQueryAssistantFrame.model_validate(payload)
                     if stream_bus:
                         await stream_bus.publish(
@@ -233,8 +249,19 @@ def create_realtime_gateway_app(
                         )
 
                 elif msg_type == WSClientMessageType.CHAT_MESSAGE:
-                    # Reserved for chat broadcast / persistence
-                    pass
+                    session.last_heartbeat_at = time.time()
+                    chat_frame = WSClientChatMessageFrame.model_validate(payload)
+                    caption_msg = WSServerCaptionFrame(
+                        source_segment_id=f"chat-{uuid.uuid4()}",
+                        speaker_id=session.participant_id,
+                        source_language=session.spoken_language,
+                        target_language=session.listening_language,
+                        text=f"[{session.display_name or session.participant_id}]: {chat_frame.text}",
+                        is_final=True,
+                        start_ms=0,
+                        end_ms=0,
+                    )
+                    await ws_manager.broadcast_to_meeting(meeting_id, caption_msg)
 
         except WebSocketDisconnect:
             logger.info("WebSocket disconnected for participant %s", session.participant_id)
