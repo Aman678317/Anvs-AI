@@ -1,6 +1,6 @@
 """Unit tests for Speaker Diarization Worker Service adhering to Document 14."""
 
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, MagicMock
 
 import numpy as np
 import pytest
@@ -279,3 +279,62 @@ async def test_speaker_consumer_dlq_on_malformed_payload() -> None:
     assert emitted == []
     assert consumer.metrics["errors_count"] == 1
     mock_bus.send_to_dlq.assert_awaited_once()
+
+
+@pytest.mark.unit
+def test_voice_profile_registry_load_from_db_models() -> None:
+    """Verifies that database VoiceProfile records can be enrolled into the in-memory registry."""
+    registry = VoiceProfileRegistry(default_similarity_threshold=0.8)
+
+    db_profile = MagicMock()
+    db_profile.id = "vp-12345"
+    db_profile.user_id = "user-alice-db"
+    db_profile.speaker_name = "Alice DB"
+    db_profile.embedding = [0.1] * 256
+
+    count = registry.load_from_db_profiles([db_profile])
+    assert count == 1
+    profile = registry.get_profile("user-alice-db")
+    assert profile is not None
+    assert profile.name == "Alice DB"
+    assert profile.metadata["source"] == "db_voice_profile"
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_speaker_consumer_poll_and_process() -> None:
+    mock_bus = AsyncMock(spec=RedisStreamBus)
+    mock_bus.publish.return_value = "msg-diar-poll"
+    mock_bus.ack_event.return_value = 1
+
+    engine = MockSpeakerEngine(simulated_latency_ms=0)
+    consumer = SpeakerConsumer(stream_bus=mock_bus, engine=engine)
+
+    payload = {
+        "event_id": "src_poll_1",
+        "timestamp_ms": 1000,
+        "meeting_id": "meet_poll",
+        "tenant_id": "ten_poll",
+        "session_id": "sess_poll",
+        "participant_id": "part_poll",
+        "source_segment_id": "src_poll_100",
+        "language": "eng",
+        "text": "Testing speaker consumer polling.",
+        "is_final": True,
+        "start_ms": 0,
+        "end_ms": 1000,
+        "confidence": 0.95,
+    }
+
+    mock_bus.consume_events.return_value = [("msg-diar-100", payload)]
+
+    emitted = await consumer.poll_and_process("meet_poll")
+    assert len(emitted) == 1
+    assert emitted[0].source_segment_id == "src_poll_100"
+    mock_bus.ack_event.assert_awaited_once()
+
+
+@pytest.mark.unit
+def test_pyannote_speaker_engine_fallback_property() -> None:
+    engine = PyAnnoteSpeakerEngine(allow_fallback=True)
+    assert engine.is_using_fallback is True or engine._pipeline is not None

@@ -2,6 +2,7 @@
 
 import logging
 from dataclasses import dataclass, field
+from typing import Any
 
 import numpy as np
 
@@ -68,6 +69,27 @@ class VoiceProfileRegistry:
     def get_profile(self, speaker_id: str) -> VoiceProfile | None:
         """Retrieves an enrolled profile by speaker_id."""
         return self._enrolled_profiles.get(speaker_id)
+
+    def load_from_db_profiles(self, db_profiles: list[Any]) -> int:
+        """Loads and indexes database VoiceProfile models into the matching registry."""
+        count = 0
+        for p in db_profiles:
+            try:
+                spk_id = str(getattr(p, "user_id", None) or getattr(p, "id", ""))
+                name = getattr(p, "speaker_name", "Unknown")
+                emb_raw = getattr(p, "embedding", None)
+                if emb_raw is not None and spk_id:
+                    emb = np.array(emb_raw, dtype=np.float32)
+                    self.register_profile(
+                        speaker_id=spk_id,
+                        name=name,
+                        embedding=emb,
+                        metadata={"source": "db_voice_profile"},
+                    )
+                    count += 1
+            except Exception as e:
+                logger.warning("Failed to load db voice profile: %s", e)
+        return count
 
     def match_speaker(
         self,
