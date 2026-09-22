@@ -7,7 +7,16 @@ from typing import Any
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from .models import Meeting, Organization, Participant, TranscriptSegment, User
+from .models import (
+    Meeting,
+    MeetingSetting,
+    Organization,
+    OrganizationMember,
+    Participant,
+    SourceSegment,
+    TranscriptSegment,
+    User,
+)
 
 DEFAULT_TENANT_ID = uuid.UUID("00000000-0000-0000-0000-000000000001")
 SECONDARY_TENANT_ID = uuid.UUID("00000000-0000-0000-0000-000000000002")
@@ -120,6 +129,59 @@ async def seed_database(session: AsyncSession) -> dict[str, Any]:
         )
         session.add(segment)
 
+    # 7. Seed Immutable Source Segment (Invariant #2)
+    src_seg_id = uuid.UUID("50000000-0000-0000-0000-000000000001")
+    src_stmt = select(SourceSegment).where(SourceSegment.id == src_seg_id)
+    src_res = await session.execute(src_stmt)
+    if not src_res.scalar_one_or_none():
+        src_segment = SourceSegment(
+            id=src_seg_id,
+            tenant_id=DEFAULT_TENANT_ID,
+            meeting_id=meeting_id,
+            source_segment_id="src-seg-seed-001",
+            speaker_id="spk-host-1",
+            speaker_name="Sarah Connor",
+            language="eng",
+            text="Welcome everyone to the quarterly platform briefing.",
+            start_ms=0,
+            end_ms=3200,
+            confidence=0.99,
+            is_final=True,
+        )
+        session.add(src_segment)
+
+    # 8. Seed Meeting Setting
+    setting_id = uuid.UUID("60000000-0000-0000-0000-000000000001")
+    set_stmt = select(MeetingSetting).where(MeetingSetting.id == setting_id)
+    set_res = await session.execute(set_stmt)
+    if not set_res.scalar_one_or_none():
+        setting = MeetingSetting(
+            id=setting_id,
+            tenant_id=DEFAULT_TENANT_ID,
+            meeting_id=meeting_id,
+            enable_recording=False,
+            enable_transcription=True,
+            enable_translation=True,
+            enable_voice_cloning=True,
+            retention_days=30,
+            allowed_languages=["eng", "spa", "fra", "deu", "hin", "jpn"],
+        )
+        session.add(setting)
+
+    # 9. Seed Organization Member
+    member_id = uuid.UUID("70000000-0000-0000-0000-000000000001")
+    mem_stmt = select(OrganizationMember).where(OrganizationMember.id == member_id)
+    mem_res = await session.execute(mem_stmt)
+    if not mem_res.scalar_one_or_none():
+        member = OrganizationMember(
+            id=member_id,
+            tenant_id=DEFAULT_TENANT_ID,
+            user_id=user_id,
+            role="HOST",
+            is_active=True,
+        )
+        session.add(member)
+
     await session.commit()
     return {
         "tenant_id": str(DEFAULT_TENANT_ID),
@@ -128,4 +190,7 @@ async def seed_database(session: AsyncSession) -> dict[str, Any]:
         "meeting_id": str(meeting_id),
         "participant_id": str(part_id),
         "segment_id": str(seg_id),
+        "source_segment_id": str(src_seg_id),
+        "setting_id": str(setting_id),
+        "member_id": str(member_id),
     }
