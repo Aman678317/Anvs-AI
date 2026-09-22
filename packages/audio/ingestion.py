@@ -4,6 +4,7 @@ import base64
 import logging
 import time
 import uuid
+from typing import Any
 
 import numpy as np
 
@@ -27,6 +28,8 @@ class AudioIngestionPipeline:
         self,
         meeting_id: str,
         participant_id: str,
+        tenant_id: str = "",
+        spoken_language: str = "eng",
         source_sample_rate: int = 48000,
         target_sample_rate: int = 16000,
         stream_bus: RedisStreamBus | None = None,
@@ -36,6 +39,8 @@ class AudioIngestionPipeline:
     ) -> None:
         self.meeting_id = meeting_id
         self.participant_id = participant_id
+        self.tenant_id = tenant_id
+        self.spoken_language = spoken_language
         self.source_sample_rate = source_sample_rate
         self.target_sample_rate = target_sample_rate
         self.stream_bus = stream_bus
@@ -65,6 +70,23 @@ class AudioIngestionPipeline:
         self.watermarked_frames_dropped = 0
         self.clean_frames_passed = 0
         self.voiced_segments_produced = 0
+
+    def get_metrics(self) -> dict[str, Any]:
+        """Returns real-time audio frame telemetry and Invariant #3 rejection stats."""
+        drop_ratio = (
+            self.watermarked_frames_dropped / self.total_frames_processed
+            if self.total_frames_processed > 0
+            else 0.0
+        )
+        return {
+            "meeting_id": self.meeting_id,
+            "participant_id": self.participant_id,
+            "total_frames_processed": self.total_frames_processed,
+            "watermarked_frames_dropped": self.watermarked_frames_dropped,
+            "clean_frames_passed": self.clean_frames_passed,
+            "voiced_segments_produced": self.voiced_segments_produced,
+            "watermark_drop_ratio": drop_ratio,
+        }
 
     async def process_pcm_bytes(self, pcm_bytes: bytes) -> list[SpeechSegment]:
         """Processes raw 16-bit PCM byte buffer through chunking, watermark guard, and VAD.
@@ -162,7 +184,7 @@ class AudioIngestionPipeline:
             timestamp_ms=int(time.time() * 1000),
             meeting_id=self.meeting_id,
             source_segment_id=f"src_{self.participant_id}_{segment.start_ms}",
-            target_language="eng",
+            target_language=self.spoken_language,
             audio_uri=f"base64://{b64_audio}",
             duration_ms=max(0, segment.end_ms - segment.start_ms),
             sample_rate=segment.sample_rate,

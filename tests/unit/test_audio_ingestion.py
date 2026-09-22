@@ -106,3 +106,49 @@ async def test_ingestion_publishes_to_redis_bus() -> None:
     assert event.source_segment_id.startswith("src_part_human_2_")
     assert event.watermarked is False  # Invariant: human speech is unwatermarked
     assert event.duration_ms > 0
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_ingestion_pipeline_metrics() -> None:
+    pipeline = AudioIngestionPipeline(
+        meeting_id="meeting_metrics_test",
+        participant_id="part_metrics_1",
+        source_sample_rate=48000,
+        target_sample_rate=16000,
+    )
+
+    # 1. Clean speech
+    t = np.linspace(0, 0.5, 24000, endpoint=False, dtype=np.float32)
+    clean_audio = 0.3 * np.sin(2 * np.pi * 400 * t)
+    await pipeline.process_samples(clean_audio)
+
+    # 2. Watermarked speech
+    watermarked_audio = embed_watermark(clean_audio, sample_rate=48000, watermark_freq=20000.0)
+    await pipeline.process_samples(watermarked_audio)
+
+    metrics = pipeline.get_metrics()
+    assert metrics["meeting_id"] == "meeting_metrics_test"
+    assert metrics["total_frames_processed"] == 50  # 25 clean + 25 watermarked
+    assert metrics["watermarked_frames_dropped"] == 25
+    assert metrics["clean_frames_passed"] == 25
+    assert metrics["watermark_drop_ratio"] == 0.5
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_ingestion_flush_clean_and_watermarked() -> None:
+    pipeline = AudioIngestionPipeline(
+        meeting_id="meeting_flush_test",
+        participant_id="part_flush_1",
+        source_sample_rate=48000,
+        target_sample_rate=16000,
+    )
+
+    # Feed un-aligned audio (e.g. 1500 samples, which is 1 frame of 960 + 540 remaining)
+    samples = np.ones(1500, dtype=np.float32) * 0.2
+    await pipeline.process_samples(samples)
+
+    # Flush remaining buffer
+    flushed = await pipeline.flush()
+    assert isinstance(flushed, list)
