@@ -8,7 +8,7 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 from fastapi.testclient import TestClient
 
-from packages.auth import AuthenticatedUser
+from packages.auth import AuthenticatedUser, create_access_token
 from packages.contracts import ParticipantRole
 from packages.database.models import Meeting
 from packages.security.rate_limit import default_rate_limiter
@@ -208,6 +208,8 @@ def test_join_room_passcode_validation(
 
     try:
         default_rate_limiter.reset()
+        token = create_access_token(participant_user)
+        headers = {"Authorization": f"Bearer {token}"}
         client = TestClient(app)
 
         # 1. Incorrect passcode returns 403
@@ -217,9 +219,11 @@ def test_join_room_passcode_validation(
             "listening_language": "eng",
             "passcode": "wrongPasscode",
         }
-        bad_resp = client.post(f"/api/v1/rooms/{meeting_id}/join", json=bad_payload)
+        bad_resp = client.post(f"/api/v1/rooms/{meeting_id}/join", json=bad_payload, headers=headers)
         assert bad_resp.status_code == 403
         assert "Invalid meeting passcode" in bad_resp.json()["detail"]
+
+        default_rate_limiter.reset()
 
         # 2. Correct passcode returns 200
         good_payload = {
@@ -228,7 +232,7 @@ def test_join_room_passcode_validation(
             "listening_language": "eng",
             "passcode": correct_passcode,
         }
-        good_resp = client.post(f"/api/v1/rooms/{meeting_id}/join", json=good_payload)
+        good_resp = client.post(f"/api/v1/rooms/{meeting_id}/join", json=good_payload, headers=headers)
         assert good_resp.status_code == 200
     finally:
         app.dependency_overrides.clear()

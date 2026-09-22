@@ -156,14 +156,44 @@ SUPPORTED_LANGUAGES: dict[str, LanguageMetadata] = {
     ),
 }
 
+ISO_639_1_TO_639_3: dict[str, str] = {
+    "en": "eng",
+    "es": "spa",
+    "fr": "fra",
+    "de": "deu",
+    "zh": "zho",
+    "ja": "jpn",
+    "hi": "hin",
+    "pt": "por",
+    "ar": "ara",
+    "ru": "rus",
+    "it": "ita",
+    "ko": "kor",
+    "tr": "tur",
+    "nl": "nld",
+    "bn": "ben",
+    "ta": "tam",
+    "te": "tel",
+    "mr": "mar",
+    "id": "ind",
+    "gu": "guj",
+    "kn": "kan",
+    "ml": "mal",
+    "pa": "pan",
+    "ur": "urd",
+}
+
 
 def normalize_code(code: str) -> str:
-    """Normalizes an ISO-639-3 language string to lower-case stripped format."""
-    return code.strip().lower()
+    """Normalizes an ISO-639-1 or ISO-639-3 language string to lower-case ISO-639-3 format."""
+    cleaned = code.strip().lower()
+    # Strip BCP-47 regional suffix if present (e.g. en-US -> en)
+    primary = cleaned.split("-")[0] if "-" in cleaned else cleaned
+    return ISO_639_1_TO_639_3.get(primary, cleaned)
 
 
 def get_language(code: str) -> LanguageMetadata | None:
-    """Retrieve metadata for an ISO-639-3 language code."""
+    """Retrieve metadata for an ISO-639-3 language code (or alias)."""
     return SUPPORTED_LANGUAGES.get(normalize_code(code))
 
 

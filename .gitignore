@@ -136,3 +136,17 @@ Thumbs.db
 *.swp
 *.swo
 *~
+
+# Local Databases & SQLite
+*.db
+*.sqlite
+*.sqlite3
+*.db-shm
+*.db-wal
+ai-content-agent.db
+
+# Legacy Hyphenated Duplicate Directories (Replaced by canonical snake_case)
+services/*-worker/
+services/realtime-gateway/
+packages/event-schema/
+packages/language-registry/

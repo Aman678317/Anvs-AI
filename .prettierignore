@@ -15,3 +15,6 @@ yarn.lock
 infrastructure/helm/**
 charts/**
 
+# Formal Audit Reports & Registries (preserves table formatting and ASCII schemas)
+docs/audit/**
+

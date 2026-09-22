@@ -18,6 +18,14 @@ def test_normalize_code() -> None:
     assert normalize_code(" ENG ") == "eng"
     assert normalize_code("Spa") == "spa"
     assert normalize_code("hin") == "hin"
+    # ISO-639-1 aliasing
+    assert normalize_code("en") == "eng"
+    assert normalize_code("es") == "spa"
+    assert normalize_code("hi") == "hin"
+    assert normalize_code("fr") == "fra"
+    # BCP-47 normalization
+    assert normalize_code("en-US") == "eng"
+    assert normalize_code("es-ES") == "spa"
 
 
 @pytest.mark.unit

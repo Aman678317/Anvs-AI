@@ -1,5 +1,6 @@
 """Meeting Room Lifecycle & LiveKit SFU Integration Router."""
 
+import asyncio
 import hashlib
 import uuid
 from datetime import UTC, datetime
@@ -67,7 +68,9 @@ async def create_room(
         created_at=now,
         updated_at=now,
     )
-    session.add(meeting)
+    add_res = session.add(meeting)
+    if asyncio.iscoroutine(add_res):
+        await add_res
 
     # Provision room in LiveKit SFU
     await livekit_service.create_room(room_name=f"room_{meeting_id}")
@@ -197,7 +200,9 @@ async def join_room(
         is_muted=False,
         is_video_enabled=True,
     )
-    session.add(participant)
+    add_res = session.add(participant)
+    if asyncio.iscoroutine(add_res):
+        await add_res
 
     # 1. Generate LiveKit WebRTC access token
     livekit_token = livekit_service.generate_token(

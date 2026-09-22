@@ -14,7 +14,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from packages.config import settings
 from packages.security.rate_limit import default_rate_limiter
 
-EXEMPT_PATHS = {"/healthz", "/metrics", "/docs", "/redoc", "/openapi.json"}
+EXEMPT_PATHS = {"/healthz", "/readyz", "/metrics", "/docs", "/redoc", "/openapi.json"}
 
 
 class RateLimitMiddleware(BaseHTTPMiddleware):

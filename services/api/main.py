@@ -10,7 +10,12 @@ from services.api.middleware import (
     SecurityHeadersMiddleware,
     TenantContextMiddleware,
 )
-from services.api.routers import admin_router, auth_router, rooms_router
+from services.api.routers import (
+    admin_router,
+    auth_router,
+    health_router,
+    rooms_router,
+)
 
 app = FastAPI(
     title="Multilingual AI Meeting Platform - Control Plane API",
@@ -36,20 +41,10 @@ app.add_middleware(
 )
 
 # Register routers
+app.include_router(health_router)
 app.include_router(auth_router)
 app.include_router(rooms_router)
 app.include_router(admin_router)
-
-
-@app.get("/healthz", tags=["System"])
-async def health_check() -> dict:
-    """Health check endpoint for container probes and uptime monitors."""
-    return {
-        "status": "healthy",
-        "service": "api-control-plane",
-        "version": "1.0.0",
-        "environment": settings.app_env,
-    }
 
 
 @app.get("/metrics", tags=["System"])
