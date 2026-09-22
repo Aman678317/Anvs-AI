@@ -7,10 +7,16 @@ import numpy as np
 import pytest
 
 from packages.audio.watermark import detect_watermark
-from packages.event_schema import RedisStreamBus, TranslationSegmentEvent
+from packages.event_schema import (
+    AudioSegmentEvent,
+    RedisStreamBus,
+    TranslationSegmentEvent,
+)
 from services.tts_worker import (
     BaseTTSEngine,
+    LiveKitAudioEgress,
     MockTTSEngine,
+    PiperTTSEngine,
     TTSConsumer,
     XTTSv2Engine,
     create_tts_engine,
@@ -267,3 +273,139 @@ async def test_tts_consumer_dlq_on_malformed_payload() -> None:
     assert emitted == []
     assert consumer.metrics["errors_count"] == 1
     mock_bus.send_to_dlq.assert_awaited_once()
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_piper_tts_engine_graceful_fallback() -> None:
+    """Verifies that PiperTTSEngine falls back gracefully to MockTTSEngine."""
+    engine = PiperTTSEngine(model_path="non_existent/voice.onnx", allow_fallback=True)
+    assert engine.is_using_fallback is True
+
+    result = await engine.synthesize("Bonjour le monde", language="fra")
+    assert len(result.audio_pcm) > 0
+    assert result.watermarked is True
+    assert detect_watermark(result.audio_pcm, sample_rate=48000) is True
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_livekit_audio_egress_publish_frames() -> None:
+    """Verifies LiveKit SFU audio egress chunks synthesized audio into 20ms frames."""
+    egress = LiveKitAudioEgress(sample_rate=48000)
+    engine = MockTTSEngine(sample_rate=48000, simulated_latency_ms=0)
+    res = await engine.synthesize("Egress verification payload for LiveKit audio track.")
+
+    event = AudioSegmentEvent(
+        event_id="evt_egress_001",
+        timestamp_ms=int(time.time() * 1000),
+        meeting_id="meet_egress_test",
+        tenant_id="tenant_alpha",
+        source_segment_id="src_lineage_egress_001",
+        target_language="spa",
+        audio_uri=res.to_base64_uri(),
+        duration_ms=res.duration_ms,
+        sample_rate=res.sample_rate,
+        watermarked=res.watermarked,
+    )
+
+    frames_published = await egress.publish_audio_segment(event)
+    assert frames_published > 0
+    assert egress.metrics["frames_published"] == frames_published
+    assert egress.metrics["bytes_published"] > 0
+    assert egress.metrics["segments_processed"] == 1
+    assert egress.metrics["errors_count"] == 0
+
+    # Clean up
+    cleaned = await egress.cleanup_meeting("meet_egress_test")
+    assert cleaned == 1
+    await egress.close()
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_livekit_audio_egress_multilingual_tracks() -> None:
+    """Verifies that egress provisions separate tracks per target language."""
+    egress = LiveKitAudioEgress(sample_rate=48000)
+    languages = ["spa", "fra", "deu", "hin"]
+
+    for lang in languages:
+        track = await egress.get_or_create_track("meeting_multi_lang", lang)
+        assert track["target_language"] == lang
+        assert track["meeting_id"] == "meeting_multi_lang"
+
+    assert len(egress._active_tracks) == 4
+    cleaned = await egress.cleanup_meeting("meeting_multi_lang")
+    assert cleaned == 4
+    assert len(egress._active_tracks) == 0
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_tts_consumer_with_livekit_egress_integration() -> None:
+    """Verifies that TTSConsumer forwards synthesized watermarked audio to LiveKit egress."""
+    mock_bus = AsyncMock(spec=RedisStreamBus)
+    mock_bus.publish.return_value = "msg-published-001"
+    mock_bus.ack_event.return_value = 1
+
+    egress = LiveKitAudioEgress(sample_rate=48000)
+    engine = MockTTSEngine(sample_rate=48000, simulated_latency_ms=0)
+    consumer = TTSConsumer(stream_bus=mock_bus, engine=engine, egress=egress)
+
+    lineage_id = "lineage_strict_egress_test_42"
+    trans_payload = {
+        "event_id": "trans_for_egress",
+        "timestamp_ms": 1710000000000,
+        "meeting_id": "meet_consumer_egress",
+        "tenant_id": "tenant_xyz",
+        "source_segment_id": lineage_id,
+        "source_language": "eng",
+        "target_language": "deu",
+        "translated_text": "Guten Morgen an alle Teilnehmer.",
+        "is_final": True,
+        "latency_ms": 18,
+    }
+
+    emitted = await consumer.process_message(
+        stream_name="events:meeting:meet_consumer_egress:translations",
+        message_id="77-0",
+        raw_payload=trans_payload,
+        meeting_id="meet_consumer_egress",
+    )
+
+    assert len(emitted) == 1
+    assert emitted[0].source_segment_id == lineage_id
+    assert emitted[0].watermarked is True
+    assert consumer.metrics["egress_frames_emitted"] > 0
+    assert egress.metrics["frames_published"] > 0
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_tts_consumer_poll_and_process() -> None:
+    """Verifies that TTSConsumer poll_and_process consumes from Redis and processes items."""
+    mock_bus = AsyncMock(spec=RedisStreamBus)
+    mock_bus.publish.return_value = "msg-poll-tts"
+    mock_bus.ack_event.return_value = 1
+
+    trans_payload = {
+        "event_id": "trans_poll_01",
+        "timestamp_ms": 1710000000000,
+        "meeting_id": "meet_poll_tts",
+        "tenant_id": "tenant_1",
+        "source_segment_id": "src_poll_lineage",
+        "source_language": "eng",
+        "target_language": "jpn",
+        "translated_text": "皆様、ようこそ。",
+        "is_final": True,
+        "latency_ms": 12,
+    }
+
+    mock_bus.consume_events.return_value = [("88-0", trans_payload)]
+    consumer = TTSConsumer(stream_bus=mock_bus, engine=MockTTSEngine())
+
+    emitted = await consumer.poll_and_process(meeting_id="meet_poll_tts", count=5)
+    assert len(emitted) == 1
+    assert emitted[0].source_segment_id == "src_poll_lineage"
+    assert emitted[0].target_language == "jpn"
+    assert consumer.metrics["messages_consumed"] == 1

@@ -8,6 +8,7 @@ import sys
 from packages.config.settings import settings
 from packages.event_schema import RedisStreamBus
 from services.tts_worker.consumer import TTSConsumer
+from services.tts_worker.egress import LiveKitAudioEgress
 from services.tts_worker.engine import create_tts_engine
 
 logging.basicConfig(
@@ -25,8 +26,9 @@ async def main() -> None:
     bus = RedisStreamBus()
     await bus.connect()
 
+    egress = LiveKitAudioEgress()
     engine = create_tts_engine()
-    consumer = TTSConsumer(stream_bus=bus, engine=engine)
+    consumer = TTSConsumer(stream_bus=bus, engine=engine, egress=egress)
 
     stop_event = asyncio.Event()
 
@@ -43,6 +45,7 @@ async def main() -> None:
     try:
         await consumer.run(meeting_id=meeting_id, stop_event=stop_event)
     finally:
+        await egress.close()
         await bus.disconnect()
         logger.info("TTS Worker disconnected from Redis bus.")
 

@@ -16,6 +16,7 @@ from packages.event_schema import (
     TranslationSegmentEvent,
     get_stream_key,
 )
+from services.tts_worker.egress import LiveKitAudioEgress
 from services.tts_worker.engine import BaseTTSEngine, create_tts_engine
 
 logger = logging.getLogger(__name__)
@@ -28,11 +29,13 @@ class TTSConsumer:
         self,
         stream_bus: RedisStreamBus,
         engine: BaseTTSEngine | None = None,
+        egress: LiveKitAudioEgress | None = None,
         group_name: str | None = None,
         consumer_name: str | None = None,
     ) -> None:
         self.stream_bus = stream_bus
         self.engine = engine or create_tts_engine()
+        self.egress = egress
         self.group_name = group_name or settings.tts_consumer_group
         self.consumer_name = consumer_name or f"tts-worker-{uuid.uuid4().hex[:8]}"
 
@@ -40,6 +43,7 @@ class TTSConsumer:
         self.metrics = {
             "messages_consumed": 0,
             "audio_segments_emitted": 0,
+            "egress_frames_emitted": 0,
             "errors_count": 0,
             "total_synthesis_ms": 0,
         }
@@ -105,6 +109,11 @@ class TTSConsumer:
 
             await self.stream_bus.publish(stream=synth_audio_stream, event=audio_event)
             emitted_events.append(audio_event)
+
+            # Invariant #3 & LiveKit Egress: Publish watermarked audio to SFU tracks
+            if self.egress is not None:
+                frames_pushed = await self.egress.publish_audio_segment(audio_event)
+                self.metrics["egress_frames_emitted"] += frames_pushed
 
             self.metrics["audio_segments_emitted"] += 1
             self.metrics["total_synthesis_ms"] += tts_res.latency_ms
