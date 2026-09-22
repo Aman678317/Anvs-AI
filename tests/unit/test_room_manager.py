@@ -288,3 +288,27 @@ def test_end_room_host_only(
         assert fake_meeting.status == "ENDED"
     finally:
         app.dependency_overrides.clear()
+
+
+@pytest.mark.unit
+def test_list_sfu_participants_endpoint(
+    host_user: AuthenticatedUser,
+    mock_session: AsyncMock,
+) -> None:
+    async def override_session():
+        yield mock_session
+
+    app.dependency_overrides[get_current_user] = lambda: host_user
+    app.dependency_overrides[get_authenticated_tenant_session] = override_session
+
+    meeting_id = str(uuid.uuid4())
+    try:
+        client = TestClient(app)
+        response = client.get(f"/api/v1/rooms/{meeting_id}/sfu-participants")
+        assert response.status_code == 200
+        data = response.json()
+        assert data["meeting_id"] == meeting_id
+        assert "participants" in data
+        assert "count" in data
+    finally:
+        app.dependency_overrides.clear()
