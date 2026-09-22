@@ -27,6 +27,9 @@ class AuthTokenRequest(BaseContract):
     tenant_id: str = Field(..., description="Organization or tenant identifier")
     email: str = Field(..., description="User primary email address")
     role: ParticipantRole = Field(default=ParticipantRole.PARTICIPANT)
+    password: str | None = Field(
+        default=None, description="Optional password for credential verification"
+    )
 
 
 class AuthTokenResponse(BaseContract):
@@ -35,6 +38,43 @@ class AuthTokenResponse(BaseContract):
     expires_in_sec: int
     tenant_id: str
     user_id: str
+
+
+class LoginRequest(BaseContract):
+    email: str = Field(..., description="User primary email address")
+    password: str = Field(..., min_length=6, description="User password")
+
+
+class RegisterRequest(BaseContract):
+    email: str = Field(..., description="User primary email address")
+    password: str = Field(..., min_length=8, description="User password (min 8 chars)")
+    full_name: str = Field(..., min_length=1, max_length=100, description="Full display name")
+    organization_name: str | None = Field(
+        default=None, max_length=200, description="Optional organization name to create"
+    )
+    tenant_id: str | None = Field(
+        default=None, description="Optional existing tenant UUID to join"
+    )
+    role: ParticipantRole = Field(
+        default=ParticipantRole.PARTICIPANT, description="Initial role"
+    )
+    default_spoken_language: str = Field(
+        default="eng", min_length=3, max_length=3, description="ISO-639-3 spoken language"
+    )
+    default_listening_language: str = Field(
+        default="eng", min_length=3, max_length=3, description="ISO-639-3 listening language"
+    )
+
+
+class RegisterResponse(BaseContract):
+    user_id: str
+    tenant_id: str
+    email: str
+    full_name: str
+    role: ParticipantRole
+    access_token: str
+    token_type: str = "Bearer"
+    expires_in_sec: int
 
 
 class CreateMeetingRequest(BaseContract):

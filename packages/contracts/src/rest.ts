@@ -21,6 +21,33 @@ export interface AuthTokenResponse {
   user_id: string;
 }
 
+export interface LoginRequest {
+  email: string;
+  password: string;
+}
+
+export interface RegisterRequest {
+  email: string;
+  password: string;
+  full_name: string;
+  organization_name?: string;
+  tenant_id?: string;
+  role?: ParticipantRole;
+  default_spoken_language?: string;
+  default_listening_language?: string;
+}
+
+export interface RegisterResponse {
+  user_id: string;
+  tenant_id: string;
+  email: string;
+  full_name: string;
+  role: ParticipantRole;
+  access_token: string;
+  token_type: string;
+  expires_in_sec: number;
+}
+
 export interface CreateMeetingRequest {
   title: string;
   host_spoken_language?: string;

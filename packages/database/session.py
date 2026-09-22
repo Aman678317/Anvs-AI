@@ -87,3 +87,9 @@ async def get_tenant_session(
             {"tenant_id": str(tenant_id)},
         )
         yield session
+
+
+async def get_db_session_dependency() -> AsyncGenerator[AsyncSession, None]:
+    """FastAPI route dependency yielding a transactional AsyncSession."""
+    async with get_db_session() as session:
+        yield session

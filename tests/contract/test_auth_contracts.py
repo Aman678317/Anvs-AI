@@ -1,17 +1,36 @@
 """Contract tests for Authentication API endpoints and PR-02 Domain Contracts."""
 
 import uuid
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 from fastapi.testclient import TestClient
 
-from packages.contracts import AuthTokenRequest, AuthTokenResponse, ParticipantRole
+from packages.contracts import (
+    AuthTokenRequest,
+    AuthTokenResponse,
+    LoginRequest,
+    ParticipantRole,
+    RegisterRequest,
+    RegisterResponse,
+)
+from packages.database.session import get_db_session_dependency
 from services.api.main import app
 
 
 @pytest.fixture
-def client() -> TestClient:
-    return TestClient(app)
+def client():
+    mock_db = AsyncMock()
+    mock_result = MagicMock()
+    mock_result.scalar_one_or_none.return_value = None
+    mock_db.execute.return_value = mock_result
+    mock_db.commit = AsyncMock()
+    mock_db.flush = AsyncMock()
+
+    app.dependency_overrides[get_db_session_dependency] = lambda: mock_db
+    test_client = TestClient(app)
+    yield test_client
+    app.dependency_overrides.pop(get_db_session_dependency, None)
 
 
 @pytest.mark.contract
@@ -80,3 +99,43 @@ def test_authenticated_me_and_ticket_flow(client: TestClient) -> None:
     assert ticket_data["tenant_id"] == tenant_id
     assert ticket_data["expires_in_sec"] == 180
     assert "ticket" in ticket_data
+
+
+@pytest.mark.contract
+def test_login_request_contract_validation() -> None:
+    req = LoginRequest(email="user@example.com", password="SecurePassword123!")
+    assert req.email == "user@example.com"
+    assert req.password == "SecurePassword123!"
+
+    dumped = req.model_dump()
+    roundtrip = LoginRequest(**dumped)
+    assert roundtrip.email == req.email
+
+
+@pytest.mark.contract
+def test_register_contracts_validation() -> None:
+    req = RegisterRequest(
+        email="newuser@example.com",
+        password="SecurePassword123!",
+        full_name="New User",
+        organization_name="New Org",
+        role=ParticipantRole.HOST,
+        default_spoken_language="eng",
+        default_listening_language="spa",
+    )
+    assert req.email == "newuser@example.com"
+    assert req.role == ParticipantRole.HOST
+
+    resp = RegisterResponse(
+        user_id=str(uuid.uuid4()),
+        tenant_id=str(uuid.uuid4()),
+        email="newuser@example.com",
+        full_name="New User",
+        role=ParticipantRole.HOST,
+        access_token="mock-jwt-token-string",
+        token_type="Bearer",
+        expires_in_sec=3600,
+    )
+    assert resp.token_type == "Bearer"
+    assert resp.expires_in_sec == 3600
+
