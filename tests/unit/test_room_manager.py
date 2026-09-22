@@ -219,7 +219,11 @@ def test_join_room_passcode_validation(
             "listening_language": "eng",
             "passcode": "wrongPasscode",
         }
-        bad_resp = client.post(f"/api/v1/rooms/{meeting_id}/join", json=bad_payload, headers=headers)
+        bad_resp = client.post(
+            f"/api/v1/rooms/{meeting_id}/join",
+            json=bad_payload,
+            headers=headers,
+        )
         assert bad_resp.status_code == 403
         assert "Invalid meeting passcode" in bad_resp.json()["detail"]
 
@@ -232,7 +236,11 @@ def test_join_room_passcode_validation(
             "listening_language": "eng",
             "passcode": correct_passcode,
         }
-        good_resp = client.post(f"/api/v1/rooms/{meeting_id}/join", json=good_payload, headers=headers)
+        good_resp = client.post(
+            f"/api/v1/rooms/{meeting_id}/join",
+            json=good_payload,
+            headers=headers,
+        )
         assert good_resp.status_code == 200
     finally:
         app.dependency_overrides.clear()

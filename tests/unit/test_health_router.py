@@ -59,7 +59,9 @@ def test_readiness_probe_healthy() -> None:
 @pytest.mark.unit
 def test_readiness_probe_db_failure() -> None:
     mock_factory = MagicMock()
-    mock_factory.return_value.__aenter__ = AsyncMock(side_effect=ConnectionRefusedError("DB offline"))
+    mock_factory.return_value.__aenter__ = AsyncMock(
+        side_effect=ConnectionRefusedError("DB offline")
+    )
     mock_factory.return_value.__aexit__ = AsyncMock(return_value=None)
 
     mock_redis = AsyncMock()
