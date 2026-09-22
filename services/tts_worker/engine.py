@@ -4,6 +4,7 @@ import asyncio
 import logging
 import time
 from abc import ABC, abstractmethod
+from typing import Any
 
 import numpy as np
 
@@ -199,6 +200,93 @@ class XTTSv2Engine(BaseTTSEngine):
         )
 
 
+class PiperTTSEngine(BaseTTSEngine):
+    """High-speed local neural TTS engine using Piper with automatic fallback."""
+
+    def __init__(
+        self,
+        model_path: str | None = None,
+        sample_rate: int = 48000,
+        allow_fallback: bool = True,
+    ) -> None:
+        self.model_path = model_path
+        self.sample_rate = sample_rate
+        self.allow_fallback = allow_fallback
+        self._voice: Any = None
+        self._fallback_engine: MockTTSEngine | None = None
+
+        self._initialize_model()
+
+    def _initialize_model(self) -> None:
+        try:
+            from piper import PiperVoice
+
+            if self.model_path:
+                self._voice = PiperVoice.load(self.model_path)
+            else:
+                raise ValueError("Piper model_path not specified")
+        except (ImportError, Exception) as exc:
+            if not self.allow_fallback:
+                raise RuntimeError(
+                    f"Failed to load Piper TTS model '{self.model_path}' and fallback disabled: {exc}"
+                ) from exc
+            logger.warning("Piper TTS unavailable (%s). Activating MockTTSEngine fallback.", exc)
+            self._fallback_engine = MockTTSEngine(
+                sample_rate=self.sample_rate,
+                simulated_latency_ms=15,
+            )
+
+    @property
+    def is_using_fallback(self) -> bool:
+        return self._fallback_engine is not None
+
+    async def synthesize(
+        self,
+        text: str,
+        language: str = "eng",
+        voice_id: str | None = None,
+    ) -> TTSResult:
+        if self._fallback_engine is not None:
+            return await self._fallback_engine.synthesize(text, language, voice_id)
+
+        t0 = time.perf_counter()
+        loop = asyncio.get_running_loop()
+
+        def _infer() -> np.ndarray:
+            import io
+            import wave
+
+            from packages.audio.framing import pcm_s16le_to_float32
+
+            wav_io = io.BytesIO()
+            with wave.open(wav_io, "wb") as wav_file:
+                self._voice.synthesize(text, wav_file)
+            wav_io.seek(0)
+            with wave.open(wav_io, "rb") as wf:
+                pcm_data = wf.readframes(wf.getnframes())
+            return pcm_s16le_to_float32(pcm_data)
+
+        raw_audio = await loop.run_in_executor(None, _infer)
+
+        watermarked_audio = embed_watermark(
+            audio_pcm=raw_audio,
+            sample_rate=self.sample_rate,
+            watermark_freq=settings.tts_watermark_freq_hz,
+        )
+
+        duration_ms = int((len(watermarked_audio) / self.sample_rate) * 1000)
+        latency_ms = int((time.perf_counter() - t0) * 1000)
+
+        return TTSResult(
+            audio_pcm=watermarked_audio,
+            sample_rate=self.sample_rate,
+            duration_ms=duration_ms,
+            watermarked=True,
+            latency_ms=latency_ms,
+            model_version="piper-v1",
+        )
+
+
 def create_tts_engine(
     engine_type: str | None = None,
     model_name: str | None = None,
@@ -211,6 +299,13 @@ def create_tts_engine(
 
     if selected_type in {"mock", "test"}:
         return MockTTSEngine(sample_rate=sample_rate or settings.tts_sample_rate)
+
+    if selected_type in {"piper"}:
+        return PiperTTSEngine(
+            model_path=model_name,
+            sample_rate=sample_rate or settings.tts_sample_rate,
+            allow_fallback=allow_fallback,
+        )
 
     if selected_type in {"xtts", "xtts-v2", "neural", "melo"}:
         return XTTSv2Engine(

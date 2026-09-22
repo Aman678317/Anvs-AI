@@ -318,3 +318,62 @@ async def test_nllb_engine_fallback_behavior() -> None:
     assert result.source_language == "eng"
     assert result.target_language == "fra"
     assert len(result.translated_text) > 0
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_nmt_consumer_poll_and_process() -> None:
+    mock_bus = AsyncMock(spec=RedisStreamBus)
+    mock_bus.publish.return_value = "msg-nmt-poll-ok"
+    mock_bus.ack_event.return_value = 1
+
+    engine = MockNMTEngine(simulated_latency_ms=0)
+    consumer = NMTConsumer(
+        stream_bus=mock_bus,
+        engine=engine,
+        target_languages=["spa", "fra"],
+    )
+
+    payload = {
+        "event_id": "src_poll_trans",
+        "timestamp_ms": 1000,
+        "meeting_id": "m_trans_poll",
+        "tenant_id": "ten_trans_poll",
+        "session_id": "sess_trans_poll",
+        "participant_id": "part_trans_poll",
+        "source_segment_id": "src_trans_poll_100",
+        "language": "eng",
+        "text": "Welcome everyone to our multilingual meeting, let's begin the review.",
+        "is_final": True,
+        "start_ms": 0,
+        "end_ms": 1000,
+        "confidence": 0.98,
+    }
+
+    mock_bus.consume_events.return_value = [("msg-nmt-100", payload)]
+
+    emitted = await consumer.poll_and_process("m_trans_poll")
+    assert len(emitted) == 2
+    assert {e.target_language for e in emitted} == {"spa", "fra"}
+    assert mock_bus.ack_event.called
+
+
+@pytest.mark.unit
+def test_context_window_buffer_meeting_and_participant_clear() -> None:
+    buf = ContextWindowBuffer(max_sentences=2)
+    buf.add_utterance("m_clear", "p1", "First utterance.")
+    buf.add_utterance("m_clear", "p2", "Second utterance.")
+    buf.add_utterance("m_keep", "p3", "Other meeting.")
+
+    assert len(buf.get_context("m_clear", "p1")) == 1
+    assert len(buf.get_context("m_clear", "p2")) == 1
+
+    # Clear participant
+    buf.clear_participant("m_clear", "p1")
+    assert buf.get_context("m_clear", "p1") == []
+    assert len(buf.get_context("m_clear", "p2")) == 1
+
+    # Clear meeting
+    buf.clear_meeting("m_clear")
+    assert buf.get_context("m_clear", "p2") == []
+    assert len(buf.get_context("m_keep", "p3")) == 1
