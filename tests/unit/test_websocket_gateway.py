@@ -14,6 +14,7 @@ from packages.contracts import (
     WSClientJoinFrame,
     WSClientMessageType,
     WSClientPingFrame,
+    WSClientResyncFrame,
     WSClientSetLanguageFrame,
     WSServerMessageType,
 )
@@ -279,3 +280,140 @@ def test_websocket_chat_message_broadcast(
         msg = json.loads(msg_raw)
         assert msg["type"] == WSServerMessageType.CAPTION_UPDATE
         assert "Hello real-time team!" in msg["text"]
+
+
+@pytest.mark.unit
+def test_monotonic_state_version_increments(
+    test_client: tuple[TestClient, ConnectionManager],
+    auth_user: AuthenticatedUser,
+) -> None:
+    """Verifies that room state versions monotonically increase upon participant join/leave events."""
+    client, manager = test_client
+    meeting_id = "meeting_monotonic_test"
+
+    user1_ticket = create_session_ticket(auth_user, meeting_id=meeting_id)
+    auth_user_2 = AuthenticatedUser(
+        user_id="usr_test_999",
+        tenant_id=auth_user.tenant_id,
+        email="peer@example.com",
+        role=ParticipantRole.PARTICIPANT,
+        display_name="Test Peer",
+    )
+    user2_ticket = create_session_ticket(auth_user_2, meeting_id=meeting_id)
+
+    with client.websocket_connect(f"/ws/meetings/{meeting_id}") as ws1:
+        ws1.send_text(
+            WSClientJoinFrame(
+                type=WSClientMessageType.JOIN,
+                ticket=user1_ticket,
+                participant_id="part_monotonic_1",
+            ).model_dump_json()
+        )
+        state1_raw = ws1.receive_text()
+        state1 = json.loads(state1_raw)
+        assert state1["type"] == WSServerMessageType.ROOM_STATE
+        v1 = state1["state_version"]
+        assert v1 >= 1
+
+        with client.websocket_connect(f"/ws/meetings/{meeting_id}") as ws2:
+            ws2.send_text(
+                WSClientJoinFrame(
+                    type=WSClientMessageType.JOIN,
+                    ticket=user2_ticket,
+                    participant_id="part_monotonic_2",
+                ).model_dump_json()
+            )
+            # ws1 receives joined broadcast
+            ws1_joined_raw = ws1.receive_text()
+            ws1_joined = json.loads(ws1_joined_raw)
+            assert ws1_joined["type"] == WSServerMessageType.PARTICIPANT_JOINED
+            assert ws1_joined["state_version"] > v1
+
+            # ws2 receives room state with higher monotonic version
+            state2_raw = ws2.receive_text()
+            state2 = json.loads(state2_raw)
+            assert state2["state_version"] > v1
+
+
+@pytest.mark.unit
+def test_client_resync_frame_gap_recovery(
+    test_client: tuple[TestClient, ConnectionManager],
+    auth_user: AuthenticatedUser,
+) -> None:
+    """Verifies that a reconnected client can resync missed frames using WSClientResyncFrame."""
+    client, manager = test_client
+    meeting_id = "meeting_resync_test"
+    valid_ticket = create_session_ticket(auth_user, meeting_id=meeting_id)
+
+    with client.websocket_connect(f"/ws/meetings/{meeting_id}") as ws:
+        ws.send_text(
+            WSClientJoinFrame(
+                type=WSClientMessageType.JOIN,
+                ticket=valid_ticket,
+                participant_id="part_resync_user",
+            ).model_dump_json()
+        )
+        init_state_raw = ws.receive_text()
+        init_state = json.loads(init_state_raw)
+        initial_version = init_state["state_version"]
+
+        # Send a chat message which broadcasts and buffers a frame
+        ws.send_text(
+            WSClientChatMessageFrame(
+                type=WSClientMessageType.CHAT_MESSAGE,
+                text="Buffered meeting note",
+            ).model_dump_json()
+        )
+        # Consume the broadcast
+        ws.receive_text()
+
+        # Send resync frame requesting frames since initial_version
+        resync_request = WSClientResyncFrame(
+            type=WSClientMessageType.RESYNC,
+            from_state_version=initial_version,
+        )
+        ws.send_text(resync_request.model_dump_json())
+
+        resync_raw = ws.receive_text()
+        resync_reply = json.loads(resync_raw)
+        assert resync_reply["type"] == WSServerMessageType.RESYNC_RESPONSE
+        assert resync_reply["current_state_version"] >= initial_version
+        assert resync_reply["full_snapshot_required"] is False
+        assert len(resync_reply["missed_frames"]) >= 1
+
+
+@pytest.mark.unit
+def test_client_resync_full_snapshot_on_zero(
+    test_client: tuple[TestClient, ConnectionManager],
+    auth_user: AuthenticatedUser,
+) -> None:
+    """Verifies that from_state_version=0 requests a full room state snapshot."""
+    client, manager = test_client
+    meeting_id = "meeting_snapshot_resync"
+    valid_ticket = create_session_ticket(auth_user, meeting_id=meeting_id)
+
+    with client.websocket_connect(f"/ws/meetings/{meeting_id}") as ws:
+        ws.send_text(
+            WSClientJoinFrame(
+                type=WSClientMessageType.JOIN,
+                ticket=valid_ticket,
+                participant_id="part_snapshot_user",
+            ).model_dump_json()
+        )
+        ws.receive_text()  # initial room state
+
+        # Send resync with 0 requesting full snapshot
+        ws.send_text(
+            WSClientResyncFrame(
+                type=WSClientMessageType.RESYNC,
+                from_state_version=0,
+            ).model_dump_json()
+        )
+
+        reply_raw = ws.receive_text()
+        reply = json.loads(reply_raw)
+        assert reply["type"] == WSServerMessageType.RESYNC_RESPONSE
+        assert reply["full_snapshot_required"] is True
+        assert reply["room_state"] is not None
+        assert reply["room_state"]["status"] == "ACTIVE"
+

@@ -25,12 +25,14 @@ from packages.contracts import (
     WSClientMessageType,
     WSClientPingFrame,
     WSClientQueryAssistantFrame,
+    WSClientResyncFrame,
     WSClientSetLanguageFrame,
     WSServerCaptionFrame,
     WSServerErrorFrame,
     WSServerParticipantJoinedFrame,
     WSServerParticipantLeftFrame,
     WSServerPongFrame,
+    WSServerResyncResponseFrame,
     WSServerRoomStateFrame,
 )
 from packages.event_schema import (
@@ -165,11 +167,13 @@ def create_realtime_gateway_app(
         ]
 
         # Send initial room state to connecting participant
+        current_version = ws_manager.next_state_version(meeting_id)
         room_state = WSServerRoomStateFrame(
-            state_version=1,
+            state_version=current_version,
             status=MeetingStatus.ACTIVE,
             participants=participant_contracts,
         )
+        ws_manager.record_frame(meeting_id, room_state, state_version=current_version)
         await websocket.send_text(room_state.model_dump_json())
 
         # Notify peers about new participant
@@ -184,8 +188,9 @@ def create_realtime_gateway_app(
             is_video_enabled=True,
             joined_at=datetime.fromtimestamp(session.connected_at, tz=UTC),
         )
+        join_version = ws_manager.next_state_version(meeting_id)
         joined_frame = WSServerParticipantJoinedFrame(
-            state_version=1,
+            state_version=join_version,
             participant=new_participant,
         )
         await ws_manager.broadcast_to_meeting(
@@ -248,6 +253,43 @@ def create_realtime_gateway_app(
                             ),
                         )
 
+                elif msg_type == WSClientMessageType.RESYNC:
+                    session.last_heartbeat_at = time.time()
+                    resync_frame = WSClientResyncFrame.model_validate(payload)
+                    curr_ver, missed, needs_snapshot = ws_manager.get_missed_frames(
+                        meeting_id, resync_frame.from_state_version
+                    )
+                    snapshot_frame = None
+                    if needs_snapshot:
+                        cur_sessions = ws_manager.get_meeting_sessions(meeting_id)
+                        p_contracts = [
+                            ParticipantContract(
+                                participant_id=s.participant_id,
+                                user_id=s.user_id,
+                                display_name=s.display_name or s.participant_id,
+                                role=s.role,
+                                spoken_language=s.spoken_language,
+                                listening_language=s.listening_language,
+                                is_muted=False,
+                                is_video_enabled=True,
+                                joined_at=datetime.fromtimestamp(s.connected_at, tz=UTC),
+                            )
+                            for s in cur_sessions
+                        ]
+                        snapshot_frame = WSServerRoomStateFrame(
+                            state_version=curr_ver,
+                            status=MeetingStatus.ACTIVE,
+                            participants=p_contracts,
+                        )
+
+                    resync_reply = WSServerResyncResponseFrame(
+                        current_state_version=curr_ver,
+                        missed_frames=missed,
+                        full_snapshot_required=needs_snapshot,
+                        room_state=snapshot_frame,
+                    )
+                    await websocket.send_text(resync_reply.model_dump_json())
+
                 elif msg_type == WSClientMessageType.CHAT_MESSAGE:
                     session.last_heartbeat_at = time.time()
                     chat_frame = WSClientChatMessageFrame.model_validate(payload)
@@ -269,8 +311,9 @@ def create_realtime_gateway_app(
             logger.warning("WebSocket error for participant %s: %s", session.participant_id, e)
         finally:
             await ws_manager.disconnect(meeting_id, session.participant_id)
+            left_version = ws_manager.next_state_version(meeting_id)
             left_frame = WSServerParticipantLeftFrame(
-                state_version=1,
+                state_version=left_version,
                 participant_id=session.participant_id,
             )
             await ws_manager.broadcast_to_meeting(meeting_id, left_frame)

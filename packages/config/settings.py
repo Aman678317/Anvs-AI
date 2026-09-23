@@ -1,6 +1,6 @@
 """Unified Application Configuration Loader using Pydantic Settings."""
 
-from pydantic import Field
+from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -173,5 +173,41 @@ class Settings(BaseSettings):
         alias="SECURITY_RATE_LIMIT_ENABLED",
     )
 
+    @model_validator(mode="after")
+    def validate_production_invariants(self) -> "Settings":
+        """Fail fast if production environment attempts to boot with mock worker engines or dev secrets (DEC-06)."""
+        if self.app_env.lower() in ("production", "prod"):
+            mock_engines = []
+            if self.stt_engine_type.lower() == "mock":
+                mock_engines.append("STT_ENGINE_TYPE")
+            if self.nmt_engine_type.lower() == "mock":
+                mock_engines.append("NMT_ENGINE_TYPE")
+            if self.tts_engine_type.lower() == "mock":
+                mock_engines.append("TTS_ENGINE_TYPE")
+            if self.speaker_engine_type.lower() == "mock":
+                mock_engines.append("SPEAKER_ENGINE_TYPE")
+            if self.assistant_engine_type.lower() == "mock":
+                mock_engines.append("ASSISTANT_ENGINE_TYPE")
+
+            if mock_engines:
+                raise ValueError(
+                    f"Production environment (APP_ENV={self.app_env}) cannot boot with mock engine defaults for: "
+                    f"{', '.join(mock_engines)}. Configure production engines or change APP_ENV."
+                )
+
+            # Prohibit default dev secrets in production
+            if "dev-secret-key" in self.api_secret_key:
+                raise ValueError(
+                    "Production environment cannot use default API_SECRET_KEY. "
+                    "Provide a secure key of at least 64 bytes."
+                )
+            if "dev-supabase" in self.supabase_jwt_secret:
+                raise ValueError(
+                    "Production environment cannot use default SUPABASE_JWT_SECRET. "
+                    "Provide a secure secret of at least 32 characters."
+                )
+        return self
+
 
 settings = Settings()
+

@@ -125,8 +125,17 @@ class LiveKitService:
                 }
             except Exception as exc:
                 logger.warning(
-                    "LiveKit API create_room failed, falling back to local mock: %s", exc
+                    "LiveKit API create_room failed: %s", exc
                 )
+                if settings.app_env.lower() in ("production", "prod"):
+                    raise ConnectionError(
+                        f"LiveKit SFU room creation failed in production mode: {exc}"
+                    ) from exc
+
+        if settings.app_env.lower() in ("production", "prod"):
+            raise ConnectionError(
+                "LiveKit API client not initialized. Cannot create real SFU room in production environment."
+            )
 
         return {
             "sid": f"RM_{uuid.uuid4().hex[:12]}",

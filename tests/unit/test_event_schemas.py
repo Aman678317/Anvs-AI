@@ -195,3 +195,90 @@ def test_strict_forbidden_extra_fields() -> None:
             confidence=0.9,
             unexpected_malicious_key="exploit",  # type: ignore[call-arg]
         )
+
+
+@pytest.mark.unit
+def test_base_event_canonical_v12_lineage() -> None:
+    """Verifies that BaseEvent satisfies Canonical v1.2 lineage requirements."""
+    evt = BaseEvent(
+        event_id="evt-base-100",
+        timestamp_ms=1710000000000,
+        meeting_id="meet-100",
+        tenant_id="tenant-alpha",
+        correlation_id="corr-trace-999",
+        causation_id="cause-evt-001",
+        parent_event_id="parent-evt-001",
+        sequence_number=5,
+        hop_count=2,
+        max_hops=10,
+        ttl_seconds=300,
+        occurred_at="2026-09-24T00:00:00Z",
+    )
+    assert evt.event_version == "1.2"
+    assert evt.correlation_id == "corr-trace-999"
+    assert evt.causation_id == "cause-evt-001"
+    assert evt.parent_event_id == "parent-evt-001"
+    assert evt.sequence_number == 5
+    assert evt.hop_count == 2
+    assert evt.is_loop_detected() is False
+
+
+@pytest.mark.unit
+def test_lineage_chain_from_source_to_translation() -> None:
+    """Verifies end-to-end causal lineage tracing from SourceSegment to TranslationSegment."""
+    source_evt = SourceSegmentEvent(
+        event_id="evt-stt-100",
+        timestamp_ms=1710000000100,
+        meeting_id="meet-100",
+        tenant_id="tenant-alpha",
+        session_id="sess-xyz",
+        participant_id="user-1",
+        source_segment_id="src-seg-555",
+        language="eng",
+        text="Hello world",
+        is_final=True,
+        start_ms=0,
+        end_ms=1500,
+        confidence=0.98,
+        correlation_id="trace-meet-100",
+        hop_count=0,
+    )
+
+    # Downstream translation preserves lineage and links directly to parent
+    translation_evt = TranslationSegmentEvent(
+        event_id="evt-nmt-200",
+        timestamp_ms=1710000000250,
+        meeting_id=source_evt.meeting_id,
+        tenant_id=source_evt.tenant_id,
+        source_segment_id=source_evt.source_segment_id,
+        source_language="eng",
+        target_language="spa",
+        translated_text="Hola mundo",
+        is_final=True,
+        latency_ms=150,
+        parent_event_id=source_evt.event_id,
+        causation_id=source_evt.event_id,
+        correlation_id=source_evt.correlation_id,
+        hop_count=source_evt.hop_count + 1,
+    )
+
+    assert translation_evt.source_segment_id == source_evt.source_segment_id
+    assert translation_evt.parent_event_id == source_evt.event_id
+    assert translation_evt.causation_id == source_evt.event_id
+    assert translation_evt.correlation_id == source_evt.correlation_id
+    assert translation_evt.hop_count == 1
+    assert translation_evt.is_loop_detected() is False
+
+
+@pytest.mark.unit
+def test_loop_detection_exceeds_max_hops() -> None:
+    """Verifies that events exceeding max_hops are flagged for dead-letter routing."""
+    loop_evt = BaseEvent(
+        event_id="evt-loop-1",
+        timestamp_ms=1710000000000,
+        meeting_id="meet-100",
+        hop_count=10,
+        max_hops=10,
+    )
+    assert loop_evt.is_loop_detected() is True
+

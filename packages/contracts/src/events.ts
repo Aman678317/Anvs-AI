@@ -7,6 +7,15 @@ export interface BaseEvent {
   timestamp_ms: number;
   meeting_id: string;
   tenant_id: string;
+  event_version?: string;
+  correlation_id?: string | null;
+  causation_id?: string | null;
+  parent_event_id?: string | null;
+  sequence_number?: number;
+  hop_count?: number;
+  max_hops?: number;
+  ttl_seconds?: number;
+  occurred_at?: string | null;
 }
 
 export interface SourceSegmentEvent extends BaseEvent {

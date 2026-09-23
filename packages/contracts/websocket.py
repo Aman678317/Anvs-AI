@@ -1,5 +1,7 @@
 """WebSocket Protocol Inbound and Outbound Frame Contracts."""
 
+from typing import Any
+
 from pydantic import BaseModel, ConfigDict, Field
 
 from .enums import AudioStreamType, MeetingStatus, WSClientMessageType, WSServerMessageType
@@ -44,6 +46,16 @@ class WSClientQueryAssistantFrame(BaseWSFrame):
 class WSClientPingFrame(BaseWSFrame):
     type: WSClientMessageType = WSClientMessageType.PING
     timestamp_ms: int
+
+
+class WSClientResyncFrame(BaseWSFrame):
+    type: WSClientMessageType = WSClientMessageType.RESYNC
+    from_state_version: int = Field(
+        ...,
+        ge=0,
+        description="Last known state version client received; 0 requests full snapshot",
+    )
+
 
 
 # --- Server to Client Frames ---
@@ -104,3 +116,12 @@ class WSServerErrorFrame(BaseWSFrame):
     type: WSServerMessageType = WSServerMessageType.ERROR
     code: str
     message: str
+
+
+class WSServerResyncResponseFrame(BaseWSFrame):
+    type: WSServerMessageType = WSServerMessageType.RESYNC_RESPONSE
+    current_state_version: int
+    missed_frames: list[dict[str, Any]] = Field(default_factory=list)
+    full_snapshot_required: bool = False
+    room_state: WSServerRoomStateFrame | None = None
+

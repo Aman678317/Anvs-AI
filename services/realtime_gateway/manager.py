@@ -44,8 +44,69 @@ class ConnectionManager:
     def __init__(self, redis_client: Any = None) -> None:
         # Structure: {meeting_id: {participant_id: ClientSession}}
         self._rooms: dict[str, dict[str, ClientSession]] = {}
+        self._room_state_versions: dict[str, int] = {}
+        self._room_history: dict[str, list[dict[str, Any]]] = {}
+        self._max_history_per_room: int = 100
         self._lock = asyncio.Lock()
         self.redis_client = redis_client
+
+    def next_state_version(self, meeting_id: str) -> int:
+        """Increments and returns the next monotonic state version for the meeting."""
+        current = self._room_state_versions.get(meeting_id, 0) + 1
+        self._room_state_versions[meeting_id] = current
+        return current
+
+    def get_state_version(self, meeting_id: str) -> int:
+        """Returns the current state version for the meeting without incrementing."""
+        return self._room_state_versions.get(meeting_id, 1)
+
+    def record_frame(
+        self,
+        meeting_id: str,
+        frame: BaseWSFrame,
+        state_version: int | None = None,
+    ) -> None:
+        """Buffers a published server frame in the room's sliding history for client resync."""
+        if meeting_id not in self._room_history:
+            self._room_history[meeting_id] = []
+        payload = frame.model_dump()
+        if state_version is not None:
+            payload["state_version"] = state_version
+        elif "state_version" not in payload:
+            payload["state_version"] = self.get_state_version(meeting_id)
+
+        history = self._room_history[meeting_id]
+        history.append(payload)
+        if len(history) > self._max_history_per_room:
+            self._room_history[meeting_id] = history[-self._max_history_per_room :]
+
+    def get_missed_frames(
+        self,
+        meeting_id: str,
+        from_version: int,
+    ) -> tuple[int, list[dict[str, Any]], bool]:
+        """Returns missed frames since from_version.
+
+        Returns:
+            tuple of (current_state_version, missed_frames, full_snapshot_required)
+            If from_version is 0 or precedes the buffer window, full_snapshot_required is True.
+        """
+        current_version = self.get_state_version(meeting_id)
+        if from_version <= 0:
+            return current_version, [], True
+
+        history = self._room_history.get(meeting_id, [])
+        if not history:
+            return current_version, [], False
+
+        oldest_version = history[0].get("state_version", 1)
+        if from_version < oldest_version:
+            # Client has fallen too far behind buffer; requires full room state snapshot
+            return current_version, [], True
+
+        missed = [f for f in history if f.get("state_version", 0) > from_version]
+        return current_version, missed, False
+
 
     async def connect(
         self,
@@ -192,6 +253,7 @@ class ConnectionManager:
         if not sessions:
             return 0
 
+        self.record_frame(meeting_id, frame)
         payload = frame.model_dump_json()
         deliveries = 0
 

@@ -17,6 +17,51 @@ class BaseEvent(BaseModel):
         default="default",
         description="Organization or tenant identifier",
     )
+    event_version: str = Field(
+        default="1.2",
+        description="Canonical event schema specification version",
+    )
+    correlation_id: str | None = Field(
+        default=None,
+        description="End-to-end conversation or trace correlation ID",
+    )
+    causation_id: str | None = Field(
+        default=None,
+        description="Direct parent event that caused this event",
+    )
+    parent_event_id: str | None = Field(
+        default=None,
+        description="Direct parent event identifier",
+    )
+    sequence_number: int = Field(
+        default=1,
+        ge=1,
+        description="Monotonic sequence number within stream",
+    )
+    hop_count: int = Field(
+        default=0,
+        ge=0,
+        description="Number of processing hops traversed",
+    )
+    max_hops: int = Field(
+        default=10,
+        ge=1,
+        description="Maximum allowed hops before dead-letter routing",
+    )
+    ttl_seconds: int = Field(
+        default=300,
+        ge=1,
+        description="Time to live in seconds",
+    )
+    occurred_at: str | None = Field(
+        default=None,
+        description="ISO-8601 UTC timestamp of occurrence",
+    )
+
+    def is_loop_detected(self) -> bool:
+        """Determines if the event has exceeded its maximum processing hops."""
+        return self.hop_count >= self.max_hops
+
 
 
 class SourceSegmentEvent(BaseEvent):
