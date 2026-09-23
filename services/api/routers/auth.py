@@ -5,7 +5,7 @@ import uuid
 from datetime import UTC, datetime
 from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
+from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -199,26 +199,6 @@ async def login_user(
         tenant_id=auth_user.tenant_id,
         user_id=auth_user.user_id,
     )
-
-
-@router.options("/token", include_in_schema=False)
-async def options_token(request: Request) -> Response:
-    """Explicit preflight handler for /token endpoint."""
-    origin = request.headers.get("origin")
-    headers = {
-        "Access-Control-Allow-Methods": "POST, OPTIONS",
-        "Access-Control-Allow-Headers": request.headers.get(
-            "access-control-request-headers", "Authorization, Content-Type, Accept, X-Tenant-Id"
-        ),
-        "Access-Control-Max-Age": "86400",
-    }
-    if origin and origin != "null":
-        headers["Access-Control-Allow-Origin"] = origin
-        headers["Access-Control-Allow-Credentials"] = "true"
-        headers["Vary"] = "Origin"
-    else:
-        headers["Access-Control-Allow-Origin"] = "*"
-    return Response(status_code=status.HTTP_200_OK, headers=headers)
 
 
 @router.post(

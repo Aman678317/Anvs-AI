@@ -52,25 +52,36 @@ app.include_router(rooms_router)
 app.include_router(admin_router)
 
 
-@app.options("/{full_path:path}", include_in_schema=False)
-async def preflight_fallback(full_path: str, request: Request) -> Response:
+ALLOWED_ORIGINS: set[str] = set(settings.cors_origins) | {
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    "http://localhost:3001",
+    "http://127.0.0.1:3001",
+    "http://localhost:8000",
+    "http://127.0.0.1:8000",
+}
+
+
+@app.options("/{path:path}", include_in_schema=False)
+async def preflight_handler(request: Request) -> Response:
     """Preflight OPTIONS fallback handler ensuring cross-origin requests always succeed."""
     origin = request.headers.get("origin")
+
     headers = {
-        "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, PATCH, OPTIONS",
+        "Access-Control-Allow-Methods": "GET, POST, PUT, PATCH, DELETE, OPTIONS",
         "Access-Control-Allow-Headers": request.headers.get(
             "access-control-request-headers",
-            "Authorization, Content-Type, Accept, X-Requested-With, X-Tenant-Id",
+            "Content-Type, Authorization, X-Requested-With, X-Tenant-Id",
         ),
         "Access-Control-Max-Age": "86400",
     }
-    if origin and origin != "null":
+
+    if origin in ALLOWED_ORIGINS:
         headers["Access-Control-Allow-Origin"] = origin
         headers["Access-Control-Allow-Credentials"] = "true"
         headers["Vary"] = "Origin"
-    else:
-        headers["Access-Control-Allow-Origin"] = "*"
-    return Response(status_code=200, headers=headers)
+
+    return Response(status_code=204, headers=headers)
 
 
 @app.get("/metrics", tags=["System"])
