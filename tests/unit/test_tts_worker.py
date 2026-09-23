@@ -135,7 +135,7 @@ async def test_tts_consumer_preserves_source_segment_id_invariant() -> None:
     custom_lineage_id = "lineage_strict_translation_uuid_8888"
     translation_event = TranslationSegmentEvent(
         event_id="trans_001",
-        timestamp_ms=1710000000000,
+        timestamp_ms=int(time.time() * 1000),
         meeting_id="meeting_tts_lineage",
         tenant_id="tenant_alpha",
         source_segment_id=custom_lineage_id,
@@ -184,7 +184,7 @@ async def test_tts_consumer_emits_watermarked_audio_segment_event() -> None:
 
     payload = {
         "event_id": "trans_wm_01",
-        "timestamp_ms": 1710000000000,
+        "timestamp_ms": int(time.time() * 1000),
         "meeting_id": "meet_wm",
         "tenant_id": "tenant_1",
         "source_segment_id": "src_wm_123",
@@ -224,7 +224,7 @@ async def test_tts_consumer_skips_non_final_translations() -> None:
 
     payload = {
         "event_id": "trans_partial",
-        "timestamp_ms": 1710000000000,
+        "timestamp_ms": int(time.time() * 1000),
         "meeting_id": "meet_skip",
         "tenant_id": "tenant_1",
         "source_segment_id": "src_skip_01",
@@ -355,7 +355,7 @@ async def test_tts_consumer_with_livekit_egress_integration() -> None:
     lineage_id = "lineage_strict_egress_test_42"
     trans_payload = {
         "event_id": "trans_for_egress",
-        "timestamp_ms": 1710000000000,
+        "timestamp_ms": int(time.time() * 1000),
         "meeting_id": "meet_consumer_egress",
         "tenant_id": "tenant_xyz",
         "source_segment_id": lineage_id,
@@ -390,7 +390,7 @@ async def test_tts_consumer_poll_and_process() -> None:
 
     trans_payload = {
         "event_id": "trans_poll_01",
-        "timestamp_ms": 1710000000000,
+        "timestamp_ms": int(time.time() * 1000),
         "meeting_id": "meet_poll_tts",
         "tenant_id": "tenant_1",
         "source_segment_id": "src_poll_lineage",
@@ -409,3 +409,120 @@ async def test_tts_consumer_poll_and_process() -> None:
     assert emitted[0].source_segment_id == "src_poll_lineage"
     assert emitted[0].target_language == "jpn"
     assert consumer.metrics["messages_consumed"] == 1
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_tts_consumer_stale_drop_timing_engine() -> None:
+    """Verifies STEP-12-3: drop stale translated audio if backlog exceeds threshold (>2.5s)."""
+    mock_bus = AsyncMock(spec=RedisStreamBus)
+    mock_bus.ack_event.return_value = 1
+
+    consumer = TTSConsumer(
+        stream_bus=mock_bus,
+        engine=MockTTSEngine(simulated_latency_ms=0),
+        stale_drop_threshold_ms=2500,
+    )
+
+    # Payload timestamp is 5000ms in the past (stale!)
+    stale_timestamp = int(time.time() * 1000) - 5000
+    stale_payload = {
+        "event_id": "trans_stale_999",
+        "timestamp_ms": stale_timestamp,
+        "meeting_id": "meet_stale_timing",
+        "tenant_id": "tenant_stale",
+        "source_segment_id": "src_stale_lineage",
+        "source_language": "eng",
+        "target_language": "spa",
+        "translated_text": "Demasiado tarde para sintetizar.",
+        "is_final": True,
+        "latency_ms": 25,
+    }
+
+    emitted = await consumer.process_message(
+        stream_name="events:meeting:meet_stale_timing:translations",
+        message_id="99-0",
+        raw_payload=stale_payload,
+        meeting_id="meet_stale_timing",
+    )
+
+    # Must be dropped due to exceeding 2500ms deadline
+    assert len(emitted) == 0
+    assert consumer.metrics["stale_dropped_count"] == 1
+    mock_bus.publish.assert_not_called()
+    mock_bus.ack_event.assert_awaited_once_with(
+        "events:meeting:meet_stale_timing:translations",
+        consumer.group_name,
+        "99-0",
+    )
+
+
+@pytest.mark.unit
+def test_livekit_audio_egress_audience_scoped_routing() -> None:
+    """Verifies STEP-12-2: Audience-scoped track routing for multi-language listeners."""
+    egress = LiveKitAudioEgress(sample_rate=48000)
+    meeting_id = "meet_routing_alpha_01"
+
+    track_en = egress.get_track_name_for_audience(meeting_id, "eng")
+    track_mr = egress.get_track_name_for_audience(meeting_id, "mar")
+    track_ja = egress.get_track_name_for_audience(meeting_id, "jpn")
+
+    assert track_en == f"translated_eng_{meeting_id[:8]}"
+    assert track_mr == f"translated_mar_{meeting_id[:8]}"
+    assert track_ja == f"translated_jpn_{meeting_id[:8]}"
+
+    resolved = egress.resolve_audience_tracks(meeting_id, ["eng", "mar", "jpn"])
+    assert resolved == {
+        "eng": track_en,
+        "mar": track_mr,
+        "jpn": track_ja,
+    }
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_tts_consumer_canonical_envelope_propagation() -> None:
+    """Verifies that AudioSegmentEvent inherits canonical v1.2 lineage from TranslationSegmentEvent."""
+    mock_bus = AsyncMock(spec=RedisStreamBus)
+    mock_bus.publish.return_value = "msg-env-tts"
+    mock_bus.ack_event.return_value = 1
+
+    consumer = TTSConsumer(
+        stream_bus=mock_bus,
+        engine=MockTTSEngine(sample_rate=48000, simulated_latency_ms=0),
+    )
+
+    trans_event = TranslationSegmentEvent(
+        event_id="trans_parent_evt_456",
+        timestamp_ms=int(time.time() * 1000),
+        meeting_id="meet_env_tts",
+        tenant_id="ten_env",
+        source_segment_id="src_root_env_123",
+        source_language="eng",
+        target_language="spa",
+        translated_text="Buenas tardes a todos los participantes.",
+        is_final=True,
+        latency_ms=15,
+        correlation_id="corr_root_session_001",
+        sequence_number=3,
+        hop_count=2,
+    )
+
+    emitted = await consumer.process_message(
+        stream_name="events:meeting:meet_env_tts:translations",
+        message_id="105-0",
+        raw_payload=trans_event.model_dump(),
+        meeting_id="meet_env_tts",
+    )
+
+    assert len(emitted) == 1
+    audio_event = emitted[0]
+
+    # Verify v1.2 lineage envelope invariants
+    assert audio_event.source_segment_id == "src_root_env_123"
+    assert audio_event.correlation_id == "corr_root_session_001"
+    assert audio_event.causation_id == "trans_parent_evt_456"
+    assert audio_event.parent_event_id == "trans_parent_evt_456"
+    assert audio_event.sequence_number == 4
+    assert audio_event.hop_count == 3
+    assert audio_event.watermarked is True

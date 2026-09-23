@@ -7,7 +7,7 @@ import time
 from abc import ABC, abstractmethod
 
 from packages.config.settings import settings
-from packages.language_registry import normalize_code
+from packages.language_registry import get_optimal_nmt_model, normalize_code
 from services.translation_worker.languages import iso639_3_to_nllb
 from services.translation_worker.types import TranslationResult
 
@@ -168,7 +168,7 @@ class MockNMTEngine(BaseNMTEngine):
             source_language=src,
             target_language=tgt,
             latency_ms=latency,
-            model_version="mock-nmt-v1",
+            model_version=f"mock-{get_optimal_nmt_model(src, tgt)}",
         )
 
 

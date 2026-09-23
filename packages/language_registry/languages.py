@@ -23,6 +23,9 @@ class LanguageMetadata(BaseModel):
     supports_nmt: bool = True
     supports_tts: bool = True
     supports_voice_clone: bool = True
+    is_indic: bool = False
+    nmt_model: str = "facebook/nllb-200-distilled-600M"
+    licensing: str = "MIT"
 
 
 SUPPORTED_LANGUAGES: dict[str, LanguageMetadata] = {
@@ -76,6 +79,9 @@ SUPPORTED_LANGUAGES: dict[str, LanguageMetadata] = {
         name_en="Hindi",
         name_native="हिन्दी",
         tier=LanguageTier.TIER_2,
+        is_indic=True,
+        nmt_model="ai4bharat/indictrans2-1B",
+        licensing="CC-BY-NC-4.0",
     ),
     "por": LanguageMetadata(
         code="por",
@@ -153,6 +159,97 @@ SUPPORTED_LANGUAGES: dict[str, LanguageMetadata] = {
         name_en="Indonesian",
         name_native="Bahasa Indonesia",
         tier=LanguageTier.TIER_2,
+    ),
+    # --- Indic Languages (DEC-01: ai4bharat/indictrans2-1B) ---
+    "mar": LanguageMetadata(
+        code="mar",
+        bcp47="mr-IN",
+        name_en="Marathi",
+        name_native="मराठी",
+        tier=LanguageTier.TIER_2,
+        is_indic=True,
+        nmt_model="ai4bharat/indictrans2-1B",
+        licensing="CC-BY-NC-4.0",
+    ),
+    "ben": LanguageMetadata(
+        code="ben",
+        bcp47="bn-IN",
+        name_en="Bengali",
+        name_native="বাংলা",
+        tier=LanguageTier.TIER_2,
+        is_indic=True,
+        nmt_model="ai4bharat/indictrans2-1B",
+        licensing="CC-BY-NC-4.0",
+    ),
+    "tam": LanguageMetadata(
+        code="tam",
+        bcp47="ta-IN",
+        name_en="Tamil",
+        name_native="தமிழ்",
+        tier=LanguageTier.TIER_2,
+        is_indic=True,
+        nmt_model="ai4bharat/indictrans2-1B",
+        licensing="CC-BY-NC-4.0",
+    ),
+    "tel": LanguageMetadata(
+        code="tel",
+        bcp47="te-IN",
+        name_en="Telugu",
+        name_native="తెలుగు",
+        tier=LanguageTier.TIER_2,
+        is_indic=True,
+        nmt_model="ai4bharat/indictrans2-1B",
+        licensing="CC-BY-NC-4.0",
+    ),
+    "guj": LanguageMetadata(
+        code="guj",
+        bcp47="gu-IN",
+        name_en="Gujarati",
+        name_native="ગુજરાતી",
+        tier=LanguageTier.TIER_2,
+        is_indic=True,
+        nmt_model="ai4bharat/indictrans2-1B",
+        licensing="CC-BY-NC-4.0",
+    ),
+    "kan": LanguageMetadata(
+        code="kan",
+        bcp47="kn-IN",
+        name_en="Kannada",
+        name_native="ಕನ್ನಡ",
+        tier=LanguageTier.TIER_2,
+        is_indic=True,
+        nmt_model="ai4bharat/indictrans2-1B",
+        licensing="CC-BY-NC-4.0",
+    ),
+    "mal": LanguageMetadata(
+        code="mal",
+        bcp47="ml-IN",
+        name_en="Malayalam",
+        name_native="മലയാളം",
+        tier=LanguageTier.TIER_2,
+        is_indic=True,
+        nmt_model="ai4bharat/indictrans2-1B",
+        licensing="CC-BY-NC-4.0",
+    ),
+    "pan": LanguageMetadata(
+        code="pan",
+        bcp47="pa-IN",
+        name_en="Punjabi",
+        name_native="ਪੰਜਾਬੀ",
+        tier=LanguageTier.TIER_2,
+        is_indic=True,
+        nmt_model="ai4bharat/indictrans2-1B",
+        licensing="CC-BY-NC-4.0",
+    ),
+    "urd": LanguageMetadata(
+        code="urd",
+        bcp47="ur-IN",
+        name_en="Urdu",
+        name_native="اردو",
+        tier=LanguageTier.TIER_2,
+        is_indic=True,
+        nmt_model="ai4bharat/indictrans2-1B",
+        licensing="CC-BY-NC-4.0",
     ),
 }
 
@@ -240,3 +337,20 @@ def validate_language_pair(source: str, target: str) -> tuple[bool, str | None]:
         return False, f"Translation between '{src.name_en}' and '{tgt.name_en}' is unavailable."
 
     return True, None
+
+
+def is_indic_language(code: str) -> bool:
+    """Checks whether the specified language belongs to the Indic language family."""
+    lang = get_language(code)
+    return lang.is_indic if lang else False
+
+
+def get_optimal_nmt_model(source: str, target: str) -> str:
+    """Implements DEC-01: Routes Indic language pairs to IndicTrans2 and others to NLLB-200.
+
+    - Indic pairs (e.g. eng->hin, hin->mar, mar->eng) route to 'ai4bharat/indictrans2-1B'.
+    - Global pairs (e.g. eng->spa, fra->deu, zho->jpn) route to 'facebook/nllb-200-distilled-600M'.
+    """
+    if is_indic_language(source) or is_indic_language(target):
+        return "ai4bharat/indictrans2-1B"
+    return "facebook/nllb-200-distilled-600M"
