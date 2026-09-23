@@ -182,7 +182,10 @@ export async function createRoom(
     }
   } catch (err: unknown) {
     if (typeof window !== "undefined") {
-      console.warn("⚠️ [ANVS-AI] Control Plane offline or error occurred. Initializing local meeting room.", err);
+      console.warn(
+        "⚠️ [ANVS-AI] Control Plane offline or error occurred. Initializing local meeting room.",
+        err,
+      );
       const mockMeetingId = `meet_${Math.random().toString(36).substring(2, 10)}`;
       return {
         meeting_id: mockMeetingId,
@@ -242,7 +245,11 @@ export async function getRoom(
 ): Promise<GetMeetingResponse> {
   try {
     const authToken = token || (await acquireUserToken());
-    return await request<GetMeetingResponse>(`/api/v1/rooms/${meetingId}`, { method: "GET" }, authToken);
+    return await request<GetMeetingResponse>(
+      `/api/v1/rooms/${meetingId}`,
+      { method: "GET" },
+      authToken,
+    );
   } catch (err: unknown) {
     if (typeof window !== "undefined") {
       return {

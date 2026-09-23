@@ -129,7 +129,11 @@ export function ShareMeetingModal({ isOpen, onClose, meetingId }: ShareMeetingMo
                     : "bg-surface-100 border-surface-200 text-zinc-100 hover:bg-surface-200"
                 }`}
               >
-                {copiedLink ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                {copiedLink ? (
+                  <Check className="w-3.5 h-3.5 text-emerald-400" />
+                ) : (
+                  <Copy className="w-3.5 h-3.5" />
+                )}
                 <span>{copiedLink ? "Copied!" : "Copy"}</span>
               </button>
             </div>
@@ -156,7 +160,11 @@ export function ShareMeetingModal({ isOpen, onClose, meetingId }: ShareMeetingMo
                     : "bg-surface-100 border-surface-200 text-zinc-100 hover:bg-surface-200"
                 }`}
               >
-                {copiedCode ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                {copiedCode ? (
+                  <Check className="w-3.5 h-3.5 text-emerald-400" />
+                ) : (
+                  <Copy className="w-3.5 h-3.5" />
+                )}
                 <span>{copiedCode ? "Copied!" : "Copy Code"}</span>
               </button>
             </div>
@@ -180,7 +188,9 @@ export function ShareMeetingModal({ isOpen, onClose, meetingId }: ShareMeetingMo
               <span>Connecting Another Person:</span>
             </div>
             <p className="text-[11px] leading-relaxed">
-              When the invited person opens the WhatsApp link on their phone or computer, they will immediately join this live meeting room with real-time audio translation and live camera video.
+              When the invited person opens the WhatsApp link on their phone or computer, they will
+              immediately join this live meeting room with real-time audio translation and live
+              camera video.
             </p>
           </div>
         </div>

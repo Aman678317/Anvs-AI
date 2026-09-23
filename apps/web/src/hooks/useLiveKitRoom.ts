@@ -137,7 +137,10 @@ async function acquireCameraTrack(displayName: string = "Guest"): Promise<LocalV
 
         return new LocalVideoTrack(videoTrack);
       } catch (err3) {
-        console.warn("Hardware camera unavailable or locked by another tab. Activating live visual canvas stream fallback:", err3);
+        console.warn(
+          "Hardware camera unavailable or locked by another tab. Activating live visual canvas stream fallback:",
+          err3,
+        );
         return createFallbackVideoTrack(displayName);
       }
     }
@@ -166,7 +169,10 @@ async function acquireAudioTrack(): Promise<LocalAudioTrack> {
 
       return new LocalAudioTrack(audioTrack);
     } catch (err2) {
-      console.warn("Hardware microphone unavailable. Activating silent audio stream fallback:", err2);
+      console.warn(
+        "Hardware microphone unavailable. Activating silent audio stream fallback:",
+        err2,
+      );
       return createFallbackAudioTrack();
     }
   }
@@ -179,7 +185,9 @@ export function useLiveKitRoom(
   const roomRef = useRef<Room | null>(null);
   const [localVideoTrack, setLocalVideoTrack] = useState<LocalVideoTrack | null>(null);
   const [localAudioTrack, setLocalAudioTrack] = useState<LocalAudioTrack | null>(null);
-  const [remoteVideoTracks, setRemoteVideoTracks] = useState<Record<string, RemoteVideoTrack | MediaStreamTrack | null>>({});
+  const [remoteVideoTracks, setRemoteVideoTracks] = useState<
+    Record<string, RemoteVideoTrack | MediaStreamTrack | null>
+  >({});
   const [screenTrack, setScreenTrack] = useState<LocalVideoTrack | null>(null);
 
   const localVideoTrackRef = useRef<LocalVideoTrack | null>(null);
@@ -372,7 +380,11 @@ export function useLiveKitRoom(
     // Remote participant published a track
     room.on(
       RoomEvent.TrackSubscribed,
-      (track: RemoteTrack, _publication: RemoteTrackPublication, participant: RemoteParticipant) => {
+      (
+        track: RemoteTrack,
+        _publication: RemoteTrackPublication,
+        participant: RemoteParticipant,
+      ) => {
         if (track.kind === Track.Kind.Video) {
           setRemoteVideoTracks((prev) => ({
             ...prev,
@@ -388,7 +400,11 @@ export function useLiveKitRoom(
     // Remote participant unpublished a track
     room.on(
       RoomEvent.TrackUnsubscribed,
-      (track: RemoteTrack, _publication: RemoteTrackPublication, participant: RemoteParticipant) => {
+      (
+        track: RemoteTrack,
+        _publication: RemoteTrackPublication,
+        participant: RemoteParticipant,
+      ) => {
         if (track.kind === Track.Kind.Video) {
           setRemoteVideoTracks((prev) => {
             const next = { ...prev };
@@ -418,7 +434,10 @@ export function useLiveKitRoom(
             : livekitUrl;
         await room.connect(effectiveLivekitUrl, token);
       } catch (err) {
-        console.warn("LiveKit SFU connection error (local media preview remains operational):", err);
+        console.warn(
+          "LiveKit SFU connection error (local media preview remains operational):",
+          err,
+        );
       }
     };
 
@@ -572,7 +591,10 @@ export function useLiveKitRoom(
         if (msg.type === "PEER_ANNOUNCE") {
           const isOfferer = participantId > remotePeerId;
           const existing = pcs.get(remotePeerId);
-          if (existing && (existing.connectionState === "connected" || existing.connectionState === "connecting")) {
+          if (
+            existing &&
+            (existing.connectionState === "connected" || existing.connectionState === "connecting")
+          ) {
             return;
           }
           if (isOfferer) {
@@ -645,7 +667,9 @@ export function useLiveKitRoom(
         else if (msg.type === "PEER_LEAVING" && msg.senderId) {
           const pc = pcs.get(msg.senderId);
           if (pc) {
-            try { pc.close(); } catch {}
+            try {
+              pc.close();
+            } catch {}
             pcs.delete(msg.senderId);
           }
           const audioEl = audioElements.get(msg.senderId);
@@ -700,7 +724,9 @@ export function useLiveKitRoom(
         } catch {}
       }
       pcs.forEach((pc) => {
-        try { pc.close(); } catch {}
+        try {
+          pc.close();
+        } catch {}
       });
       pcs.clear();
       audioElements.forEach((el) => {
@@ -720,7 +746,9 @@ export function useLiveKitRoom(
     if (pcsRef.current) {
       pcsRef.current.forEach((pc) => {
         const senders = pc.getSenders();
-        const videoSender = senders.find((s) => s.track?.kind === "video" || (s as any).kind === "video");
+        const videoSender = senders.find(
+          (s) => s.track?.kind === "video" || (s as any).kind === "video",
+        );
         if (videoSender) {
           videoSender.replaceTrack(track).catch(() => {});
         } else if (track) {
@@ -738,7 +766,9 @@ export function useLiveKitRoom(
     if (pcsRef.current) {
       pcsRef.current.forEach((pc) => {
         const senders = pc.getSenders();
-        const audioSender = senders.find((s) => s.track?.kind === "audio" || (s as any).kind === "audio");
+        const audioSender = senders.find(
+          (s) => s.track?.kind === "audio" || (s as any).kind === "audio",
+        );
         if (audioSender) {
           audioSender.replaceTrack(track).catch(() => {});
         } else if (track) {
@@ -825,10 +855,14 @@ export function useLiveKitRoom(
       if (animId) cancelAnimationFrame(animId);
       if (silenceTimeout) clearTimeout(silenceTimeout);
       if (source) {
-        try { source.disconnect(); } catch {}
+        try {
+          source.disconnect();
+        } catch {}
       }
       if (audioCtx && audioCtx.state !== "closed") {
-        try { audioCtx.close(); } catch {}
+        try {
+          audioCtx.close();
+        } catch {}
       }
     };
   }, [localAudioTrack, isMicMuted, participantId, setActiveSpeakers]);

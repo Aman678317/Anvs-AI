@@ -35,7 +35,10 @@ export function ParticipantTile({
       el.muted = isSelf;
       if ("attach" in track && typeof (track as any).attach === "function") {
         (track as any).attach(el);
-      } else if (track instanceof MediaStream || (track && typeof (track as any).getTracks === "function")) {
+      } else if (
+        track instanceof MediaStream ||
+        (track && typeof (track as any).getTracks === "function")
+      ) {
         el.srcObject = track as MediaStream;
       } else if (track && (track instanceof MediaStreamTrack || (track as any).kind === "video")) {
         el.srcObject = new MediaStream([track as MediaStreamTrack]);

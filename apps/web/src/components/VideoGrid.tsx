@@ -6,7 +6,10 @@ import { LocalVideoTrack, RemoteVideoTrack, Track } from "livekit-client";
 
 interface VideoGridProps {
   localVideoTrack?: LocalVideoTrack | null;
-  remoteVideoTracks?: Record<string, RemoteVideoTrack | Track | MediaStreamTrack | MediaStream | null>;
+  remoteVideoTracks?: Record<
+    string,
+    RemoteVideoTrack | Track | MediaStreamTrack | MediaStream | null
+  >;
   screenTrack?: LocalVideoTrack | null;
 }
 
