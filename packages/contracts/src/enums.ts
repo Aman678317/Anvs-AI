@@ -30,6 +30,7 @@ export enum WSClientMessageType {
   CHAT_MESSAGE = "CHAT_MESSAGE",
   QUERY_ASSISTANT = "QUERY_ASSISTANT",
   PING = "PING",
+  RESYNC = "RESYNC",
 }
 
 export enum WSServerMessageType {
@@ -41,6 +42,7 @@ export enum WSServerMessageType {
   ASSISTANT_RESPONSE = "ASSISTANT_RESPONSE",
   PONG = "PONG",
   ERROR = "ERROR",
+  RESYNC_RESPONSE = "RESYNC_RESPONSE",
 }
 
 export enum DegradationTier {

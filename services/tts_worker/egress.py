@@ -128,10 +128,29 @@ class LiveKitAudioEgress:
             chunker = AudioChunker(sample_rate=event.sample_rate, frame_duration_ms=20)
             frames_pushed = 0
 
+            source = (
+                track.get("audio_source")
+                if isinstance(track, dict)
+                else getattr(track, "source", None)
+            )
             for frame, _, _ in chunker.push(samples):
                 # Verify non-empty frame
                 if len(frame) > 0:
                     frame_bytes = float32_to_pcm_s16le(frame)
+                    if source is not None and hasattr(source, "capture_frame"):
+                        try:
+                            import livekit.rtc as lk_rtc
+
+                            audio_frame = lk_rtc.AudioFrame(
+                                data=frame_bytes,
+                                sample_rate=event.sample_rate,
+                                num_channels=self.num_channels,
+                                samples_per_channel=len(frame),
+                            )
+                            source.capture_frame(audio_frame)
+                        except Exception as e:
+                            logger.warning("RTC AudioSource frame capture error: %s", e)
+
                     self.metrics["bytes_published"] += len(frame_bytes)
                     frames_pushed += 1
 
@@ -141,6 +160,20 @@ class LiveKitAudioEgress:
                 tail_frame, _, _ = tail
                 if len(tail_frame) > 0:
                     tail_bytes = float32_to_pcm_s16le(tail_frame)
+                    if source is not None and hasattr(source, "capture_frame"):
+                        try:
+                            import livekit.rtc as lk_rtc
+
+                            audio_frame = lk_rtc.AudioFrame(
+                                data=tail_bytes,
+                                sample_rate=event.sample_rate,
+                                num_channels=self.num_channels,
+                                samples_per_channel=len(tail_frame),
+                            )
+                            source.capture_frame(audio_frame)
+                        except Exception as e:
+                            logger.warning("RTC AudioSource tail frame capture error: %s", e)
+
                     self.metrics["bytes_published"] += len(tail_bytes)
                     frames_pushed += 1
 

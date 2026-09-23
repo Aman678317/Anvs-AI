@@ -1,14 +1,66 @@
 @echo off
 echo =====================================================
-echo Staging, committing, and pushing all changes to Git...
+echo 1. Auto-formatting with Prettier (TS/JS/MD/JSON/YAML)...
+echo =====================================================
+
+call pnpm run format
+if %ERRORLEVEL% NEQ 0 (
+    echo [WARNING] pnpm run format failed, trying npx prettier...
+    call npx prettier --write "**/*.{ts,tsx,js,jsx,json,md,yml,yaml}"
+)
+
+echo =====================================================
+echo 2. Auto-formatting Python Code with Ruff...
+echo =====================================================
+
+call ruff format .
+
+echo =====================================================
+echo 3. Verifying Prettier ^& Ruff Quality Gates...
+echo =====================================================
+
+call pnpm run format:check
+if %ERRORLEVEL% NEQ 0 (
+    echo [ERROR] Prettier format check failed! Aborting.
+    pause
+    exit /b %ERRORLEVEL%
+)
+
+call ruff format --check .
+if %ERRORLEVEL% NEQ 0 (
+    echo [ERROR] Ruff format check failed! Aborting.
+    pause
+    exit /b %ERRORLEVEL%
+)
+
+call ruff check .
+if %ERRORLEVEL% NEQ 0 (
+    echo [ERROR] Ruff lint check failed! Aborting.
+    pause
+    exit /b %ERRORLEVEL%
+)
+
+echo =====================================================
+echo 4. Running Unit and Contract Test Suites...
+echo =====================================================
+
+call pytest tests/unit/test_settings.py tests/unit/test_event_schemas.py tests/unit/test_websocket_gateway.py tests/unit/test_livekit_service.py tests/contract/test_event_contracts.py -v
+if %ERRORLEVEL% NEQ 0 (
+    echo [ERROR] Unit tests failed! Aborting.
+    pause
+    exit /b %ERRORLEVEL%
+)
+
+echo =====================================================
+echo 5. Staging, Committing, and Pushing to HEAD...
 echo =====================================================
 
 git add -A
-git commit -m "feat(web): multi-guest WebRTC mesh video calling, VAD speaker halo, live speech captions, and WhatsApp call sharing"
+git commit -m "style: format all files with prettier and ruff for 100% CI pass"
 git push origin HEAD
 
 echo.
 echo =====================================================
-echo Process complete! Pushed to origin HEAD.
+echo Process complete! Successfully formatted, tested, and pushed to origin HEAD.
 echo =====================================================
 pause

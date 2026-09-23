@@ -30,12 +30,18 @@ export interface WSClientPingFrame {
   timestamp_ms: number;
 }
 
+export interface WSClientResyncFrame {
+  type: WSClientMessageType.RESYNC;
+  from_state_version: number;
+}
+
 export type WSClientFrame =
   | WSClientJoinFrame
   | WSClientSetLanguageFrame
   | WSClientChatMessageFrame
   | WSClientQueryAssistantFrame
-  | WSClientPingFrame;
+  | WSClientPingFrame
+  | WSClientResyncFrame;
 
 // --- Server to Client Frames ---
 
@@ -96,6 +102,14 @@ export interface WSServerErrorFrame {
   message: string;
 }
 
+export interface WSServerResyncResponseFrame {
+  type: WSServerMessageType.RESYNC_RESPONSE;
+  current_state_version: number;
+  missed_frames: any[];
+  full_snapshot_required: boolean;
+  room_state?: WSServerRoomStateFrame | null;
+}
+
 export type WSServerFrame =
   | WSServerRoomStateFrame
   | WSServerParticipantJoinedFrame
@@ -104,4 +118,5 @@ export type WSServerFrame =
   | WSServerAudioTrackFrame
   | WSServerAssistantFrame
   | WSServerPongFrame
-  | WSServerErrorFrame;
+  | WSServerErrorFrame
+  | WSServerResyncResponseFrame;

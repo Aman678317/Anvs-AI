@@ -7,6 +7,7 @@ import json
 import pytest
 from jose import jwt
 
+from packages.config.settings import settings
 from packages.contracts import ParticipantRole
 from services.api.services.livekit_service import LiveKitService
 
@@ -212,3 +213,23 @@ async def test_dispatch_webhook_event_room_lifecycle(
     }
     res_finish = await livekit_svc.dispatch_webhook_event(finish_event)
     assert res_finish["action"] == "room_finished_synchronized"
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_create_room_production_fails_fast(
+    livekit_svc: LiveKitService,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Verifies that in production mode, LiveKit room creation fails fast without mock fallback."""
+    # In development: returns dev room
+    monkeypatch.setattr(settings, "app_env", "development")
+    room_dev = await livekit_svc.create_room("dev-room")
+    assert room_dev["status"] == "ACTIVE"
+    assert room_dev["name"] == "dev-room"
+
+    # In production: raises ConnectionError
+    monkeypatch.setattr(settings, "app_env", "production")
+    with pytest.raises(ConnectionError) as exc_info:
+        await livekit_svc.create_room("prod-room")
+    assert "LiveKit" in str(exc_info.value)

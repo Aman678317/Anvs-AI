@@ -46,6 +46,7 @@ from .websocket import (
     WSClientJoinFrame,
     WSClientPingFrame,
     WSClientQueryAssistantFrame,
+    WSClientResyncFrame,
     WSClientSetLanguageFrame,
     WSServerAssistantFrame,
     WSServerAudioTrackFrame,
@@ -54,6 +55,7 @@ from .websocket import (
     WSServerParticipantJoinedFrame,
     WSServerParticipantLeftFrame,
     WSServerPongFrame,
+    WSServerResyncResponseFrame,
     WSServerRoomStateFrame,
 )
 
@@ -98,6 +100,7 @@ __all__ = [
     "WSClientMessageType",
     "WSClientPingFrame",
     "WSClientQueryAssistantFrame",
+    "WSClientResyncFrame",
     "WSClientSetLanguageFrame",
     "WSServerAssistantFrame",
     "WSServerAudioTrackFrame",
@@ -107,5 +110,6 @@ __all__ = [
     "WSServerParticipantJoinedFrame",
     "WSServerParticipantLeftFrame",
     "WSServerPongFrame",
+    "WSServerResyncResponseFrame",
     "WSServerRoomStateFrame",
 ]

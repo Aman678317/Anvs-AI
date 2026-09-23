@@ -35,6 +35,7 @@ class WSClientMessageType(StrEnum):
     CHAT_MESSAGE = "CHAT_MESSAGE"
     QUERY_ASSISTANT = "QUERY_ASSISTANT"
     PING = "PING"
+    RESYNC = "RESYNC"
 
 
 class WSServerMessageType(StrEnum):
@@ -46,6 +47,7 @@ class WSServerMessageType(StrEnum):
     ASSISTANT_RESPONSE = "ASSISTANT_RESPONSE"
     PONG = "PONG"
     ERROR = "ERROR"
+    RESYNC_RESPONSE = "RESYNC_RESPONSE"
 
 
 class DegradationTier(StrEnum):
