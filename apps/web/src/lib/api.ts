@@ -16,8 +16,7 @@ export type CreateRoomResponse = CreateMeetingResponse;
 export type JoinRoomRequest = JoinMeetingRequest;
 export type JoinRoomResponse = JoinMeetingResponse;
 
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
 class ApiError extends Error {
   public status: number;

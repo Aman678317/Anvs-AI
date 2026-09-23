@@ -179,9 +179,7 @@ export class MeetingClient {
 
     const WS =
       this.config.WebSocketClass ||
-      (typeof globalThis !== "undefined"
-        ? (globalThis as any).WebSocket
-        : null);
+      (typeof globalThis !== "undefined" ? (globalThis as any).WebSocket : null);
 
     if (!WS) {
       throw new Error(
@@ -422,7 +420,8 @@ export class MeetingClient {
     }
 
     this.reconnectAttempts++;
-    const delay = (this.config.reconnectDelayMs || 3000) * Math.pow(1.5, this.reconnectAttempts - 1);
+    const delay =
+      (this.config.reconnectDelayMs || 3000) * Math.pow(1.5, this.reconnectAttempts - 1);
 
     this.reconnectTimer = setTimeout(async () => {
       try {

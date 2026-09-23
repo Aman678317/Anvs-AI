@@ -70,7 +70,10 @@ export default function MeetingRoomPage() {
         stateVersion: resp.state_version,
       });
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Failed to join meeting room. Check backend connection.";
+      const msg =
+        err instanceof Error
+          ? err.message
+          : "Failed to join meeting room. Check backend connection.";
       console.error("Failed to join meeting room:", err);
       setJoinError(msg);
     } finally {
@@ -111,7 +114,9 @@ export default function MeetingRoomPage() {
       <div className="flex flex-col items-center justify-center h-screen w-screen bg-surface-900 text-zinc-100">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-500 mb-4" />
         <h2 className="text-xl font-semibold">Connecting to Meeting Room...</h2>
-        <p className="text-sm text-zinc-400 mt-2">Provisioning secure SFU credentials and data streams</p>
+        <p className="text-sm text-zinc-400 mt-2">
+          Provisioning secure SFU credentials and data streams
+        </p>
       </div>
     );
   }
