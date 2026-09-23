@@ -1,4 +1,4 @@
-"""Worker Health & Liveness Heartbeat Monitor (PR-16).
+"""Worker Health & Liveness Heartbeat Monitor (PR-13).
 
 Tracks periodic heartbeats from AI worker fleet (STT, NMT, TTS, Diarization, Assistant).
 Detects unresponsive or crashed workers within 3.0s SLA and triggers automated failover.

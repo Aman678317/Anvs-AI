@@ -1,4 +1,4 @@
-"""Dead Letter Queue (DLQ) Recovery & Exponential Backoff Retry Engine (PR-16).
+"""Dead Letter Queue (DLQ) Recovery & Exponential Backoff Retry Engine (PR-13).
 
 Processes failing event packets, applies exponential backoff retries,
 and securely quarantines poisoned packets to prevent infinite retry loops (Invariant #4).
@@ -45,6 +45,13 @@ class DLQRetryManager:
 
         self.retried_count = 0
         self.quarantined_count = 0
+
+    def get_metrics(self) -> dict[str, int]:
+        """Returns DLQ retry and quarantine telemetry metrics."""
+        return {
+            "retried_count": self.retried_count,
+            "quarantined_count": self.quarantined_count,
+        }
 
     async def setup(self, meeting_id: str) -> None:
         """Initialize consumer group on meeting's DLQ stream."""

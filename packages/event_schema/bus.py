@@ -209,3 +209,17 @@ class RedisStreamBus:
         """Return the current length of a Redis stream."""
         length: int = await self.client.xlen(stream)
         return length
+
+    async def trim_stream(
+        self,
+        stream: str,
+        max_len: int = 10000,
+        approximate: bool = True,
+    ) -> int:
+        """Trim stream to max_len entries using XTRIM to cap Redis memory growth (P1-06)."""
+        trimmed: int = await self.client.xtrim(
+            name=stream,
+            maxlen=max_len,
+            approximate=approximate,
+        )
+        return trimmed

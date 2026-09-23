@@ -152,3 +152,27 @@ async def test_poison_pill_flooding_quarantined_after_retries() -> None:
     # Exceeded max retries: must be permanently quarantined
     assert outcome_final == DLQRetryOutcome.QUARANTINED
     assert retry_manager.quarantined_count == 1
+
+
+@pytest.mark.asyncio
+@pytest.mark.chaos
+async def test_redis_stream_trimming_chaos_under_memory_pressure() -> None:
+    """Simulates high-velocity stream message flood with active XTRIM memory capping (P1-06)."""
+    mock_bus = AsyncMock()
+    mock_bus.trim_stream.return_value = 250
+
+    orchestrator = PipelineOrchestrator(
+        stream_bus=mock_bus,
+        stream_maxlen=1000,
+    )
+    meeting_id = "meet_chaos_flood_99"
+
+    # Simulate 5 consecutive bursts of stream trimming
+    total_trimmed = 0
+    for _ in range(5):
+        trim_res = await orchestrator.trim_meeting_streams(meeting_id)
+        total_trimmed += sum(trim_res.values())
+
+    # 7 streams * 250 trimmed per call * 5 bursts
+    assert total_trimmed == 7 * 250 * 5
+    assert mock_bus.trim_stream.await_count == 35

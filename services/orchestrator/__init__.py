@@ -1,4 +1,4 @@
-"""Orchestrator Pipeline Coordination Service (PR-16)."""
+"""Orchestrator Pipeline Coordination Service (PR-13)."""
 
 from .backpressure import BackpressureController
 from .dlq_retry import DLQRetryManager, DLQRetryOutcome
