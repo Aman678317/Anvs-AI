@@ -179,10 +179,8 @@ export class MeetingClient {
 
     const WS =
       this.config.WebSocketClass ||
-      (typeof WebSocket !== "undefined"
-        ? WebSocket
-        : typeof global !== "undefined" && (global as any).WebSocket
-        ? (global as any).WebSocket
+      (typeof globalThis !== "undefined"
+        ? (globalThis as any).WebSocket
         : null);
 
     if (!WS) {
