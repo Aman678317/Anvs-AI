@@ -159,7 +159,7 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
         userId: data.user_id,
         tenantId: data.tenant_id,
         email,
-        displayName: email.split("@")[0],
+        displayName: email.split("@")[0] || "Admin",
         role: ParticipantRole.HOST,
       };
       setUser(updatedUser);
