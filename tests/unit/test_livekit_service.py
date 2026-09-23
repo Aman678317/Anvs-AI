@@ -233,4 +233,3 @@ async def test_create_room_production_fails_fast(
     with pytest.raises(ConnectionError) as exc_info:
         await livekit_svc.create_room("prod-room")
     assert "LiveKit" in str(exc_info.value)
-

@@ -1,0 +1,21 @@
+{
+  "event_id": "evt-018f3a9e-5c3d-8e0b-af20-234567890bcd",
+  "timestamp_ms": 1710000000250,
+  "meeting_id": "meet-canonical-test-01",
+  "tenant_id": "tenant-enterprise-01",
+  "event_version": "1.2",
+  "correlation_id": "trace-meet-canonical-test-01",
+  "causation_id": "evt-018f3a9e-4b2c-7d9a-9e1f-123456789abc",
+  "parent_event_id": "evt-018f3a9e-4b2c-7d9a-9e1f-123456789abc",
+  "sequence_number": 2,
+  "hop_count": 1,
+  "max_hops": 10,
+  "ttl_seconds": 300,
+  "occurred_at": "2026-09-24T00:00:00.150Z",
+  "source_segment_id": "seg-source-immutable-100",
+  "source_language": "hin",
+  "target_language": "eng",
+  "translated_text": "Hello and welcome to our global conference.",
+  "is_final": true,
+  "latency_ms": 150
+}

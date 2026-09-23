@@ -1,5 +1,8 @@
 """Contract tests verifying the immutable source_segment_id lineage chain (Document 12)."""
 
+import json
+from pathlib import Path
+
 import pytest
 
 from packages.event_schema import (
@@ -8,6 +11,8 @@ from packages.event_schema import (
     SourceSegmentEvent,
     TranslationSegmentEvent,
 )
+
+FIXTURES_DIR = Path(__file__).parent / "fixtures"
 
 
 @pytest.mark.contract
@@ -82,3 +87,73 @@ def test_immutable_source_segment_lineage_chain() -> None:
     tts_reloaded = AudioSegmentEvent.model_validate_json(tts_json)
     assert tts_reloaded.source_segment_id == canonical_source_segment_id
     assert tts_reloaded.watermarked is True
+
+
+@pytest.mark.contract
+def test_golden_schema_v12_serialization_parity() -> None:
+    """Verifies that Canonical v1.2 Golden Fixtures validate cleanly against Pydantic models."""
+    # 1. Source Segment Golden Fixture
+    source_file = FIXTURES_DIR / "source_segment_v1_2.json"
+    with source_file.open(encoding="utf-8") as f:
+        source_raw = json.load(f)
+
+    source_model = SourceSegmentEvent.model_validate(source_raw)
+    assert source_model.event_version == "1.2"
+    assert source_model.language == "hin"
+    assert source_model.source_segment_id == "seg-source-immutable-100"
+    assert source_model.hop_count == 0
+
+    # 2. Translation Segment Golden Fixture
+    trans_file = FIXTURES_DIR / "translation_segment_v1_2.json"
+    with trans_file.open(encoding="utf-8") as f:
+        trans_raw = json.load(f)
+
+    trans_model = TranslationSegmentEvent.model_validate(trans_raw)
+    assert trans_model.event_version == "1.2"
+    assert trans_model.source_language == "hin"
+    assert trans_model.target_language == "eng"
+    assert trans_model.source_segment_id == source_model.source_segment_id
+    assert trans_model.parent_event_id == source_model.event_id
+    assert trans_model.hop_count == 1
+
+    # 3. Audio Segment Golden Fixture
+    audio_file = FIXTURES_DIR / "audio_segment_v1_2.json"
+    with audio_file.open(encoding="utf-8") as f:
+        audio_raw = json.load(f)
+
+    audio_model = AudioSegmentEvent.model_validate(audio_raw)
+    assert audio_model.event_version == "1.2"
+    assert audio_model.source_segment_id == source_model.source_segment_id
+    assert audio_model.parent_event_id == trans_model.event_id
+    assert audio_model.hop_count == 2
+    assert audio_model.watermarked is True
+
+
+@pytest.mark.contract
+def test_canonical_causal_tree_invariants() -> None:
+    """Verifies causal tree properties across multi-worker event transformations."""
+    source_file = FIXTURES_DIR / "source_segment_v1_2.json"
+    trans_file = FIXTURES_DIR / "translation_segment_v1_2.json"
+    audio_file = FIXTURES_DIR / "audio_segment_v1_2.json"
+
+    with source_file.open(encoding="utf-8") as f:
+        src = SourceSegmentEvent.model_validate(json.load(f))
+    with trans_file.open(encoding="utf-8") as f:
+        trans = TranslationSegmentEvent.model_validate(json.load(f))
+    with audio_file.open(encoding="utf-8") as f:
+        audio = AudioSegmentEvent.model_validate(json.load(f))
+
+    # Invariant #2: Source segment ID is strictly conserved across entire pipeline
+    assert src.source_segment_id == trans.source_segment_id == audio.source_segment_id
+
+    # Lineage: Direct parent-child pointers form an unbroken DAG
+    assert trans.parent_event_id == src.event_id
+    assert audio.parent_event_id == trans.event_id
+
+    # Distributed tracing: Identical trace correlation ID across all hops
+    assert src.correlation_id == trans.correlation_id == audio.correlation_id
+
+    # Monotonic hop count increments
+    assert src.hop_count == 0
+    assert trans.hop_count == src.hop_count + 1
+    assert audio.hop_count == trans.hop_count + 1

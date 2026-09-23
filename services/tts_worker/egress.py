@@ -128,7 +128,11 @@ class LiveKitAudioEgress:
             chunker = AudioChunker(sample_rate=event.sample_rate, frame_duration_ms=20)
             frames_pushed = 0
 
-            source = track.get("audio_source") if isinstance(track, dict) else getattr(track, "source", None)
+            source = (
+                track.get("audio_source")
+                if isinstance(track, dict)
+                else getattr(track, "source", None)
+            )
             for frame, _, _ in chunker.push(samples):
                 # Verify non-empty frame
                 if len(frame) > 0:

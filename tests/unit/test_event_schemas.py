@@ -281,4 +281,3 @@ def test_loop_detection_exceeds_max_hops() -> None:
         max_hops=10,
     )
     assert loop_evt.is_loop_detected() is True
-

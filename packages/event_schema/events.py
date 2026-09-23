@@ -63,7 +63,6 @@ class BaseEvent(BaseModel):
         return self.hop_count >= self.max_hops
 
 
-
 class SourceSegmentEvent(BaseEvent):
     """Emitted by STT Worker when a speech segment is transcribed."""
 

@@ -107,7 +107,6 @@ class ConnectionManager:
         missed = [f for f in history if f.get("state_version", 0) > from_version]
         return current_version, missed, False
 
-
     async def connect(
         self,
         meeting_id: str,

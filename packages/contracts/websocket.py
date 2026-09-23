@@ -57,7 +57,6 @@ class WSClientResyncFrame(BaseWSFrame):
     )
 
 
-
 # --- Server to Client Frames ---
 
 
@@ -124,4 +123,3 @@ class WSServerResyncResponseFrame(BaseWSFrame):
     missed_frames: list[dict[str, Any]] = Field(default_factory=list)
     full_snapshot_required: bool = False
     room_state: WSServerRoomStateFrame | None = None
-

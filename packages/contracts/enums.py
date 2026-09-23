@@ -50,7 +50,6 @@ class WSServerMessageType(StrEnum):
     RESYNC_RESPONSE = "RESYNC_RESPONSE"
 
 
-
 class DegradationTier(StrEnum):
     NORMAL = "NORMAL"
     HIGH_LOAD = "HIGH_LOAD"

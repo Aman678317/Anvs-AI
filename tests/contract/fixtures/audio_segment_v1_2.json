@@ -1,0 +1,21 @@
+{
+  "event_id": "evt-018f3a9e-6d4e-9f1c-b031-345678901cde",
+  "timestamp_ms": 1710000000450,
+  "meeting_id": "meet-canonical-test-01",
+  "tenant_id": "tenant-enterprise-01",
+  "event_version": "1.2",
+  "correlation_id": "trace-meet-canonical-test-01",
+  "causation_id": "evt-018f3a9e-5c3d-8e0b-af20-234567890bcd",
+  "parent_event_id": "evt-018f3a9e-5c3d-8e0b-af20-234567890bcd",
+  "sequence_number": 3,
+  "hop_count": 2,
+  "max_hops": 10,
+  "ttl_seconds": 300,
+  "occurred_at": "2026-09-24T00:00:00.350Z",
+  "source_segment_id": "seg-source-immutable-100",
+  "target_language": "eng",
+  "audio_uri": "s3://anvs-ai-media/meet-canonical-test-01/seg-source-immutable-100-eng.opus",
+  "duration_ms": 2750,
+  "sample_rate": 48000,
+  "watermarked": true
+}

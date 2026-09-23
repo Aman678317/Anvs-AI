@@ -33,7 +33,10 @@ def test_production_settings_fails_with_mock_engines() -> None:
             STT_ENGINE_TYPE="mock",
         )
     err_str = str(exc_info.value)
-    assert "Production environment (APP_ENV=production) cannot boot with mock engine defaults" in err_str
+    assert (
+        "Production environment (APP_ENV=production) cannot boot with mock engine defaults"
+        in err_str
+    )
     assert "STT_ENGINE_TYPE" in err_str
 
 

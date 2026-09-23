@@ -416,4 +416,3 @@ def test_client_resync_full_snapshot_on_zero(
         assert reply["full_snapshot_required"] is True
         assert reply["room_state"] is not None
         assert reply["room_state"]["status"] == "ACTIVE"
-
