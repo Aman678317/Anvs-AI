@@ -15,7 +15,7 @@ from unittest.mock import AsyncMock, MagicMock
 import numpy as np
 import pytest
 
-from packages.audio.watermark import detect_watermark, embed_watermark
+from packages.audio.watermark import detect_watermark
 from packages.auth.models import AuthenticatedUser
 from packages.contracts import MeetingStatus, ParticipantRole, WSClientMessageType
 from packages.contracts.rest import CreateMeetingRequest, JoinMeetingRequest
