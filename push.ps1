@@ -51,7 +51,7 @@ Write-Host "5. Staging, Committing, and Pushing to HEAD..." -ForegroundColor Cya
 Write-Host "=====================================================" -ForegroundColor Cyan
 
 git add -A
-git commit -m "style: format all files with prettier and ruff for 100% CI pass"
+git commit -m "feat(pr-06): canonical v1.2 lineage event contracts, fixtures, and format fixes"
 git push origin HEAD
 
 Write-Host "=====================================================" -ForegroundColor Green
