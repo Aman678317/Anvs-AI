@@ -140,6 +140,10 @@ class Settings(BaseSettings):
         default=10.0,
         alias="ORCHESTRATOR_COOLDOWN_PERIOD_SEC",
     )
+    orchestrator_stream_maxlen: int = Field(
+        default=10000,
+        alias="ORCHESTRATOR_STREAM_MAXLEN",
+    )
 
     # Security Hardening & Cryptography (PR-18)
     security_master_encryption_key: str = Field(

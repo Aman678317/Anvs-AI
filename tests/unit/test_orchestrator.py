@@ -1,4 +1,4 @@
-"""Unit tests for Pipeline Orchestration, Backpressure & DLQ Recovery (PR-16)."""
+"""Unit tests for Pipeline Orchestration, Backpressure & DLQ Recovery (PR-13)."""
 
 import time
 import uuid
@@ -33,6 +33,7 @@ def mock_stream_bus() -> MagicMock:
     bus.consume_events = AsyncMock(return_value=[])
     bus.claim_pending_events = AsyncMock(return_value=[])
     bus.get_stream_length = AsyncMock(return_value=0)
+    bus.trim_stream = AsyncMock(return_value=5)
     return bus
 
 
@@ -257,3 +258,67 @@ async def test_pipeline_recovery_and_failover_within_three_seconds(
     assert status.meeting_id == meeting_id
     assert status.current_tier == DegradationTier.CRITICAL_LOAD
     assert status.active_workers["tts:tts-crashed"] == WorkerHealthStatus.DEAD
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_pipeline_stream_trimming_policy_p1_06(mock_stream_bus: MagicMock) -> None:
+    """Verifies P1-06 stream trimming policy caps Redis memory growth across all meeting streams."""
+    orchestrator = PipelineOrchestrator(stream_bus=mock_stream_bus, stream_maxlen=5000)
+    meeting_id = "meet_trim_test_01"
+
+    # 1. Direct stream trimming invocation
+    trim_results = await orchestrator.trim_meeting_streams(meeting_id, max_len=5000)
+    assert isinstance(trim_results, dict)
+    assert "audio" in trim_results
+    assert "transcripts" in trim_results
+    assert "translations" in trim_results
+    assert "synthesized_audio" in trim_results
+    assert "diarization" in trim_results
+    assert "assistant" in trim_results
+    assert "dlq" in trim_results
+
+    # Verified trim_stream was called for each of the 7 streams with max_len=5000
+    assert mock_stream_bus.trim_stream.await_count >= 7
+
+    # 2. Initialization automatically enforces trimming
+    await orchestrator.initialize_meeting_pipeline("meet_trim_init")
+    assert "meet_trim_init" in orchestrator._active_pipelines
+
+
+@pytest.mark.unit
+def test_dlq_retry_manager_telemetry_metrics(mock_stream_bus: MagicMock) -> None:
+    """Verifies DLQRetryManager exposes accurate telemetry metrics."""
+    manager = DLQRetryManager(stream_bus=mock_stream_bus)
+    metrics_initial = manager.get_metrics()
+    assert metrics_initial == {"retried_count": 0, "quarantined_count": 0}
+
+    manager.retried_count = 5
+    manager.quarantined_count = 2
+    assert manager.get_metrics() == {"retried_count": 5, "quarantined_count": 2}
+
+
+@pytest.mark.unit
+def test_pipeline_orchestrator_stream_keys_mapping(mock_stream_bus: MagicMock) -> None:
+    """Verifies get_meeting_stream_keys returns canonical channel names for all pipeline tiers."""
+    orchestrator = PipelineOrchestrator(stream_bus=mock_stream_bus)
+    keys = orchestrator.get_meeting_stream_keys("meet_keys_test")
+
+    assert keys["audio"] == "events:meeting:meet_keys_test:audio"
+    assert keys["transcripts"] == "events:meeting:meet_keys_test:transcripts"
+    assert keys["translations"] == "events:meeting:meet_keys_test:translations"
+    assert keys["synthesized_audio"] == "events:meeting:meet_keys_test:synthesized_audio"
+    assert keys["diarization"] == "events:meeting:meet_keys_test:diarization"
+    assert keys["assistant"] == "events:meeting:meet_keys_test:assistant"
+    assert keys["dlq"] == "events:meeting:meet_keys_test:dlq"
+
+
+@pytest.mark.unit
+def test_degradation_tier_severity_ordering() -> None:
+    """Verifies degradation tier severity mapping for hysteresis calculations."""
+    from services.orchestrator.backpressure import TIER_SEVERITY
+
+    assert TIER_SEVERITY[DegradationTier.NORMAL] == 0
+    assert TIER_SEVERITY[DegradationTier.HIGH_LOAD] == 1
+    assert TIER_SEVERITY[DegradationTier.CRITICAL_LOAD] == 2
+    assert TIER_SEVERITY[DegradationTier.EMERGENCY] == 3

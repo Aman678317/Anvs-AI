@@ -1,4 +1,4 @@
-"""Dynamic Backpressure Management and Graceful Degradation Engine (PR-16).
+"""Dynamic Backpressure Management and Graceful Degradation Engine (PR-13).
 
 Implements real-time stream queue monitoring, partial-segment shedding under load,
 and hysteresis-backed tier transitions (Normal -> High Load -> Critical Load -> Emergency).
