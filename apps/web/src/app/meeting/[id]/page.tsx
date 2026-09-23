@@ -15,6 +15,7 @@ import { useRealtimeGateway } from "../../../hooks/useRealtimeGateway";
 import { useLiveKitRoom } from "../../../hooks/useLiveKitRoom";
 import { useAudioRouter } from "../../../hooks/useAudioRouter";
 import { joinRoom } from "../../../lib/api";
+import { MeetingStatus } from "@multilingual/contracts";
 
 export default function MeetingRoomPage() {
   const params = useParams();
@@ -65,7 +66,7 @@ export default function MeetingRoomPage() {
         meetingId: resp.meeting_id,
         title: "Multilingual AI Meeting",
         tenantId: "tenant_default",
-        status: "ACTIVE" as any,
+        status: MeetingStatus.ACTIVE,
         stateVersion: resp.state_version,
       });
     } catch (err: unknown) {
