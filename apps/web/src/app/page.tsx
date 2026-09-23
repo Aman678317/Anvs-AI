@@ -50,7 +50,7 @@ export default function LobbyPage() {
     }
   }, []);
 
-  const videoPreviewRef = useRef<HTMLVideoElement>(null);
+  const videoPreviewRef = useRef<HTMLVideoElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
 
   // Setup local hardware preview

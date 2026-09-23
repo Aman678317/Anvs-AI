@@ -73,6 +73,9 @@ function createFallbackVideoTrack(displayName: string = "Guest"): LocalVideoTrac
 
   const stream = (canvas as any).captureStream(25);
   const track = stream.getVideoTracks()[0];
+  if (!track) {
+    throw new Error("Unable to create fallback video track from canvas");
+  }
   return new LocalVideoTrack(track);
 }
 
@@ -82,11 +85,19 @@ function createFallbackAudioTrack(): LocalAudioTrack {
   const osc = ctx.createOscillator();
   const dst = ctx.createMediaStreamDestination();
   const gain = ctx.createGain();
-  gain.gain.value = 0.00001; // Silent
+
+  gain.gain.value = 0.00001;
   osc.connect(gain);
   gain.connect(dst);
   osc.start();
+
   const track = dst.stream.getAudioTracks()[0];
+  if (!track) {
+    osc.stop();
+    ctx.close();
+    throw new Error("Unable to create fallback audio track");
+  }
+
   return new LocalAudioTrack(track);
 }
 
@@ -118,6 +129,12 @@ async function acquireCameraTrack(displayName: string = "Guest"): Promise<LocalV
           audio: false,
         });
         const videoTrack = stream.getVideoTracks()[0];
+
+        if (!videoTrack) {
+          stream.getTracks().forEach((track) => track.stop());
+          throw new Error("Camera stream did not contain a video track");
+        }
+
         return new LocalVideoTrack(videoTrack);
       } catch (err3) {
         console.warn("Hardware camera unavailable or locked by another tab. Activating live visual canvas stream fallback:", err3);
@@ -141,6 +158,12 @@ async function acquireAudioTrack(): Promise<LocalAudioTrack> {
         video: false,
       });
       const audioTrack = stream.getAudioTracks()[0];
+
+      if (!audioTrack) {
+        stream.getTracks().forEach((track) => track.stop());
+        throw new Error("Microphone stream did not contain an audio track");
+      }
+
       return new LocalAudioTrack(audioTrack);
     } catch (err2) {
       console.warn("Hardware microphone unavailable. Activating silent audio stream fallback:", err2);
@@ -759,7 +782,7 @@ export function useLiveKitRoom(
         analyser.getByteFrequencyData(buffer);
         let sum = 0;
         for (let i = 0; i < buffer.length; i++) {
-          sum += buffer[i];
+          sum += buffer[i] ?? 0;
         }
         const avg = sum / buffer.length;
 
