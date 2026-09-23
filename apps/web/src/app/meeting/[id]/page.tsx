@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Header } from "../../../components/Header";
 import { VideoGrid } from "../../../components/VideoGrid";
@@ -14,7 +14,8 @@ import { useMeetingStore } from "../../../stores/useMeetingStore";
 import { useRealtimeGateway } from "../../../hooks/useRealtimeGateway";
 import { useLiveKitRoom } from "../../../hooks/useLiveKitRoom";
 import { useAudioRouter } from "../../../hooks/useAudioRouter";
-import { ParticipantRole } from "@multilingual/contracts";
+import { joinRoom } from "../../../lib/api";
+import { MeetingStatus } from "@multilingual/contracts";
 
 export default function MeetingRoomPage() {
   const params = useParams();
@@ -36,34 +37,50 @@ export default function MeetingRoomPage() {
   } = useMeetingStore();
 
   const [isLanguageModalOpen, setIsLanguageModalOpen] = useState(false);
+  const [isJoining, setIsJoining] = useState(!participantId || !wsTicket || !livekitToken);
+  const [joinError, setJoinError] = useState<string | null>(null);
 
-  // Auto-provision fallback credentials if directly navigated to URL
-  useEffect(() => {
-    if (!participantId || !wsTicket) {
-      const generatedPid = `user_${Math.random().toString(36).substring(2, 7)}`;
+  // Authenticate and join room via backend API to obtain real signed LiveKit & WebSocket tokens
+  const handleJoin = useCallback(async () => {
+    setIsJoining(true);
+    setJoinError(null);
+    try {
+      const resp = await joinRoom(meetingId, {
+        display_name: displayName || "Guest Attendee",
+        spoken_language: spokenLanguage || "eng",
+        listening_language: listeningLanguage || "eng",
+      });
+
       setLocalParticipant({
-        participantId: generatedPid,
-        displayName: displayName || "Guest Attendee",
-        role: ParticipantRole.PARTICIPANT,
+        participantId: resp.participant_id,
+        displayName: resp.display_name,
+        role: resp.role,
         spokenLanguage: spokenLanguage || "eng",
         listeningLanguage: listeningLanguage || "eng",
       });
       setTokens({
-        wsTicket: `ticket_${generatedPid}_${Date.now()}`,
-        livekitToken: `fake_lk_token_${generatedPid}`,
+        wsTicket: resp.ws_ticket,
+        livekitToken: resp.livekit_token,
       });
       setMeetingInfo({
-        meetingId,
+        meetingId: resp.meeting_id,
         title: "Multilingual AI Meeting",
         tenantId: "tenant_default",
-        status: "ACTIVE" as any,
-        stateVersion: 1,
+        status: MeetingStatus.ACTIVE,
+        stateVersion: resp.state_version,
       });
+    } catch (err: unknown) {
+      const msg =
+        err instanceof Error
+          ? err.message
+          : "Failed to join meeting room. Check backend connection.";
+      console.error("Failed to join meeting room:", err);
+      setJoinError(msg);
+    } finally {
+      setIsJoining(false);
     }
   }, [
     meetingId,
-    participantId,
-    wsTicket,
     displayName,
     spokenLanguage,
     listeningLanguage,
@@ -71,6 +88,12 @@ export default function MeetingRoomPage() {
     setTokens,
     setMeetingInfo,
   ]);
+
+  useEffect(() => {
+    if (!participantId || !wsTicket || !livekitToken) {
+      handleJoin();
+    }
+  }, [participantId, wsTicket, livekitToken, handleJoin]);
 
   // 1. Initialize Realtime WebSocket Gateway (Invariant #4 & #5)
   const { sendChatMessage, queryAssistant, updateListeningLanguage } = useRealtimeGateway(
@@ -85,6 +108,53 @@ export default function MeetingRoomPage() {
 
   // 3. Initialize Multi-Track Audio Router (Invariant #3 & #5)
   useAudioRouter(room);
+
+  if (isJoining) {
+    return (
+      <div className="flex flex-col items-center justify-center h-screen w-screen bg-surface-900 text-zinc-100">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-500 mb-4" />
+        <h2 className="text-xl font-semibold">Connecting to Meeting Room...</h2>
+        <p className="text-sm text-zinc-400 mt-2">
+          Provisioning secure SFU credentials and data streams
+        </p>
+      </div>
+    );
+  }
+
+  if (joinError) {
+    return (
+      <div className="flex flex-col items-center justify-center h-screen w-screen bg-surface-900 text-zinc-100 p-6">
+        <div className="bg-red-950/40 border border-red-700/50 rounded-2xl p-8 max-w-md w-full text-center backdrop-blur-md">
+          <div className="w-12 h-12 rounded-full bg-red-900/60 text-red-400 flex items-center justify-center mx-auto mb-4">
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+              />
+            </svg>
+          </div>
+          <h2 className="text-xl font-bold text-red-200 mb-2">Connection Failed</h2>
+          <p className="text-sm text-zinc-400 mb-6">{joinError}</p>
+          <div className="flex gap-3 justify-center">
+            <button
+              onClick={() => router.push("/")}
+              className="px-4 py-2 bg-surface-800 hover:bg-surface-700 rounded-lg text-sm text-zinc-300 font-medium transition"
+            >
+              Return Home
+            </button>
+            <button
+              onClick={() => handleJoin()}
+              className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 rounded-lg text-sm text-white font-medium transition shadow-lg shadow-indigo-600/30"
+            >
+              Retry
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col h-screen w-screen bg-surface-900 text-zinc-100 overflow-hidden select-none">

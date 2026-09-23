@@ -6,6 +6,10 @@
   "author": "Multilingual AI Meeting Platform Team",
   "license": "UNLICENSED",
   "packageManager": "pnpm@9.1.0",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
   "scripts": {
     "dev": "turbo run dev --parallel",
     "build": "turbo run build",

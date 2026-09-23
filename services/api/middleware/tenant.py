@@ -27,6 +27,10 @@ class TenantContextMiddleware(BaseHTTPMiddleware):
         request.state.user = None
         request.state.tenant_id = None
 
+        # Webhook endpoints are machine-to-machine callbacks with custom signature verification
+        if request.url.path.endswith("/webhook"):
+            return await call_next(request)
+
         if auth_header:
             parts = auth_header.strip().split()
             if len(parts) == 2 and parts[0].lower() == "bearer":
