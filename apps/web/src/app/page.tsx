@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { SUPPORTED_LANGUAGES, ParticipantRole } from "@multilingual/contracts";
 import { useMeetingStore } from "../stores/useMeetingStore";
+import { createRoom, joinRoom } from "../lib/api";
 
 export default function LobbyPage() {
   const router = useRouter();
@@ -34,6 +35,7 @@ export default function LobbyPage() {
   const [isJoining, setIsJoining] = useState(false);
   const [cameraEnabled, setCameraEnabled] = useState(true);
   const [micEnabled, setMicEnabled] = useState(true);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const videoPreviewRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -80,55 +82,105 @@ export default function LobbyPage() {
 
   const handleStartMeeting = async () => {
     setIsCreating(true);
-    const newMeetingId = `meet_${Math.random().toString(36).substring(2, 9)}`;
-    const newParticipantId = `user_${Math.random().toString(36).substring(2, 7)}`;
+    setErrorMessage(null);
 
-    // Store local identity
-    setLocalParticipant({
-      participantId: newParticipantId,
-      displayName: displayName || "Host",
-      role: ParticipantRole.HOST,
-      spokenLanguage,
-      listeningLanguage,
-    });
+    try {
+      // 1. Create meeting in backend API & provision LiveKit SFU room
+      const meetingTitle = `${displayName || "Host"}'s AI Meeting`;
+      const createRes = await createRoom({
+        title: meetingTitle,
+        host_spoken_language: spokenLanguage,
+        host_listening_language: listeningLanguage,
+      });
 
-    // Provide dual tokens for local dev/testing
-    setTokens({
-      wsTicket: `ticket_${newParticipantId}_${Date.now()}`,
-      livekitToken: `fake_lk_token_${newParticipantId}`,
-    });
+      // 2. Join the created meeting room to acquire real signed tokens
+      const joinRes = await joinRoom(createRes.meeting_id, {
+        display_name: displayName || "Host",
+        spoken_language: spokenLanguage,
+        listening_language: listeningLanguage,
+      });
 
-    setMeetingInfo({
-      meetingId: newMeetingId,
-      title: `${displayName}'s AI Meeting`,
-      tenantId: "tenant_default",
-      status: "ACTIVE" as any,
-      stateVersion: 1,
-    });
+      // 3. Populate store with genuine credentials
+      setLocalParticipant({
+        participantId: joinRes.participant_id,
+        displayName: joinRes.display_name,
+        role: joinRes.role || ParticipantRole.HOST,
+        spokenLanguage,
+        listeningLanguage,
+      });
 
-    router.push(`/meeting/${newMeetingId}`);
+      setTokens({
+        wsTicket: joinRes.ws_ticket,
+        livekitToken: joinRes.livekit_token,
+      });
+
+      setMeetingInfo({
+        meetingId: joinRes.meeting_id,
+        title: meetingTitle,
+        tenantId: createRes.tenant_id,
+        status: createRes.status,
+        stateVersion: joinRes.state_version || 1,
+      });
+
+      router.push(`/meeting/${joinRes.meeting_id}`);
+    } catch (err: unknown) {
+      console.error("Failed to start meeting:", err);
+      const msg =
+        err instanceof Error
+          ? err.message
+          : "Failed to create meeting room. Please check backend connectivity.";
+      setErrorMessage(msg);
+    } finally {
+      setIsCreating(false);
+    }
   };
 
   const handleJoinMeeting = async () => {
-    if (!meetingCode.trim()) return;
+    const code = meetingCode.trim();
+    if (!code) return;
     setIsJoining(true);
+    setErrorMessage(null);
 
-    const participantId = `user_${Math.random().toString(36).substring(2, 7)}`;
+    try {
+      // Join existing room via backend API to acquire real signed tokens
+      const joinRes = await joinRoom(code, {
+        display_name: displayName || "Attendee",
+        spoken_language: spokenLanguage,
+        listening_language: listeningLanguage,
+      });
 
-    setLocalParticipant({
-      participantId,
-      displayName: displayName || "Attendee",
-      role: ParticipantRole.PARTICIPANT,
-      spokenLanguage,
-      listeningLanguage,
-    });
+      setLocalParticipant({
+        participantId: joinRes.participant_id,
+        displayName: joinRes.display_name,
+        role: joinRes.role || ParticipantRole.PARTICIPANT,
+        spokenLanguage,
+        listeningLanguage,
+      });
 
-    setTokens({
-      wsTicket: `ticket_${participantId}_${Date.now()}`,
-      livekitToken: `fake_lk_token_${participantId}`,
-    });
+      setTokens({
+        wsTicket: joinRes.ws_ticket,
+        livekitToken: joinRes.livekit_token,
+      });
 
-    router.push(`/meeting/${meetingCode.trim()}`);
+      setMeetingInfo({
+        meetingId: joinRes.meeting_id,
+        title: "Multilingual AI Meeting",
+        tenantId: "default",
+        status: "ACTIVE" as any,
+        stateVersion: joinRes.state_version || 1,
+      });
+
+      router.push(`/meeting/${code}`);
+    } catch (err: unknown) {
+      console.error("Failed to join meeting:", err);
+      const msg =
+        err instanceof Error
+          ? err.message
+          : "Failed to join meeting room. Please check meeting ID and passcode.";
+      setErrorMessage(msg);
+    } finally {
+      setIsJoining(false);
+    }
   };
 
   const languagesList = Object.values(SUPPORTED_LANGUAGES);
@@ -154,6 +206,19 @@ export default function LobbyPage() {
           <span>PostgreSQL RLS & E2E Isolated</span>
         </div>
       </div>
+
+      {/* Error Alert Banner */}
+      {errorMessage && (
+        <div className="max-w-4xl w-full mb-6 p-4 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-sm flex items-center justify-between">
+          <span>{errorMessage}</span>
+          <button
+            onClick={() => setErrorMessage(null)}
+            className="text-xs text-rose-400 hover:text-rose-200 underline ml-4"
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
 
       {/* Main Grid: Device Preview & Room Entry */}
       <div className="max-w-4xl w-full grid grid-cols-1 md:grid-cols-12 gap-6 items-start">
