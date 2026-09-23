@@ -1,22 +1,39 @@
 @echo off
 echo =====================================================
-echo 1. Auto-formatting Python Code with Ruff...
+echo 1. Auto-formatting with Prettier (TS/JS/MD/JSON/YAML)...
 echo =====================================================
 
-ruff format .
+call pnpm run format
+if %ERRORLEVEL% NEQ 0 (
+    echo [WARNING] pnpm run format failed, trying npx prettier...
+    call npx prettier --write "**/*.{ts,tsx,js,jsx,json,md,yml,yaml}"
+)
 
 echo =====================================================
-echo 2. Verifying Ruff Format ^& Lint Checks...
+echo 2. Auto-formatting Python Code with Ruff...
 echo =====================================================
 
-ruff format --check .
+call ruff format .
+
+echo =====================================================
+echo 3. Verifying Prettier ^& Ruff Quality Gates...
+echo =====================================================
+
+call pnpm run format:check
+if %ERRORLEVEL% NEQ 0 (
+    echo [ERROR] Prettier format check failed! Aborting.
+    pause
+    exit /b %ERRORLEVEL%
+)
+
+call ruff format --check .
 if %ERRORLEVEL% NEQ 0 (
     echo [ERROR] Ruff format check failed! Aborting.
     pause
     exit /b %ERRORLEVEL%
 )
 
-ruff check .
+call ruff check .
 if %ERRORLEVEL% NEQ 0 (
     echo [ERROR] Ruff lint check failed! Aborting.
     pause
@@ -24,10 +41,10 @@ if %ERRORLEVEL% NEQ 0 (
 )
 
 echo =====================================================
-echo 3. Running Unit and Contract Test Suites...
+echo 4. Running Unit and Contract Test Suites...
 echo =====================================================
 
-pytest tests/unit/test_settings.py tests/unit/test_event_schemas.py tests/unit/test_websocket_gateway.py tests/unit/test_livekit_service.py tests/contract/test_event_contracts.py -v
+call pytest tests/unit/test_settings.py tests/unit/test_event_schemas.py tests/unit/test_websocket_gateway.py tests/unit/test_livekit_service.py tests/contract/test_event_contracts.py -v
 if %ERRORLEVEL% NEQ 0 (
     echo [ERROR] Unit tests failed! Aborting.
     pause
@@ -35,11 +52,11 @@ if %ERRORLEVEL% NEQ 0 (
 )
 
 echo =====================================================
-echo 4. Staging, Committing, and Pushing to HEAD...
+echo 5. Staging, Committing, and Pushing to HEAD...
 echo =====================================================
 
 git add -A
-git commit -m "style: format code with ruff 0.6.9 and enforce CI parity"
+git commit -m "style: format all files with prettier and ruff for 100% CI pass"
 git push origin HEAD
 
 echo.
