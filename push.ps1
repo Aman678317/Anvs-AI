@@ -40,7 +40,7 @@ Write-Host "=====================================================" -ForegroundCo
 Write-Host "4. Running Unit and Contract Test Suites..." -ForegroundColor Cyan
 Write-Host "=====================================================" -ForegroundColor Cyan
 
-pytest tests/unit/test_settings.py tests/unit/test_event_schemas.py tests/unit/test_websocket_gateway.py tests/unit/test_livekit_service.py tests/contract/test_event_contracts.py -v
+pytest tests/unit/test_settings.py tests/unit/test_event_schemas.py tests/unit/test_websocket_gateway.py tests/unit/test_livekit_service.py tests/contract/test_event_contracts.py tests/unit/test_livekit_audio_subscriber.py tests/unit/test_audio_ingress_service.py tests/unit/test_audio_ingestion.py tests/unit/test_stt_worker.py -v
 if ($LASTEXITCODE -ne 0) {
     Write-Host "❌ Tests failed! Aborting git commit and push." -ForegroundColor Red
     exit $LASTEXITCODE
@@ -51,7 +51,7 @@ Write-Host "5. Staging, Committing, and Pushing to HEAD..." -ForegroundColor Cya
 Write-Host "=====================================================" -ForegroundColor Cyan
 
 git add -A
-git commit -m "feat(pr-06): canonical v1.2 lineage event contracts, fixtures, and format fixes"
+git commit -m "feat(pr-10): livekit audio subscriber, human source gate, invariant 3 watermark drop, and streaming stt"
 git push origin HEAD
 
 Write-Host "=====================================================" -ForegroundColor Green

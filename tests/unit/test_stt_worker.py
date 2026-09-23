@@ -201,10 +201,55 @@ async def test_stt_consumer_preserves_source_segment_id_invariant() -> None:
     assert len(emitted) > 0
     for evt in emitted:
         assert isinstance(evt, SourceSegmentEvent)
-        # INVARIANT #2 ASSERTION:
         assert evt.source_segment_id == custom_lineage_id
         assert evt.participant_id == "user_42"
         assert evt.session_id == "sess_livekit_1"
+        assert evt.event_version == "1.2"
+        assert evt.hop_count == 1
+        assert evt.sequence_number == 1
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_stt_consumer_envelope_causation_propagation() -> None:
+    """Verifies that correlation_id, causation_id, and parent_event_id propagate from AudioSegmentEvent."""
+    mock_bus = AsyncMock(spec=RedisStreamBus)
+    mock_bus.publish.return_value = "msg-456"
+    mock_bus.ack_event.return_value = 1
+
+    engine = MockSTTEngine(simulated_ttft_ms=0)
+    consumer = STTConsumer(stream_bus=mock_bus, engine=engine)
+
+    pcm_bytes = float32_to_pcm_s16le(np.zeros(1600, dtype=np.float32))
+    b64_audio = base64.b64encode(pcm_bytes).decode("utf-8")
+
+    payload = {
+        "event_id": "aud_upstream_event_123",
+        "correlation_id": "corr_trace_root_abc",
+        "hop_count": 0,
+        "sequence_number": 5,
+        "source_segment_id": "src_alice_100",
+        "audio_uri": f"base64://{b64_audio}",
+        "sample_rate": 16000,
+        "target_language": "eng",
+        "participant_id": "user_alice",
+        "session_id": "sess_001",
+    }
+
+    emitted = await consumer.process_message(
+        stream_name="events:meeting:meeting_001:audio",
+        message_id="103-0",
+        raw_payload=payload,
+        meeting_id="meeting_001",
+    )
+
+    assert len(emitted) > 0
+    for evt in emitted:
+        assert evt.correlation_id == "corr_trace_root_abc"
+        assert evt.causation_id == "aud_upstream_event_123"
+        assert evt.parent_event_id == "aud_upstream_event_123"
+        assert evt.hop_count == 1
+        assert evt.sequence_number == 6
 
 
 @pytest.mark.unit

@@ -133,6 +133,13 @@ class STTConsumer:
                 meeting_id=meeting_id,
             )
 
+            incoming_event_id = payload_dict.get("event_id")
+            correlation_id = (
+                payload_dict.get("correlation_id") or f"corr_{meeting_id}_{source_segment_id}"
+            )
+            incoming_hop_count = int(payload_dict.get("hop_count", 0))
+            incoming_seq = int(payload_dict.get("sequence_number", 0))
+
             # 2. Decode audio buffer
             audio_samples, _ = self._extract_audio_samples(audio_uri)
             duration_ms = int((len(audio_samples) / max(1, sample_rate)) * 1000)
@@ -163,6 +170,11 @@ class STTConsumer:
                     end_ms=stt_res.end_ms,
                     confidence=stt_res.confidence,
                     speaker_tag=None,
+                    correlation_id=correlation_id,
+                    causation_id=incoming_event_id,
+                    parent_event_id=incoming_event_id,
+                    sequence_number=incoming_seq + 1,
+                    hop_count=incoming_hop_count + 1,
                 )
 
                 await self.stream_bus.publish(stream=transcripts_stream, event=event)

@@ -20,7 +20,7 @@
 | **PR-07** | Event Bus & Streams        | Redis Streams; consumer groups; outbox; dedup; retry budget; DLQ                        | **COMPLETE**              |
 | **PR-08** | Realtime State & Resync    | Dynamic state versioning (monotonic); snapshots; gap recovery; reconnect continuity     | **COMPLETE**              |
 | **PR-09** | Real LiveKit Media Plane   | Real room operations; no synthetic active room fallback; browser join; webhooks         | **PENDING**               |
-| **PR-10** | Source Audio & STT Ingest  | Real LiveKit audio subscriber; human track gate; VAD; streaming STT; immutable source   | **PENDING**               |
+| **PR-10** | Source Audio & STT Ingest  | Real LiveKit audio subscriber; human track gate; VAD; streaming STT; immutable source   | **COMPLETE**              |
 | **PR-11** | Real Translation Fan-out   | Provider-neutral capability registry; per-listener target resolution; glossary context  | **PENDING**               |
 | **PR-12** | TTS & LiveKit Audio Egress | Real LiveKit AudioSource track publication; audience scoping; deterministic timing/drop | **PENDING**               |
 | **PR-13** | Resilience & Chaos         | Stale-drop; reconnect; dedup; backpressure; failure injection; meeting continuity       | **COMPLETE (Unit/Chaos)** |
@@ -128,10 +128,10 @@
 
 - **Goal**: Connect live WebRTC audio track to `AudioIngressService`, enforce human source gate, streaming STT.
 - **Tasks**:
-  - [ ] STEP-10-1: Create LiveKit audio subscription worker connecting active participant microphone tracks to `AudioIngressService`.
-  - [ ] STEP-10-2: Verify 20ms framing, 20kHz acoustic watermark loop rejection (Invariant #3), and VAD.
-  - [ ] STEP-10-3: Faster-Whisper streaming STT generating immutable `SourceSegmentEvent` with language detection.
-- **Gate**: Human speech transcribed and published to `STREAM_TRANSCRIPTS`; synthetic audio dropped.
+  - [x] STEP-10-1: Create LiveKit audio subscription worker (`LiveKitAudioSubscriber`) connecting active participant microphone tracks to `AudioIngressService`.
+  - [x] STEP-10-2: Verify 20ms framing, 20kHz acoustic watermark loop rejection (Invariant #3), and VAD.
+  - [x] STEP-10-3: Faster-Whisper streaming STT generating immutable `SourceSegmentEvent` with language detection and canonical v1.2 lineage envelope.
+- **Gate**: Human speech transcribed and published to `STREAM_TRANSCRIPTS`; synthetic audio dropped. (PR-10 COMPLETE)
 
 ### PR-11: Translation Worker & Concurrent Fan-Out
 
