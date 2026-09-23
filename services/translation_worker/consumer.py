@@ -19,6 +19,7 @@ from packages.event_schema import (
 from packages.language_registry import normalize_code
 from services.translation_worker.context import ContextWindowBuffer
 from services.translation_worker.engine import BaseNMTEngine, create_nmt_engine
+from services.translation_worker.glossary import GlossaryRegistry, glossary_registry
 
 logger = logging.getLogger(__name__)
 
@@ -34,6 +35,8 @@ class NMTConsumer:
         consumer_name: str | None = None,
         target_languages: list[str] | None = None,
         context_window: ContextWindowBuffer | None = None,
+        glossary: GlossaryRegistry | None = None,
+        listener_resolver: Any | None = None,
     ) -> None:
         self.stream_bus = stream_bus
         self.engine = engine or create_nmt_engine()
@@ -43,6 +46,8 @@ class NMTConsumer:
         self.context_window = context_window or ContextWindowBuffer(
             max_sentences=settings.nmt_context_window_size
         )
+        self.glossary = glossary or glossary_registry
+        self.listener_resolver = listener_resolver
 
         # Operational metrics
         self.metrics = {
@@ -59,6 +64,31 @@ class NMTConsumer:
             stream=stream_key,
             group_name=self.group_name,
         )
+
+    async def resolve_targets(self, meeting_id: str, source_lang: str) -> list[str]:
+        """Resolves active listener target languages for a meeting, excluding the source language."""
+        src_norm = normalize_code(source_lang)
+        candidate_targets: list[str] = self.target_languages
+
+        if self.listener_resolver is not None:
+            try:
+                res = self.listener_resolver(meeting_id)
+                if asyncio.iscoroutine(res):
+                    candidate_targets = await res
+                elif isinstance(res, list):
+                    candidate_targets = res
+            except Exception as exc:
+                logger.warning("Listener resolver failed for meeting %s: %s", meeting_id, exc)
+
+        seen: set[str] = set()
+        unique_targets: list[str] = []
+        for tgt in candidate_targets:
+            tgt_norm = normalize_code(tgt)
+            if tgt_norm != src_norm and tgt_norm not in seen:
+                seen.add(tgt_norm)
+                unique_targets.append(tgt_norm)
+
+        return unique_targets
 
     async def process_message(
         self,
@@ -85,8 +115,7 @@ class NMTConsumer:
             source_lineage_id = source_event.source_segment_id
 
             # Filter active target languages (exclude identical source-target)
-            src_norm = normalize_code(source_event.language)
-            targets = [tgt for tgt in self.target_languages if normalize_code(tgt) != src_norm]
+            targets = await self.resolve_targets(meeting_id, source_event.language)
 
             if not targets:
                 # No translation needed for same language
@@ -100,18 +129,27 @@ class NMTConsumer:
                 participant_id=source_event.participant_id,
             )
 
-            # 3. Translate across target languages
+            # 3. Apply glossary pre-processing (protecting proper nouns / domain terms)
+            terms = self.glossary.get_effective_glossary(meeting_id, source_event.tenant_id)
+            protected_text, placeholders = self.glossary.apply_glossary_pre(
+                source_event.text, terms
+            )
+
+            # 4. Translate across target languages concurrently
             translations = await self.engine.translate_batch(
-                text=source_event.text,
+                text=protected_text,
                 source_lang=source_event.language,
                 target_languages=targets,
                 context=context,
             )
 
-            # 4. Emit TranslationSegmentEvent per target language
+            # 5. Emit TranslationSegmentEvent per target language with canonical lineage
             translations_stream = get_stream_key(meeting_id, STREAM_TRANSLATIONS)
 
             for res in translations:
+                # Restore glossary terms in translated text
+                final_text = self.glossary.apply_glossary_post(res.translated_text, placeholders)
+
                 event = TranslationSegmentEvent(
                     event_id=f"trans_evt_{uuid.uuid4()}",
                     timestamp_ms=int(time.time() * 1000),
@@ -120,9 +158,15 @@ class NMTConsumer:
                     source_segment_id=source_lineage_id,
                     source_language=res.source_language,
                     target_language=res.target_language,
-                    translated_text=res.translated_text,
+                    translated_text=final_text,
                     is_final=source_event.is_final,
                     latency_ms=res.latency_ms,
+                    correlation_id=source_event.correlation_id
+                    or f"corr_{meeting_id}_{source_lineage_id}",
+                    causation_id=source_event.event_id,
+                    parent_event_id=source_event.event_id,
+                    sequence_number=source_event.sequence_number + 1,
+                    hop_count=source_event.hop_count + 1,
                 )
 
                 await self.stream_bus.publish(stream=translations_stream, event=event)
@@ -130,7 +174,7 @@ class NMTConsumer:
                 self.metrics["translations_emitted"] += 1
                 self.metrics["total_latency_ms"] += res.latency_ms
 
-            # 5. Update context window if utterance is final
+            # 6. Update context window if utterance is final
             if source_event.is_final:
                 self.context_window.add_utterance(
                     meeting_id=meeting_id,
@@ -138,7 +182,7 @@ class NMTConsumer:
                     text=source_event.text,
                 )
 
-            # 6. Acknowledge message
+            # 7. Acknowledge message
             await self.stream_bus.ack_event(stream_name, self.group_name, message_id)
             self.metrics["messages_consumed"] += 1
 

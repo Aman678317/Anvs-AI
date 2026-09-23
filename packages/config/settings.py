@@ -93,6 +93,7 @@ class Settings(BaseSettings):
     tts_watermark_enabled: bool = Field(default=True, alias="TTS_WATERMARK_ENABLED")
     tts_watermark_freq_hz: float = Field(default=20000.0, alias="TTS_WATERMARK_FREQ_HZ")
     tts_default_voice_id: str = Field(default="default_neutral", alias="TTS_DEFAULT_VOICE_ID")
+    tts_stale_drop_threshold_ms: int = Field(default=2500, alias="TTS_STALE_DROP_THRESHOLD_MS")
 
     # Speaker Diarization Worker (PR-12)
     speaker_engine_type: str = Field(default="mock", alias="SPEAKER_ENGINE_TYPE")

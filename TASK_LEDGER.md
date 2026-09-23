@@ -137,19 +137,19 @@
 
 - **Goal**: Extensible language capability registry, per-listener target language resolution, concurrent fan-out.
 - **Tasks**:
-  - [ ] STEP-11-1: Upgrade `packages/language_registry` with capability metadata (checkpoints, licensing, tiers).
-  - [ ] STEP-11-2: Implement listener-specific language routing: single source segment $S$ fans out to $T_{en}, T_{mr}, T_{ja}$ concurrently.
-  - [ ] STEP-11-3: Context injection: supply recent stable source segments and glossary hints to NMT engine.
-- **Gate**: Invariant #2 verified: all translations derive strictly from `source_segment_id`.
+  - [x] STEP-11-1: Upgrade `packages/language_registry` with capability metadata (checkpoints, licensing, tiers).
+  - [x] STEP-11-2: Implement listener-specific language routing: single source segment $S$ fans out to $T_{en}, T_{mr}, T_{ja}$ concurrently.
+  - [x] STEP-11-3: Context injection: supply recent stable source segments and glossary hints to NMT engine.
+- **Gate**: Invariant #2 verified: all translations derive strictly from `source_segment_id`. (PR-11 COMPLETE)
 
 ### PR-12: Real TTS Synthesis, LiveKit Audio Egress & Timing
 
 - **Goal**: Real LiveKit audio track publication via `AudioSource`, audience scoping, deterministic stale-drop.
 - **Tasks**:
-  - [ ] STEP-12-1: Implement real LiveKit backend track publisher using `livekit.rtc.AudioSource` and `LocalAudioTrack`.
-  - [ ] STEP-12-2: Audience-scoped track routing: English listeners subscribe to EN track; Marathi listeners subscribe to MR track.
-  - [ ] STEP-12-3: Timing engine: drop stale translated audio if backlog exceeds threshold (e.g. >2.5s late).
-- **Gate**: Real synthesized watermarked audio published to LiveKit SFU and audible to listener.
+  - [x] STEP-12-1: Implement real LiveKit backend track publisher using `livekit.rtc.AudioSource` and `LocalAudioTrack`.
+  - [x] STEP-12-2: Audience-scoped track routing: English listeners subscribe to EN track; Marathi listeners subscribe to MR track.
+  - [x] STEP-12-3: Timing engine: drop stale translated audio if backlog exceeds threshold (e.g. >2.5s late).
+- **Gate**: Real synthesized watermarked audio published to LiveKit SFU and audible to listener. (PR-12 COMPLETE)
 
 ### PR-13: Resilience, Chaos & Meeting Continuity
 

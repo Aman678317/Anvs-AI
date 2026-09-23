@@ -32,18 +32,25 @@ class TTSConsumer:
         egress: LiveKitAudioEgress | None = None,
         group_name: str | None = None,
         consumer_name: str | None = None,
+        stale_drop_threshold_ms: int | None = None,
     ) -> None:
         self.stream_bus = stream_bus
         self.engine = engine or create_tts_engine()
         self.egress = egress
         self.group_name = group_name or settings.tts_consumer_group
         self.consumer_name = consumer_name or f"tts-worker-{uuid.uuid4().hex[:8]}"
+        self.stale_drop_threshold_ms = (
+            stale_drop_threshold_ms
+            if stale_drop_threshold_ms is not None
+            else getattr(settings, "tts_stale_drop_threshold_ms", 2500)
+        )
 
         # Operational metrics
         self.metrics = {
             "messages_consumed": 0,
             "audio_segments_emitted": 0,
             "egress_frames_emitted": 0,
+            "stale_dropped_count": 0,
             "errors_count": 0,
             "total_synthesis_ms": 0,
         }
@@ -86,17 +93,33 @@ class TTSConsumer:
                 self.metrics["messages_consumed"] += 1
                 return []
 
+            # STEP-12-3: Timing engine: drop stale translated audio if backlog exceeds threshold (e.g. >2.5s late)
+            now_ms = int(time.time() * 1000)
+            latency_lag = now_ms - translation_event.timestamp_ms
+            if latency_lag > self.stale_drop_threshold_ms:
+                logger.warning(
+                    "AUDIO_STALE_DROPPED: Audio latency %d ms exceeded threshold %d ms for segment %s (lang=%s). Dropping synthesis.",
+                    latency_lag,
+                    self.stale_drop_threshold_ms,
+                    source_lineage_id,
+                    translation_event.target_language,
+                )
+                self.metrics["stale_dropped_count"] += 1
+                await self.stream_bus.ack_event(stream_name, self.group_name, message_id)
+                self.metrics["messages_consumed"] += 1
+                return []
+
             # 2. Synthesize speech audio with 20 kHz ultrasonic watermark
             tts_res = await self.engine.synthesize(
                 text=translation_event.translated_text,
                 language=translation_event.target_language,
             )
 
-            # 3. Construct AudioSegmentEvent adhering to Invariants #2 and #3
+            # 3. Construct AudioSegmentEvent adhering to Invariants #2 and #3 with v1.2 lineage envelope
             synth_audio_stream = get_stream_key(meeting_id, STREAM_SYNTHESIZED_AUDIO)
             audio_event = AudioSegmentEvent(
                 event_id=f"aud_evt_{uuid.uuid4()}",
-                timestamp_ms=int(time.time() * 1000),
+                timestamp_ms=now_ms,
                 meeting_id=meeting_id,
                 tenant_id=translation_event.tenant_id,
                 source_segment_id=source_lineage_id,
@@ -105,6 +128,12 @@ class TTSConsumer:
                 duration_ms=tts_res.duration_ms,
                 sample_rate=tts_res.sample_rate,
                 watermarked=tts_res.watermarked,
+                correlation_id=translation_event.correlation_id
+                or f"corr_{meeting_id}_{source_lineage_id}",
+                causation_id=translation_event.event_id,
+                parent_event_id=translation_event.event_id,
+                sequence_number=translation_event.sequence_number + 1,
+                hop_count=translation_event.hop_count + 1,
             )
 
             await self.stream_bus.publish(stream=synth_audio_stream, event=audio_event)

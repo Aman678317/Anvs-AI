@@ -6,9 +6,15 @@ from unittest.mock import AsyncMock
 import pytest
 
 from packages.event_schema import RedisStreamBus, SourceSegmentEvent
+from packages.language_registry import (
+    get_language,
+    get_optimal_nmt_model,
+    is_indic_language,
+)
 from services.translation_worker import (
     BaseNMTEngine,
     ContextWindowBuffer,
+    GlossaryRegistry,
     MockNMTEngine,
     NLLBTranslationEngine,
     NMTConsumer,
@@ -377,3 +383,145 @@ def test_context_window_buffer_meeting_and_participant_clear() -> None:
     buf.clear_meeting("m_clear")
     assert buf.get_context("m_clear", "p2") == []
     assert len(buf.get_context("m_keep", "p3")) == 1
+
+
+@pytest.mark.unit
+def test_dec01_language_capability_registry() -> None:
+    """Verifies DEC-01: Indic pairs route to IndicTrans2 and others to NLLB-200."""
+    # 1. Indic detection
+    assert is_indic_language("hin") is True
+    assert is_indic_language("mar") is True
+    assert is_indic_language("tam") is True
+    assert is_indic_language("tel") is True
+    assert is_indic_language("eng") is False
+    assert is_indic_language("spa") is False
+    assert is_indic_language("deu") is False
+
+    # 2. Optimal NMT model routing (DEC-01)
+    assert get_optimal_nmt_model("eng", "hin") == "ai4bharat/indictrans2-1B"
+    assert get_optimal_nmt_model("hin", "mar") == "ai4bharat/indictrans2-1B"
+    assert get_optimal_nmt_model("mar", "eng") == "ai4bharat/indictrans2-1B"
+    assert get_optimal_nmt_model("eng", "spa") == "facebook/nllb-200-distilled-600M"
+    assert get_optimal_nmt_model("fra", "deu") == "facebook/nllb-200-distilled-600M"
+    assert get_optimal_nmt_model("zho", "jpn") == "facebook/nllb-200-distilled-600M"
+
+    # 3. Metadata validation for Indic languages
+    mar = get_language("mar")
+    assert mar is not None
+    assert mar.is_indic is True
+    assert mar.nmt_model == "ai4bharat/indictrans2-1B"
+    assert mar.licensing == "CC-BY-NC-4.0"
+    assert mar.bcp47 == "mr-IN"
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_nmt_consumer_listener_resolver_fan_out() -> None:
+    """Verifies listener-specific dynamic target language resolution and concurrent fan-out."""
+    mock_bus = AsyncMock(spec=RedisStreamBus)
+    mock_bus.publish.return_value = "msg-publish-1"
+    mock_bus.ack_event.return_value = 1
+
+    engine = MockNMTEngine(simulated_latency_ms=0)
+
+    # Dynamic listener resolver returns preferences of active participants
+    async def mock_listener_resolver(meeting_id: str) -> list[str]:
+        _ = meeting_id
+        return ["spa", "mar", "jpn"]
+
+    consumer = NMTConsumer(
+        stream_bus=mock_bus,
+        engine=engine,
+        listener_resolver=mock_listener_resolver,
+    )
+
+    source_event = SourceSegmentEvent(
+        event_id="src_evt_dynamic_999",
+        timestamp_ms=1000,
+        meeting_id="meet_fanout_dynamic",
+        tenant_id="ten_dynamic",
+        session_id="sess_dynamic",
+        participant_id="user_alice",
+        source_segment_id="src_seg_root_999",
+        language="eng",
+        text="Welcome everyone to our multilingual meeting, let's begin the review.",
+        is_final=True,
+        start_ms=0,
+        end_ms=2000,
+        confidence=0.98,
+        correlation_id="corr_root_dynamic_123",
+        sequence_number=1,
+        hop_count=1,
+    )
+
+    emitted = await consumer.process_message(
+        stream_name="events:meeting:meet_fanout_dynamic:transcripts",
+        message_id="1-0",
+        raw_payload=source_event.model_dump(),
+        meeting_id="meet_fanout_dynamic",
+    )
+
+    # Must fan out to all 3 listeners concurrently
+    assert len(emitted) == 3
+    targets_emitted = {e.target_language for e in emitted}
+    assert targets_emitted == {"spa", "mar", "jpn"}
+
+    # Invariant #2 check across all fan-out branches
+    for evt in emitted:
+        assert evt.source_segment_id == "src_seg_root_999"
+        assert evt.correlation_id == "corr_root_dynamic_123"
+        assert evt.causation_id == "src_evt_dynamic_999"
+        assert evt.parent_event_id == "src_evt_dynamic_999"
+        assert evt.sequence_number == 2
+        assert evt.hop_count == 2
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_nmt_consumer_glossary_injection() -> None:
+    """Verifies that GlossaryRegistry protects and restores terminology during translation."""
+    mock_bus = AsyncMock(spec=RedisStreamBus)
+    mock_bus.publish.return_value = "msg-glossary"
+    mock_bus.ack_event.return_value = 1
+
+    glossary = GlossaryRegistry()
+    glossary.set_meeting_glossary(
+        meeting_id="m_glossary_test",
+        terms={"ANVS-AI": "ANVS-AI", "Deep Learning": "Deep Learning"},
+    )
+
+    engine = MockNMTEngine(simulated_latency_ms=0)
+    consumer = NMTConsumer(
+        stream_bus=mock_bus,
+        engine=engine,
+        target_languages=["spa"],
+        glossary=glossary,
+    )
+
+    source_event = SourceSegmentEvent(
+        event_id="src_gloss_1",
+        timestamp_ms=1000,
+        meeting_id="m_glossary_test",
+        tenant_id="ten_gloss",
+        session_id="sess_gloss",
+        participant_id="user_bob",
+        source_segment_id="src_seg_gloss_1",
+        language="eng",
+        text="ANVS-AI platform uses Deep Learning for speech synthesis.",
+        is_final=True,
+        start_ms=0,
+        end_ms=1500,
+        confidence=0.99,
+    )
+
+    emitted = await consumer.process_message(
+        stream_name="events:meeting:m_glossary_test:transcripts",
+        message_id="2-0",
+        raw_payload=source_event.model_dump(),
+        meeting_id="m_glossary_test",
+    )
+
+    assert len(emitted) == 1
+    # Terminology must be preserved in the translated text
+    assert "ANVS-AI" in emitted[0].translated_text
+    assert "Deep Learning" in emitted[0].translated_text

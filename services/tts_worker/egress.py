@@ -69,24 +69,51 @@ class LiveKitAudioEgress:
         key = (meeting_id, target_language)
         async with self._lock:
             if key not in self._active_tracks:
-                track_name = f"translated_{target_language}_{meeting_id[:8]}"
+                track_name = self.get_track_name_for_audience(meeting_id, target_language)
                 logger.info(
                     "Provisioning LiveKit audio egress track '%s' for meeting %s (lang=%s)",
                     track_name,
                     meeting_id,
                     target_language,
                 )
-                # In native mode, creates a LocalAudioTrack from AudioSource
-                # In mock/simulated mode, stores track descriptor
+                source = None
+                local_track = None
+                if self._rtc_available:
+                    try:
+                        import livekit.rtc as lk_rtc
+
+                        source = lk_rtc.AudioSource(
+                            sample_rate=self.sample_rate,
+                            num_channels=self.num_channels,
+                        )
+                        local_track = lk_rtc.LocalAudioTrack.create_audio_track(track_name, source)
+                        logger.info("Created native LiveKit LocalAudioTrack for %s", track_name)
+                    except Exception as exc:
+                        logger.warning("Native LiveKit LocalAudioTrack creation skipped: %s", exc)
+
                 self._active_tracks[key] = {
                     "track_name": track_name,
                     "meeting_id": meeting_id,
                     "target_language": target_language,
                     "sample_rate": self.sample_rate,
                     "channels": self.num_channels,
+                    "audio_source": source,
+                    "local_track": local_track,
                     "frames_count": 0,
                 }
             return self._active_tracks[key]
+
+    def get_track_name_for_audience(self, meeting_id: str, language: str) -> str:
+        """Returns standard track name for audience subscription routing (STEP-12-2)."""
+        return f"translated_{language}_{meeting_id[:8]}"
+
+    def resolve_audience_tracks(
+        self, meeting_id: str, listener_languages: list[str]
+    ) -> dict[str, str]:
+        """Maps listener target languages to LiveKit published audio track names (STEP-12-2)."""
+        return {
+            lang: self.get_track_name_for_audience(meeting_id, lang) for lang in listener_languages
+        }
 
     async def publish_audio_segment(
         self,
