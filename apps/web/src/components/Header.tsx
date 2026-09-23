@@ -2,9 +2,13 @@
 
 import { useEffect, useState } from "react";
 import { useMeetingStore } from "../stores/useMeetingStore";
-import { Activity, Users, Globe2, Volume2, Sparkles } from "lucide-react";
+import { Activity, Users, Globe2, Volume2, Sparkles, Share2 } from "lucide-react";
 
-export function Header() {
+interface HeaderProps {
+  onOpenShareModal?: () => void;
+}
+
+export function Header({ onOpenShareModal }: HeaderProps) {
   const {
     title,
     isWsConnected,
@@ -87,8 +91,19 @@ export function Header() {
         </div>
       </div>
 
-      {/* Right: Network telemetry & Participants count */}
-      <div className="flex items-center space-x-3">
+      {/* Right: Share Button, Network telemetry & Participants count */}
+      <div className="flex items-center space-x-2.5">
+        {onOpenShareModal && (
+          <button
+            onClick={onOpenShareModal}
+            className="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-[#25D366]/15 hover:bg-[#25D366]/25 text-[#25D366] border border-[#25D366]/35 text-xs font-semibold transition-all shadow-sm"
+            title="Share call link on WhatsApp"
+          >
+            <Share2 className="w-3.5 h-3.5" />
+            <span>Share Call</span>
+          </button>
+        )}
+
         <div className="flex items-center space-x-1.5 text-xs text-zinc-400 bg-surface-100 px-2 py-1 rounded-md border border-surface-200">
           <Activity
             className={`w-3.5 h-3.5 ${

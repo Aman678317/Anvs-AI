@@ -36,6 +36,12 @@ router = APIRouter(prefix="/api/v1/rooms", tags=["Rooms & LiveKit"])
     status_code=status.HTTP_201_CREATED,
     summary="Create a new meeting room",
 )
+@router.post(
+    "/create",
+    response_model=CreateMeetingResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="Create a new meeting room (alias)",
+)
 async def create_room(
     payload: CreateMeetingRequest,
     current_user: AuthenticatedUser = Depends(get_current_user),
@@ -99,11 +105,8 @@ async def get_room(
     """Fetch meeting room status, versioning, and participant counts."""
     try:
         target_uuid = uuid.UUID(meeting_id)
-    except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid meeting ID",
-        ) from e
+    except ValueError:
+        target_uuid = uuid.uuid5(uuid.NAMESPACE_DNS, meeting_id)
 
     stmt = select(Meeting).where(Meeting.id == target_uuid)
     res = await session.execute(stmt)
@@ -146,18 +149,34 @@ async def join_room(
     """Validates meeting eligibility and issues LiveKit WebRTC token and WebSocket ticket."""
     try:
         target_uuid = uuid.UUID(meeting_id)
-    except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid meeting ID",
-        ) from e
+    except ValueError:
+        target_uuid = uuid.uuid5(uuid.NAMESPACE_DNS, meeting_id)
 
     stmt = select(Meeting).where(Meeting.id == target_uuid)
     res = await session.execute(stmt)
     meeting = res.scalar_one_or_none()
 
     if not meeting:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Meeting not found")
+        now = datetime.now(UTC)
+        try:
+            tenant_uuid = uuid.UUID(current_user.tenant_id)
+        except (ValueError, TypeError):
+            tenant_uuid = uuid.uuid4()
+
+        meeting = Meeting(
+            id=target_uuid,
+            tenant_id=tenant_uuid,
+            created_by=None,
+            title=f"AI Meeting Room ({meeting_id})",
+            status="ACTIVE",
+            state_version=1,
+            host_spoken_language=payload.spoken_language or "eng",
+            host_listening_language=payload.listening_language or "eng",
+            created_at=now,
+            updated_at=now,
+        )
+        session.add(meeting)
+        await livekit_service.create_room(room_name=f"room_{meeting.id}")
 
     if meeting.status in ("ENDED", "ARCHIVED"):
         raise HTTPException(

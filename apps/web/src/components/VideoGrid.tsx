@@ -2,14 +2,19 @@
 
 import { useMeetingStore } from "../stores/useMeetingStore";
 import { ParticipantTile } from "./ParticipantTile";
-import { LocalVideoTrack } from "livekit-client";
+import { LocalVideoTrack, RemoteVideoTrack, Track } from "livekit-client";
 
 interface VideoGridProps {
   localVideoTrack?: LocalVideoTrack | null;
+  remoteVideoTracks?: Record<string, RemoteVideoTrack | Track | MediaStreamTrack | MediaStream | null>;
   screenTrack?: LocalVideoTrack | null;
 }
 
-export function VideoGrid({ localVideoTrack, screenTrack }: VideoGridProps) {
+export function VideoGrid({
+  localVideoTrack,
+  remoteVideoTracks = {},
+  screenTrack,
+}: VideoGridProps) {
   const {
     participantId,
     displayName,
@@ -31,6 +36,7 @@ export function VideoGrid({ localVideoTrack, screenTrack }: VideoGridProps) {
     }
     if (totalCount === 1) return "grid-cols-1 max-w-4xl mx-auto";
     if (totalCount === 2) return "grid-cols-1 md:grid-cols-2";
+    if (totalCount === 3) return "grid-cols-1 md:grid-cols-3";
     if (totalCount <= 4) return "grid-cols-1 md:grid-cols-2 lg:grid-cols-2";
     if (totalCount <= 6) return "grid-cols-2 md:grid-cols-3";
     if (totalCount <= 9) return "grid-cols-2 md:grid-cols-3 lg:grid-cols-3";
@@ -76,7 +82,7 @@ export function VideoGrid({ localVideoTrack, screenTrack }: VideoGridProps) {
           />
         </div>
 
-        {/* Remote Participant Tiles */}
+        {/* Remote Participant Tiles with Remote Camera Feeds */}
         {remoteList.map((p) => (
           <div key={p.participant_id} className="w-full h-full min-h-[160px]">
             <ParticipantTile
@@ -87,6 +93,7 @@ export function VideoGrid({ localVideoTrack, screenTrack }: VideoGridProps) {
               isMuted={p.is_muted}
               isSpeaking={activeSpeakers.includes(p.participant_id)}
               spokenLanguage={p.spoken_language}
+              videoTrack={remoteVideoTracks?.[p.participant_id] || null}
             />
           </div>
         ))}

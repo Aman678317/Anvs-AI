@@ -25,8 +25,8 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         if not settings.security_rate_limit_enabled:
             return await call_next(request)
 
-        # Skip probes and documentation paths
-        if request.url.path in EXEMPT_PATHS:
+        # Skip probes, documentation paths, and CORS preflight requests
+        if request.url.path in EXEMPT_PATHS or request.method == "OPTIONS":
             return await call_next(request)
 
         # Determine rate limit bucket key (prefer tenant_id if resolved, otherwise client IP)

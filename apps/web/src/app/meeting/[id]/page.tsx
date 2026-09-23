@@ -10,6 +10,7 @@ import { ChatPanel } from "../../../components/ChatPanel";
 import { AssistantPanel } from "../../../components/AssistantPanel";
 import { ParticipantsPanel } from "../../../components/ParticipantsPanel";
 import { LanguageSelectorModal } from "../../../components/LanguageSelectorModal";
+import { ShareMeetingModal } from "../../../components/ShareMeetingModal";
 import { useMeetingStore } from "../../../stores/useMeetingStore";
 import { useRealtimeGateway } from "../../../hooks/useRealtimeGateway";
 import { useLiveKitRoom } from "../../../hooks/useLiveKitRoom";
@@ -37,6 +38,7 @@ export default function MeetingRoomPage() {
   } = useMeetingStore();
 
   const [isLanguageModalOpen, setIsLanguageModalOpen] = useState(false);
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [isJoining, setIsJoining] = useState(!participantId || !wsTicket || !livekitToken);
   const [joinError, setJoinError] = useState<string | null>(null);
 
@@ -44,9 +46,14 @@ export default function MeetingRoomPage() {
   const handleJoin = useCallback(async () => {
     setIsJoining(true);
     setJoinError(null);
+    const attendeeName =
+      displayName && displayName !== "Participant"
+        ? displayName
+        : `Guest ${Math.floor(100 + Math.random() * 900)}`;
+
     try {
       const resp = await joinRoom(meetingId, {
-        display_name: displayName || "Guest Attendee",
+        display_name: attendeeName,
         spoken_language: spokenLanguage || "eng",
         listening_language: listeningLanguage || "eng",
       });
@@ -103,8 +110,15 @@ export default function MeetingRoomPage() {
   );
 
   // 2. Initialize LiveKit WebRTC SFU Media Connection
-  const { room, localVideoTrack, screenTrack, toggleMic, toggleVideo, toggleScreenShare } =
-    useLiveKitRoom(undefined, livekitToken);
+  const {
+    room,
+    localVideoTrack,
+    remoteVideoTracks,
+    screenTrack,
+    toggleMic,
+    toggleVideo,
+    toggleScreenShare,
+  } = useLiveKitRoom(undefined, livekitToken);
 
   // 3. Initialize Multi-Track Audio Router (Invariant #3 & #5)
   useAudioRouter(room);
@@ -159,13 +173,17 @@ export default function MeetingRoomPage() {
   return (
     <div className="flex flex-col h-screen w-screen bg-surface-900 text-zinc-100 overflow-hidden select-none">
       {/* Top Header & Telemetry */}
-      <Header />
+      <Header onOpenShareModal={() => setIsShareModalOpen(true)} />
 
       {/* Center Layout: Video Grid + Sliding Drawers */}
       <div className="flex-1 flex relative overflow-hidden">
         {/* Main Video & Media Grid */}
         <main className="flex-1 flex flex-col relative overflow-hidden">
-          <VideoGrid localVideoTrack={localVideoTrack} screenTrack={screenTrack} />
+          <VideoGrid
+            localVideoTrack={localVideoTrack}
+            remoteVideoTracks={remoteVideoTracks}
+            screenTrack={screenTrack}
+          />
 
           {/* Subtitles & Captions Overlay (Invariant #2 Lineage) */}
           <CaptionOverlay />
@@ -181,7 +199,10 @@ export default function MeetingRoomPage() {
         )}
 
         {activePanel === "participants" && (
-          <ParticipantsPanel onClose={() => setActivePanel("none")} />
+          <ParticipantsPanel
+            onClose={() => setActivePanel("none")}
+            onOpenShareModal={() => setIsShareModalOpen(true)}
+          />
         )}
       </div>
 
@@ -191,6 +212,7 @@ export default function MeetingRoomPage() {
         onToggleVideo={toggleVideo}
         onToggleScreenShare={toggleScreenShare}
         onOpenLanguageModal={() => setIsLanguageModalOpen(true)}
+        onOpenShareModal={() => setIsShareModalOpen(true)}
         onLeaveMeeting={() => router.push("/")}
       />
 
@@ -199,6 +221,13 @@ export default function MeetingRoomPage() {
         isOpen={isLanguageModalOpen}
         onClose={() => setIsLanguageModalOpen(false)}
         onLanguageChanged={updateListeningLanguage}
+      />
+
+      {/* Share & WhatsApp Call Invitation Modal */}
+      <ShareMeetingModal
+        isOpen={isShareModalOpen}
+        onClose={() => setIsShareModalOpen(false)}
+        meetingId={meetingId}
       />
     </div>
   );
