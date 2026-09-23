@@ -183,12 +183,16 @@ class AudioIngestionPipeline:
             event_id=f"aud_{uuid.uuid4()}",
             timestamp_ms=int(time.time() * 1000),
             meeting_id=self.meeting_id,
+            tenant_id=self.tenant_id or "default",
             source_segment_id=f"src_{self.participant_id}_{segment.start_ms}",
             target_language=self.spoken_language,
             audio_uri=f"base64://{b64_audio}",
             duration_ms=max(0, segment.end_ms - segment.start_ms),
             sample_rate=segment.sample_rate,
             watermarked=False,
+            correlation_id=f"corr_{self.meeting_id}_{self.participant_id}_{segment.start_ms}",
+            sequence_number=self.voiced_segments_produced,
+            hop_count=0,
         )
 
         await self.stream_bus.publish(stream=stream_key, event=event)

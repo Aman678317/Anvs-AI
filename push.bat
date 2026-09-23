@@ -44,7 +44,7 @@ echo =====================================================
 echo 4. Running Unit and Contract Test Suites...
 echo =====================================================
 
-call pytest tests/unit/test_settings.py tests/unit/test_event_schemas.py tests/unit/test_websocket_gateway.py tests/unit/test_livekit_service.py tests/contract/test_event_contracts.py -v
+call pytest tests/unit/test_settings.py tests/unit/test_event_schemas.py tests/unit/test_websocket_gateway.py tests/unit/test_livekit_service.py tests/contract/test_event_contracts.py tests/unit/test_livekit_audio_subscriber.py tests/unit/test_audio_ingress_service.py tests/unit/test_audio_ingestion.py tests/unit/test_stt_worker.py -v
 if %ERRORLEVEL% NEQ 0 (
     echo [ERROR] Unit tests failed! Aborting.
     pause
@@ -56,7 +56,7 @@ echo 5. Staging, Committing, and Pushing to HEAD...
 echo =====================================================
 
 git add -A
-git commit -m "feat(pr-06): canonical v1.2 lineage event contracts, fixtures, and format fixes"
+git commit -m "feat(pr-10): livekit audio subscriber, human source gate, invariant 3 watermark drop, and streaming stt"
 git push origin HEAD
 
 echo.
