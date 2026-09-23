@@ -13,7 +13,7 @@ import {
   ShieldCheck,
   PlusCircle,
 } from "lucide-react";
-import { SUPPORTED_LANGUAGES, ParticipantRole } from "@multilingual/contracts";
+import { SUPPORTED_LANGUAGES, ParticipantRole, MeetingStatus } from "@multilingual/contracts";
 import { useMeetingStore } from "../stores/useMeetingStore";
 import { createRoom, joinRoom } from "../lib/api";
 
@@ -27,6 +27,8 @@ export default function LobbyPage() {
     listeningLanguage,
     setSpokenLanguage,
     setListeningLanguage,
+    setVideoEnabled,
+    setMicMuted,
   } = useMeetingStore();
 
   const [displayName, setDisplayName] = useState("Alex Johnson");
@@ -37,48 +39,110 @@ export default function LobbyPage() {
   const [micEnabled, setMicEnabled] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  const videoPreviewRef = useRef<HTMLVideoElement>(null);
+  // Pre-fill meeting code if shared via URL query (e.g. ?room=meet_abc123)
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const urlParams = new URLSearchParams(window.location.search);
+      const room = urlParams.get("room") || urlParams.get("code") || urlParams.get("join");
+      if (room) {
+        setMeetingCode(room);
+      }
+    }
+  }, []);
+
+  const videoPreviewRef = useRef<HTMLVideoElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
 
   // Setup local hardware preview
   useEffect(() => {
-    let active = true;
+    let cancelled = false;
 
     async function setupPreview() {
+      if (!cameraEnabled) {
+        if (streamRef.current) {
+          streamRef.current.getTracks().forEach((t) => t.stop());
+          streamRef.current = null;
+        }
+        if (videoPreviewRef.current) {
+          videoPreviewRef.current.srcObject = null;
+        }
+        return;
+      }
+
+      // If active stream already has live tracks, keep using it
+      if (
+        streamRef.current &&
+        streamRef.current.getVideoTracks().some((t) => t.readyState === "live")
+      ) {
+        if (videoPreviewRef.current && videoPreviewRef.current.srcObject !== streamRef.current) {
+          videoPreviewRef.current.srcObject = streamRef.current;
+          videoPreviewRef.current.muted = true;
+          videoPreviewRef.current.play().catch(() => {});
+        }
+        return;
+      }
+
       try {
-        if (cameraEnabled || micEnabled) {
-          const stream = await navigator.mediaDevices.getUserMedia({
-            video: cameraEnabled,
-            audio: micEnabled,
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: {
+            width: { ideal: 1280 },
+            height: { ideal: 720 },
+            facingMode: "user",
+          },
+          audio: false,
+        });
+
+        if (cancelled) {
+          stream.getTracks().forEach((t) => t.stop());
+          return;
+        }
+
+        streamRef.current = stream;
+        if (videoPreviewRef.current) {
+          videoPreviewRef.current.srcObject = stream;
+          videoPreviewRef.current.muted = true;
+          videoPreviewRef.current.play().catch(() => {});
+        }
+      } catch (err: unknown) {
+        console.warn("Retrying camera with default constraints:", err);
+        try {
+          if (cancelled) return;
+          const fallbackStream = await navigator.mediaDevices.getUserMedia({
+            video: true,
+            audio: false,
           });
-          if (!active) {
-            stream.getTracks().forEach((t) => t.stop());
+          if (cancelled) {
+            fallbackStream.getTracks().forEach((t) => t.stop());
             return;
           }
-          streamRef.current = stream;
-          if (videoPreviewRef.current && cameraEnabled) {
-            videoPreviewRef.current.srcObject = stream;
+          streamRef.current = fallbackStream;
+          if (videoPreviewRef.current) {
+            videoPreviewRef.current.srcObject = fallbackStream;
+            videoPreviewRef.current.muted = true;
+            videoPreviewRef.current.play().catch(() => {});
           }
-        } else {
-          if (streamRef.current) {
-            streamRef.current.getTracks().forEach((t) => t.stop());
-            streamRef.current = null;
-          }
+        } catch (fallbackErr) {
+          console.error("Camera access failed:", fallbackErr);
         }
-      } catch (err) {
-        console.warn("Media device preview unavailable:", err);
       }
     }
 
     setupPreview();
 
     return () => {
-      active = false;
+      cancelled = true;
+    };
+  }, [cameraEnabled]);
+
+  // Clean up camera hardware tracks when navigating away from lobby
+  useEffect(() => {
+    return () => {
       if (streamRef.current) {
         streamRef.current.getTracks().forEach((t) => t.stop());
+        streamRef.current = null;
       }
     };
-  }, [cameraEnabled, micEnabled]);
+  }, []);
 
   const handleStartMeeting = async () => {
     setIsCreating(true);
@@ -121,6 +185,16 @@ export default function LobbyPage() {
         status: createRes.status,
         stateVersion: joinRes.state_version || 1,
       });
+
+      // Synchronize hardware controls selected in lobby
+      setVideoEnabled(cameraEnabled);
+      setMicMuted(!micEnabled);
+
+      // Explicitly stop lobby preview track to release camera hardware lock
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach((t) => t.stop());
+        streamRef.current = null;
+      }
 
       router.push(`/meeting/${joinRes.meeting_id}`);
     } catch (err: unknown) {
@@ -166,9 +240,19 @@ export default function LobbyPage() {
         meetingId: joinRes.meeting_id,
         title: "Multilingual AI Meeting",
         tenantId: "default",
-        status: "ACTIVE" as any,
+        status: MeetingStatus.ACTIVE,
         stateVersion: joinRes.state_version || 1,
       });
+
+      // Synchronize hardware controls selected in lobby
+      setVideoEnabled(cameraEnabled);
+      setMicMuted(!micEnabled);
+
+      // Explicitly stop lobby preview track to release camera hardware lock
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach((t) => t.stop());
+        streamRef.current = null;
+      }
 
       router.push(`/meeting/${code}`);
     } catch (err: unknown) {
@@ -227,7 +311,14 @@ export default function LobbyPage() {
           <div className="relative aspect-video w-full rounded-2xl overflow-hidden bg-surface-800 border border-surface-200 shadow-2xl flex items-center justify-center">
             {cameraEnabled ? (
               <video
-                ref={videoPreviewRef}
+                ref={(el) => {
+                  videoPreviewRef.current = el;
+                  if (el && streamRef.current && el.srcObject !== streamRef.current) {
+                    el.srcObject = streamRef.current;
+                    el.muted = true;
+                    el.play().catch(() => {});
+                  }
+                }}
                 autoPlay
                 playsInline
                 muted

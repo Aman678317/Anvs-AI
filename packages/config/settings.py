@@ -23,7 +23,17 @@ class Settings(BaseSettings):
     api_secret_key: str = Field(
         default="dev-secret-key-change-in-production-64-bytes-min", alias="API_SECRET_KEY"
     )
-    cors_origins: list[str] = Field(default=["*"], alias="CORS_ORIGINS")
+    cors_origins: list[str] = Field(
+        default=[
+            "http://localhost:3000",
+            "http://127.0.0.1:3000",
+            "http://localhost:3001",
+            "http://127.0.0.1:3001",
+            "http://localhost:8000",
+            "http://127.0.0.1:8000",
+        ],
+        alias="CORS_ORIGINS",
+    )
 
     ws_host: str = Field(default="0.0.0.0", alias="WS_HOST")
     ws_port: int = Field(default=8001, alias="WS_PORT")

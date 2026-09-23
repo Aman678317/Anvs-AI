@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { Mic, MicOff, User } from "lucide-react";
-import { LocalVideoTrack, RemoteVideoTrack } from "livekit-client";
+import { LocalVideoTrack, RemoteVideoTrack, Track } from "livekit-client";
 
 interface ParticipantTileProps {
   participantId: string;
@@ -12,7 +12,7 @@ interface ParticipantTileProps {
   isMuted: boolean;
   isSpeaking: boolean;
   spokenLanguage?: string;
-  videoTrack?: LocalVideoTrack | RemoteVideoTrack | null;
+  videoTrack?: LocalVideoTrack | RemoteVideoTrack | Track | MediaStreamTrack | MediaStream | null;
 }
 
 export function ParticipantTile({
@@ -24,25 +24,66 @@ export function ParticipantTile({
   spokenLanguage = "eng",
   videoTrack,
 }: ParticipantTileProps) {
-  const videoRef = useRef<HTMLVideoElement>(null);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+
+  // Helper to safely attach any track format (LiveKit track, MediaStreamTrack, or MediaStream)
+  const attachTrackToElement = (
+    track: LocalVideoTrack | RemoteVideoTrack | Track | MediaStreamTrack | MediaStream,
+    el: HTMLVideoElement,
+  ) => {
+    try {
+      el.muted = isSelf;
+      if ("attach" in track && typeof (track as any).attach === "function") {
+        (track as any).attach(el);
+      } else if (
+        track instanceof MediaStream ||
+        (track && typeof (track as any).getTracks === "function")
+      ) {
+        el.srcObject = track as MediaStream;
+      } else if (track && (track instanceof MediaStreamTrack || (track as any).kind === "video")) {
+        el.srcObject = new MediaStream([track as MediaStreamTrack]);
+      } else if (track && (track as any).mediaStreamTrack) {
+        el.srcObject = new MediaStream([(track as any).mediaStreamTrack]);
+      }
+      el.play().catch(() => {});
+    } catch (e) {
+      console.warn("Could not attach video track to element:", e);
+    }
+  };
+
+  const detachTrackFromElement = (
+    track: LocalVideoTrack | RemoteVideoTrack | Track | MediaStreamTrack | MediaStream,
+    el: HTMLVideoElement,
+  ) => {
+    try {
+      if ("detach" in track && typeof (track as any).detach === "function") {
+        (track as any).detach(el);
+      }
+      if (el.srcObject) {
+        el.srcObject = null;
+      }
+    } catch (e) {
+      console.warn("Could not detach video track from element:", e);
+    }
+  };
 
   useEffect(() => {
     const el = videoRef.current;
-
-    if (!el || !videoTrack) {
+    if (!el || !videoTrack || !isVideoEnabled) {
       return;
     }
 
-    videoTrack.attach(el);
+    attachTrackToElement(videoTrack, el);
 
     return () => {
-      videoTrack.detach(el);
+      detachTrackFromElement(videoTrack, el);
     };
-  }, [videoTrack]);
+  }, [videoTrack, isVideoEnabled, isSelf]);
 
   const initials = displayName
     .split(" ")
     .map((n) => n[0])
+    .filter(Boolean)
     .join("")
     .slice(0, 2)
     .toUpperCase();
@@ -58,14 +99,19 @@ export function ParticipantTile({
       {/* Video stream rendering */}
       {isVideoEnabled && videoTrack ? (
         <video
-          ref={videoRef}
+          ref={(el) => {
+            videoRef.current = el;
+            if (el && videoTrack && isVideoEnabled) {
+              attachTrackToElement(videoTrack, el);
+            }
+          }}
           autoPlay
           playsInline
           muted={isSelf}
           className={`w-full h-full object-cover ${isSelf ? "scale-x-[-1]" : ""}`}
         />
       ) : (
-        /* Avatar fallback when video is disabled */
+        /* Avatar fallback when video is disabled or track unavailable */
         <div className="flex flex-col items-center justify-center space-y-2 select-none">
           <div className="w-16 h-16 md:w-20 md:h-20 rounded-full bg-gradient-to-tr from-brand-primary/40 to-brand-accent/40 border border-surface-200 flex items-center justify-center text-zinc-200 font-bold text-lg md:text-xl shadow-inner">
             {initials || <User className="w-8 h-8 text-zinc-400" />}

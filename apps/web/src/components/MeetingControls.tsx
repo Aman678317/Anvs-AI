@@ -13,6 +13,7 @@ import {
   PhoneOff,
   Volume2,
   Sparkles,
+  Share2,
 } from "lucide-react";
 import { useMeetingStore } from "../stores/useMeetingStore";
 
@@ -21,6 +22,7 @@ interface MeetingControlsProps {
   onToggleVideo: () => void;
   onToggleScreenShare: () => void;
   onOpenLanguageModal: () => void;
+  onOpenShareModal?: () => void;
   onLeaveMeeting: () => void;
 }
 
@@ -29,6 +31,7 @@ export function MeetingControls({
   onToggleVideo,
   onToggleScreenShare,
   onOpenLanguageModal,
+  onOpenShareModal,
   onLeaveMeeting,
 }: MeetingControlsProps) {
   const {
@@ -129,6 +132,18 @@ export function MeetingControls({
           <Globe className="w-4 h-4 text-brand-primary" />
           <span className="hidden md:inline">Languages</span>
         </button>
+
+        {/* Share on WhatsApp / Link Modal Trigger */}
+        {onOpenShareModal && (
+          <button
+            onClick={onOpenShareModal}
+            className="flex items-center space-x-1.5 px-3 py-2 rounded-xl bg-[#25D366]/20 hover:bg-[#25D366]/30 border border-[#25D366]/40 text-[#25D366] text-xs font-semibold transition-all shadow-sm"
+            title="Share Call via WhatsApp or Direct Link"
+          >
+            <Share2 className="w-4 h-4" />
+            <span className="hidden sm:inline">Share</span>
+          </button>
+        )}
       </div>
 
       {/* Right: Panels (Chat, AI Copilot, Participants) & Leave Button */}

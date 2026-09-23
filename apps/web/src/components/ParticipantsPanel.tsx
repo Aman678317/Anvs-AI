@@ -1,14 +1,15 @@
 "use client";
 
-import { X, Mic, MicOff, Video, VideoOff, Shield, User } from "lucide-react";
+import { X, Mic, MicOff, Video, VideoOff, Shield, User, UserPlus } from "lucide-react";
 import { ParticipantRole } from "@multilingual/contracts";
 import { useMeetingStore } from "../stores/useMeetingStore";
 
 interface ParticipantsPanelProps {
   onClose: () => void;
+  onOpenShareModal?: () => void;
 }
 
-export function ParticipantsPanel({ onClose }: ParticipantsPanelProps) {
+export function ParticipantsPanel({ onClose, onOpenShareModal }: ParticipantsPanelProps) {
   const {
     displayName,
     role,
@@ -58,6 +59,19 @@ export function ParticipantsPanel({ onClose }: ParticipantsPanelProps) {
           <X className="w-4 h-4" />
         </button>
       </div>
+
+      {/* Invite Action Banner */}
+      {onOpenShareModal && (
+        <div className="p-3 border-b border-surface-200/60 bg-surface-800/40">
+          <button
+            onClick={onOpenShareModal}
+            className="w-full py-2.5 px-3 rounded-xl bg-[#25D366] hover:bg-[#20ba5a] text-white text-xs font-semibold flex items-center justify-center space-x-2 shadow-md shadow-emerald-900/20 transition-all cursor-pointer"
+          >
+            <UserPlus className="w-4 h-4" />
+            <span>Invite via WhatsApp</span>
+          </button>
+        </div>
+      )}
 
       {/* Participants List */}
       <div className="flex-1 overflow-y-auto p-3 space-y-2">
