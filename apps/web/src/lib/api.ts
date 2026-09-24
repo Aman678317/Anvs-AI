@@ -102,7 +102,17 @@ async function request<T>(
       return (await response.json()) as T;
     } catch (err: unknown) {
       if (err instanceof ApiError) {
-        // If 404/400 on custom host, continue to try Next.js rewrite /api/backend proxy
+        // Restrict candidate-host retry to genuine routing/connectivity failures (e.g. 404 on candidate host).
+        // Immediately propagate 401, 403, 422, and other application errors.
+        if (
+          err.status === 401 ||
+          err.status === 403 ||
+          err.status === 422 ||
+          (err.status >= 400 && err.status < 500 && err.status !== 404 && err.status !== 400)
+        ) {
+          throw err;
+        }
+        // If 404/400 routing mismatch on custom candidate host, continue to try Next.js rewrite /api/backend proxy
         lastError = err;
         continue;
       }
@@ -116,7 +126,7 @@ async function request<T>(
 
 /**
  * Acquires a user/guest bearer token from the control plane API.
- * Falls back to local dev credentials if backend is offline.
+ * Falls back to local dev credentials only if network/backend is unreachable.
  */
 export async function acquireUserToken(
   displayName: string = "Guest",
@@ -139,9 +149,12 @@ export async function acquireUserToken(
     });
     return res.access_token;
   } catch (err: unknown) {
+    if (err instanceof ApiError) {
+      throw err;
+    }
     if (typeof window !== "undefined") {
       console.warn(
-        "⚠️ [ANVS-AI] Control Plane API offline or returned error. Using development session token. " +
+        "⚠️ [ANVS-AI] Control Plane API offline or network unreachable. Using development session token. " +
           "Run 'uvicorn services.api.main:app --host 0.0.0.0 --port 8000' to connect live backend.",
         err,
       );
@@ -153,14 +166,14 @@ export async function acquireUserToken(
 
 /**
  * Creates a new meeting room in PostgreSQL and provisions the LiveKit SFU room.
- * Falls back gracefully in browser dev mode if backend is unreachable.
+ * Propagates auth and validation errors immediately.
  */
 export async function createRoom(
   payload: CreateMeetingRequest,
   token?: string | null,
 ): Promise<CreateMeetingResponse> {
+  const authToken = token || (await acquireUserToken(payload.title, ParticipantRole.HOST));
   try {
-    const authToken = token || (await acquireUserToken(payload.title, ParticipantRole.HOST));
     try {
       return await request<CreateMeetingResponse>(
         "/api/v1/rooms",
@@ -170,20 +183,26 @@ export async function createRoom(
         },
         authToken,
       );
-    } catch {
-      return await request<CreateMeetingResponse>(
-        "/api/v1/rooms/create",
-        {
-          method: "POST",
-          body: JSON.stringify(payload),
-        },
-        authToken,
-      );
+    } catch (routeErr: unknown) {
+      if (routeErr instanceof ApiError && routeErr.status === 404) {
+        return await request<CreateMeetingResponse>(
+          "/api/v1/rooms/create",
+          {
+            method: "POST",
+            body: JSON.stringify(payload),
+          },
+          authToken,
+        );
+      }
+      throw routeErr;
     }
   } catch (err: unknown) {
+    if (err instanceof ApiError) {
+      throw err;
+    }
     if (typeof window !== "undefined") {
       console.warn(
-        "⚠️ [ANVS-AI] Control Plane offline or error occurred. Initializing local meeting room.",
+        "⚠️ [ANVS-AI] Control Plane offline or network unreachable. Initializing local meeting room.",
         err,
       );
       const mockMeetingId = `meet_${Math.random().toString(36).substring(2, 10)}`;
@@ -220,6 +239,9 @@ export async function joinRoom(
       authToken,
     );
   } catch (err: unknown) {
+    if (err instanceof ApiError) {
+      throw err;
+    }
     if (typeof window !== "undefined") {
       const mockParticipantId = `usr_${Math.random().toString(36).substring(2, 8)}`;
       return {
@@ -251,6 +273,9 @@ export async function getRoom(
       authToken,
     );
   } catch (err: unknown) {
+    if (err instanceof ApiError) {
+      throw err;
+    }
     if (typeof window !== "undefined") {
       return {
         meeting_id: meetingId,

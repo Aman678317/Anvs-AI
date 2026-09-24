@@ -117,6 +117,16 @@ def test_secret_sanitizer_masks_sensitive_data() -> None:
     text_masked = SecretSanitizer.sanitize_text("Bearer auth_token_secret_123")
     assert text_masked == "Bearer [MASKED_TOKEN]"
 
+    nvapi_masked = SecretSanitizer.sanitize_text("Using key nvapi-123456789abcdef for NIM")
+    assert "nvapi-123456789abcdef" not in nvapi_masked
+    assert "[MASKED_API_KEY]" in nvapi_masked
+
+    pg_masked = SecretSanitizer.sanitize_text(
+        "postgresql+asyncpg://postgres.user:SecretPassword123@aws-0-pooler.supabase.com:6543/postgres"
+    )
+    assert "SecretPassword123" not in pg_masked
+    assert "[REDACTED_PASSWORD]" in pg_masked
+
 
 @pytest.mark.asyncio
 @pytest.mark.unit

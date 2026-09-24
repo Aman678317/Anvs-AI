@@ -16,8 +16,16 @@ config = context.config
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
-# Set database URL dynamically from central application settings
-config.set_main_option("sqlalchemy.url", settings.database_url)
+# Set database URL dynamically from central application settings (prefer DIRECT_URL for migrations)
+migration_url = settings.direct_url or settings.database_url
+if migration_url.startswith("postgresql://"):
+    migration_url = "postgresql+asyncpg://" + migration_url[len("postgresql://") :]
+migration_url = (
+    migration_url.replace("?pgbouncer=true&", "?")
+    .replace("&pgbouncer=true", "")
+    .replace("?pgbouncer=true", "")
+)
+config.set_main_option("sqlalchemy.url", migration_url)
 
 target_metadata = Base.metadata
 

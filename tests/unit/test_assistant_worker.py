@@ -175,6 +175,21 @@ def test_assistant_engine_factory_selection() -> None:
     openai_eng = create_assistant_engine("openai", allow_fallback=True)
     assert isinstance(openai_eng, OpenAIAssistantEngine)
 
+    nim_eng = create_assistant_engine("nvidia", allow_fallback=True)
+    assert isinstance(nim_eng, OpenAIAssistantEngine)
+
+
+@pytest.mark.unit
+def test_nvidia_nim_engine_configuration() -> None:
+    """Verifies OpenAIAssistantEngine adapts base_url and model for NVIDIA NIM."""
+    engine = OpenAIAssistantEngine(
+        api_key="nvapi-sample-key",
+        base_url="https://integrate.api.nvidia.com/v1",
+        allow_fallback=True,
+    )
+    assert engine.base_url == "https://integrate.api.nvidia.com/v1"
+    assert engine.model_name == "meta/llama-3.1-8b-instruct"
+
 
 @pytest.mark.unit
 @pytest.mark.asyncio

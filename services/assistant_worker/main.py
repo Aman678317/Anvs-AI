@@ -8,7 +8,7 @@ import sys
 from packages.config.settings import settings
 from packages.event_schema import RedisStreamBus
 from services.assistant_worker.consumer import AssistantConsumer
-from services.assistant_worker.engine import MockAssistantEngine
+from services.assistant_worker.engine import create_assistant_engine
 
 logging.basicConfig(
     level=settings.log_level,
@@ -25,7 +25,7 @@ async def main() -> None:
     bus = RedisStreamBus()
     await bus.connect()
 
-    engine = MockAssistantEngine()
+    engine = create_assistant_engine()
     consumer = AssistantConsumer(stream_bus=bus, engine=engine)
 
     stop_event = asyncio.Event()

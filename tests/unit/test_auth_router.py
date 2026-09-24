@@ -1,5 +1,6 @@
 """Unit tests for Authentication Router, Registration, Login & Token Derivation (PR-02)."""
 
+import time
 import uuid
 from unittest.mock import AsyncMock, MagicMock
 
@@ -7,7 +8,7 @@ import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-from packages.auth import AuthenticatedUser, hash_password
+from packages.auth import AuthenticatedUser, hash_password, verify_session_ticket
 from packages.contracts import ParticipantRole
 from packages.database.models import User
 from packages.database.session import get_db_session_dependency
@@ -245,6 +246,18 @@ def test_get_my_profile_and_ticket() -> None:
         assert ticket_data["user_id"] == user_id
         assert ticket_data["expires_in_sec"] == 120
         assert "ticket" in ticket_data
+
+        # Strengthened validation: decode & verify token cryptographically
+        token_str = ticket_data["ticket"]
+        decoded_ticket = verify_session_ticket(token_str)
+        assert decoded_ticket.user_id == user_id
+        assert decoded_ticket.tenant_id == tenant_id
+        assert decoded_ticket.meeting_id == meeting_id
+        assert decoded_ticket.role == ParticipantRole.PARTICIPANT
+        now = int(time.time())
+        assert decoded_ticket.issued_at <= now
+        assert decoded_ticket.expires_at == decoded_ticket.issued_at + 120
+        assert decoded_ticket.expires_at > now
 
         # 3. POST /api/v1/auth/logout
         logout_resp = client.post("/api/v1/auth/logout")

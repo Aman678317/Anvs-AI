@@ -15,7 +15,7 @@ import {
 } from "lucide-react";
 import { SUPPORTED_LANGUAGES, ParticipantRole, MeetingStatus } from "@multilingual/contracts";
 import { useMeetingStore } from "../stores/useMeetingStore";
-import { createRoom, joinRoom } from "../lib/api";
+import { createRoom, joinRoom, ApiError } from "../lib/api";
 
 export default function LobbyPage() {
   const router = useRouter();
@@ -199,10 +199,21 @@ export default function LobbyPage() {
       router.push(`/meeting/${joinRes.meeting_id}`);
     } catch (err: unknown) {
       console.error("Failed to start meeting:", err);
-      const msg =
-        err instanceof Error
-          ? err.message
-          : "Failed to create meeting room. Please check backend connectivity.";
+      let msg = "Failed to create meeting room. Please check backend connectivity.";
+      if (err instanceof ApiError) {
+        if (err.status === 401) {
+          msg = "Authentication failed (401): Invalid or expired credentials. Please log in.";
+        } else if (err.status === 403) {
+          msg =
+            "Authorization error (403): You do not have permission to host meetings in this tenant.";
+        } else if (err.status === 422) {
+          msg = `Validation error (422): ${err.message}`;
+        } else {
+          msg = `Server error (${err.status}): ${err.message}`;
+        }
+      } else if (err instanceof Error) {
+        msg = err.message;
+      }
       setErrorMessage(msg);
     } finally {
       setIsCreating(false);
@@ -257,10 +268,22 @@ export default function LobbyPage() {
       router.push(`/meeting/${code}`);
     } catch (err: unknown) {
       console.error("Failed to join meeting:", err);
-      const msg =
-        err instanceof Error
-          ? err.message
-          : "Failed to join meeting room. Please check meeting ID and passcode.";
+      let msg = "Failed to join meeting room. Please check meeting ID and passcode.";
+      if (err instanceof ApiError) {
+        if (err.status === 401) {
+          msg = "Authentication failed (401): Invalid or expired credentials.";
+        } else if (err.status === 403) {
+          msg = "Access denied (403): You are not authorized to join this meeting room.";
+        } else if (err.status === 404) {
+          msg = "Meeting room not found (404). Please verify the meeting ID.";
+        } else if (err.status === 422) {
+          msg = `Validation error (422): ${err.message}`;
+        } else {
+          msg = `Server error (${err.status}): ${err.message}`;
+        }
+      } else if (err instanceof Error) {
+        msg = err.message;
+      }
       setErrorMessage(msg);
     } finally {
       setIsJoining(false);

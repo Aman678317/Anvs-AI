@@ -26,6 +26,8 @@ SENSITIVE_KEYS = {
 
 BEARER_PATTERN = re.compile(r"(Bearer\s+)[A-Za-z0-9\-_.]+", re.IGNORECASE)
 JWT_PATTERN = re.compile(r"eyJ[A-Za-z0-9\-_]+\.eyJ[A-Za-z0-9\-_]+\.[A-Za-z0-9\-_]+")
+NVAPI_PATTERN = re.compile(r"nvapi-[A-Za-z0-9\-_]+")
+PG_PASS_PATTERN = re.compile(r"(postgresql(?:\+asyncpg)?://[^:]+:)([^@]+)(@)")
 
 
 class SecretSanitizer:
@@ -33,9 +35,11 @@ class SecretSanitizer:
 
     @classmethod
     def sanitize_text(cls, text: str) -> str:
-        """Mask bearer tokens and raw JWTs within freeform strings."""
+        """Mask bearer tokens, raw JWTs, API keys, and database passwords within freeform strings."""
         masked = BEARER_PATTERN.sub(r"\1[MASKED_TOKEN]", text)
-        return JWT_PATTERN.sub("[MASKED_JWT]", masked)
+        masked = JWT_PATTERN.sub("[MASKED_JWT]", masked)
+        masked = NVAPI_PATTERN.sub("[MASKED_API_KEY]", masked)
+        return PG_PASS_PATTERN.sub(r"\1[REDACTED_PASSWORD]\3", masked)
 
     @classmethod
     def sanitize(cls, data: Any) -> Any:

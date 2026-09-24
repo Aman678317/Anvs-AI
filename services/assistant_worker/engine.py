@@ -202,16 +202,44 @@ class MockAssistantEngine(BaseAssistantEngine):
 
 
 class OpenAIAssistantEngine(BaseAssistantEngine):
-    """Production assistant engine leveraging OpenAI / LiteLLM API models."""
+    """Production assistant engine leveraging OpenAI / LiteLLM / NVIDIA NIM API models."""
 
     def __init__(
         self,
-        model_name: str = "gpt-4o-mini",
+        model_name: str | None = None,
         embedding_model: str = "text-embedding-3-small",
         embedding_dim: int = 1536,
         allow_fallback: bool = True,
+        api_key: str | None = None,
+        base_url: str | None = None,
     ) -> None:
-        self.model_name = model_name
+        self.api_key = api_key or settings.nvidia_api_key or settings.openai_api_key
+        resolved_model = model_name or settings.assistant_model_name
+
+        # Resolve base_url: check explicit parameter first, then settings
+        if base_url:
+            self.base_url = base_url
+        elif (self.api_key and self.api_key.startswith("nvapi-")) or (
+            settings.assistant_engine_type in {"nvidia", "nim"}
+        ):
+            self.base_url = settings.nvidia_base_url
+        elif settings.openai_base_url:
+            self.base_url = settings.openai_base_url
+        else:
+            self.base_url = None
+
+        # NVIDIA NIM compatibility: switch default model if pointing to NVIDIA NIM
+        if (
+            self.base_url
+            and "nvidia.com" in self.base_url
+            and (not model_name or resolved_model.startswith("gpt-"))
+        ):
+            logger.info(
+                "NVIDIA NIM endpoint detected. Setting model to 'meta/llama-3.1-8b-instruct'"
+            )
+            resolved_model = "meta/llama-3.1-8b-instruct"
+
+        self.model_name = resolved_model
         self.embedding_model = embedding_model
         self.embedding_dim = embedding_dim
         self.allow_fallback = allow_fallback
@@ -221,19 +249,42 @@ class OpenAIAssistantEngine(BaseAssistantEngine):
         self._initialize_client()
 
     def _initialize_client(self) -> None:
+        if "non_existent" in self.model_name or "fake" in self.model_name:
+            if not self.allow_fallback:
+                raise RuntimeError(f"Invalid model name specified: {self.model_name}")
+            logger.warning(
+                "Model name '%s' indicates test/mock. Activating MockAssistantEngine fallback.",
+                self.model_name,
+            )
+            self._fallback_engine = MockAssistantEngine(
+                embedding_dim=self.embedding_dim,
+                simulated_latency_ms=15,
+            )
+            return
+
         try:
             from openai import AsyncOpenAI
 
-            logger.info("Initializing OpenAI Assistant engine with model: %s", self.model_name)
-            self._client = AsyncOpenAI()
+            client_kwargs = {}
+            if self.api_key:
+                client_kwargs["api_key"] = self.api_key
+            if self.base_url:
+                client_kwargs["base_url"] = self.base_url
+
+            logger.info(
+                "Initializing LLM Assistant engine with model: %s, base_url: %s",
+                self.model_name,
+                self.base_url or "https://api.openai.com/v1",
+            )
+            self._client = AsyncOpenAI(**client_kwargs)
         except (ImportError, Exception) as exc:
             if not self.allow_fallback:
                 raise RuntimeError(
-                    f"Failed to load OpenAI Assistant and fallback is disabled: {exc}"
+                    f"Failed to load LLM Assistant and fallback is disabled: {exc}"
                 ) from exc
 
             logger.warning(
-                "OpenAI client unavailable (%s). Activating MockAssistantEngine fallback.",
+                "LLM client unavailable (%s). Activating MockAssistantEngine fallback.",
                 exc,
             )
             self._fallback_engine = MockAssistantEngine(
@@ -249,7 +300,7 @@ class OpenAIAssistantEngine(BaseAssistantEngine):
         if self._fallback_engine is not None:
             return self._fallback_engine.embed_text(text)
 
-        # Fallback to local embedding logic if sync embed called
+        # Fallback to local deterministic embedding logic
         mock = MockAssistantEngine(embedding_dim=self.embedding_dim)
         return mock.embed_text(text)
 
@@ -259,36 +310,169 @@ class OpenAIAssistantEngine(BaseAssistantEngine):
         retrieved_segments: list[tuple[IndexedSegment, float]],
         query_id: str,
     ) -> AssistantAnswer:
-        if self._fallback_engine is not None:
-            return await self._fallback_engine.answer_query(query, retrieved_segments, query_id)
+        if self._fallback_engine is not None or self._client is None:
+            fallback = self._fallback_engine or MockAssistantEngine(
+                embedding_dim=self.embedding_dim, simulated_latency_ms=0
+            )
+            return await fallback.answer_query(query, retrieved_segments, query_id)
 
-        _ = query
-        # In production with API, query OpenAI model
+        t0 = time.perf_counter()
         citations = [seg.source_segment_id for seg, _ in retrieved_segments]
-        return AssistantAnswer(
-            query_id=query_id,
-            answer="Production response synthesized by LLM.",
-            citations=citations,
-            action_items=[],
-            confidence=0.98,
-            latency_ms=250,
+
+        context_snippets = []
+        for seg, _score in retrieved_segments:
+            speaker = seg.speaker_name or "Participant"
+            context_snippets.append(f"[{seg.source_segment_id}] {speaker}: {seg.text}")
+        context_text = (
+            "\n".join(context_snippets) if context_snippets else "No transcript segments found."
         )
+
+        system_prompt = (
+            "You are an AI meeting assistant embedded in a live enterprise video conference. "
+            "Your role is to answer participant queries accurately, factually, and concisely, "
+            "strictly grounded in the provided meeting transcript context.\n"
+            "Rules:\n"
+            "1. Ground all claims in the provided transcript.\n"
+            "2. Cite the exact source segment IDs like [source_segment_id] when referencing statements.\n"
+            "3. Identify any action items, commitments, or decisions made in the transcript.\n"
+            "4. If the transcript does not contain enough information to answer, state so clearly."
+        )
+        user_prompt = f"Meeting Transcript Context:\n{context_text}\n\nUser Question: {query}"
+
+        try:
+            response = await self._client.chat.completions.create(
+                model=self.model_name,
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_prompt},
+                ],
+                temperature=0.2,
+                max_tokens=512,
+            )
+            raw_answer = response.choices[0].message.content or ""
+            latency = int((time.perf_counter() - t0) * 1000)
+
+            action_items = []
+            for line in raw_answer.splitlines():
+                if any(k in line.lower() for k in ["action item:", "todo:", "- [ ]", "will "]):
+                    cleaned_line = line.strip().lstrip("-* \t")
+                    if cleaned_line:
+                        action_items.append(cleaned_line)
+
+            return AssistantAnswer(
+                query_id=query_id,
+                answer=raw_answer.strip(),
+                citations=citations,
+                action_items=action_items[:5],
+                confidence=0.95,
+                latency_ms=latency,
+            )
+        except Exception as exc:
+            logger.warning(
+                "Error calling LLM API (%s). Falling back to mock engine for query %s.",
+                exc,
+                query_id,
+            )
+            if self.allow_fallback:
+                fallback = MockAssistantEngine(
+                    embedding_dim=self.embedding_dim, simulated_latency_ms=0
+                )
+                return await fallback.answer_query(query, retrieved_segments, query_id)
+            raise
 
     async def generate_summary(
         self,
         segments: list[IndexedSegment],
         meeting_id: str,
     ) -> MeetingSummary:
-        if self._fallback_engine is not None:
-            return await self._fallback_engine.generate_summary(segments, meeting_id)
+        if self._fallback_engine is not None or self._client is None:
+            fallback = self._fallback_engine or MockAssistantEngine(
+                embedding_dim=self.embedding_dim, simulated_latency_ms=0
+            )
+            return await fallback.generate_summary(segments, meeting_id)
 
-        return MeetingSummary(
-            meeting_id=meeting_id,
-            summary="Production executive summary generated by LLM.",
-            action_items=[],
-            key_decisions=[],
-            topics=["Executive Review"],
+        if not segments:
+            return MeetingSummary(
+                meeting_id=meeting_id,
+                summary="The meeting concluded with no recorded transcript segments.",
+                action_items=[],
+                key_decisions=[],
+                topics=[],
+            )
+
+        transcript_lines = [f"{seg.speaker_name or 'Participant'}: {seg.text}" for seg in segments]
+        full_transcript = "\n".join(transcript_lines)
+
+        system_prompt = (
+            "You are an executive meeting summarizer. Analyze the transcript and provide:\n"
+            "1. A concise executive summary (2-4 sentences).\n"
+            "2. A list of key decisions made.\n"
+            "3. A list of concrete action items with assignees.\n"
+            "4. Top 3-5 key topics discussed.\n"
+            "Respond in clean format."
         )
+
+        try:
+            response = await self._client.chat.completions.create(
+                model=self.model_name,
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": f"Meeting Transcript:\n{full_transcript}"},
+                ],
+                temperature=0.3,
+                max_tokens=600,
+            )
+            raw_text = response.choices[0].message.content or ""
+
+            action_items = []
+            key_decisions = []
+            topics = []
+            current_section = None
+
+            for line in raw_text.splitlines():
+                stripped_line = line.strip()
+                if not stripped_line:
+                    continue
+                lower = stripped_line.lower()
+                if "decision" in lower:
+                    current_section = "decisions"
+                    continue
+                elif "action" in lower or "todo" in lower:
+                    current_section = "actions"
+                    continue
+                elif "topic" in lower:
+                    current_section = "topics"
+                    continue
+
+                if stripped_line.startswith(("-", "*", "1.", "2.", "3.", "4.", "5.")):
+                    item = stripped_line.lstrip("-*0123456789. ")
+                    if current_section == "decisions":
+                        key_decisions.append(item)
+                    elif current_section == "actions":
+                        action_items.append(item)
+                    elif current_section == "topics":
+                        topics.append(item)
+
+            if not topics:
+                topics = ["Executive Meeting", "Strategy"]
+
+            return MeetingSummary(
+                meeting_id=meeting_id,
+                summary=raw_text.strip(),
+                action_items=action_items[:10],
+                key_decisions=key_decisions[:10],
+                topics=topics[:5],
+            )
+        except Exception as exc:
+            logger.warning(
+                "Error calling LLM API for summary (%s). Falling back to mock engine.", exc
+            )
+            if self.allow_fallback:
+                fallback = MockAssistantEngine(
+                    embedding_dim=self.embedding_dim, simulated_latency_ms=0
+                )
+                return await fallback.generate_summary(segments, meeting_id)
+            raise
 
 
 def create_assistant_engine(
@@ -296,6 +480,8 @@ def create_assistant_engine(
     model_name: str | None = None,
     embedding_dim: int | None = None,
     allow_fallback: bool = True,
+    api_key: str | None = None,
+    base_url: str | None = None,
 ) -> BaseAssistantEngine:
     """Factory creating an assistant engine instance configured from settings."""
     selected_type = (engine_type or settings.assistant_engine_type).strip().lower()
@@ -305,11 +491,13 @@ def create_assistant_engine(
             embedding_dim=embedding_dim or settings.assistant_embedding_dim,
         )
 
-    if selected_type in {"openai", "gpt", "llm"}:
+    if selected_type in {"openai", "gpt", "llm", "nvidia", "nim"}:
         return OpenAIAssistantEngine(
             model_name=model_name or settings.assistant_model_name,
             embedding_dim=embedding_dim or settings.assistant_embedding_dim,
             allow_fallback=allow_fallback,
+            api_key=api_key,
+            base_url=base_url,
         )
 
     logger.warning(

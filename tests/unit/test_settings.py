@@ -73,3 +73,31 @@ def test_production_settings_success() -> None:
     assert cfg.app_env == "production"
     assert cfg.stt_engine_type == "whisper"
     assert cfg.tts_engine_type == "piper"
+
+
+@pytest.mark.unit
+def test_nvidia_settings_configuration() -> None:
+    """Verifies that NVIDIA NIM configuration parameters are properly parsed."""
+    cfg = Settings(
+        APP_ENV="development",
+        NVIDIA_API_KEY="nvapi-test-key-12345",
+        NVIDIA_BASE_URL="https://integrate.api.nvidia.com/v1",
+        ASSISTANT_ENGINE_TYPE="nvidia",
+        ASSISTANT_MODEL_NAME="meta/llama-3.1-8b-instruct",
+    )
+    assert cfg.nvidia_api_key == "nvapi-test-key-12345"
+    assert cfg.nvidia_base_url == "https://integrate.api.nvidia.com/v1"
+    assert cfg.assistant_engine_type == "nvidia"
+    assert cfg.assistant_model_name == "meta/llama-3.1-8b-instruct"
+
+
+@pytest.mark.unit
+def test_database_url_normalization() -> None:
+    """Verifies that postgresql:// URLs are automatically normalized to postgresql+asyncpg://."""
+    cfg = Settings(
+        APP_ENV="development",
+        DATABASE_URL="postgresql://user:pass@localhost:5432/test_db",
+        DIRECT_URL="postgresql://user:pass@localhost:5432/direct_db",
+    )
+    assert cfg.database_url.startswith("postgresql+asyncpg://")
+    assert cfg.direct_url.startswith("postgresql+asyncpg://")

@@ -271,7 +271,7 @@ async def test_redis_presence_tracking() -> None:
         role=ParticipantRole.HOST,
     )
 
-    # 1. Connect participant -> should sadd & set presence key
+    # 1. Connect participant -> should SADD & set presence key
     await manager.connect("meeting-redis-1", "part-redis-1", session)
     mock_redis.sadd.assert_awaited_once_with("presence:meeting:meeting-redis-1", "part-redis-1")
     mock_redis.set.assert_awaited_once_with(
@@ -280,7 +280,7 @@ async def test_redis_presence_tracking() -> None:
         ex=300,
     )
 
-    # 2. Disconnect participant -> should srem & delete presence key
+    # 2. Disconnect participant -> should SREM & delete presence key
     await manager.disconnect("meeting-redis-1", "part-redis-1")
     mock_redis.srem.assert_awaited_once_with("presence:meeting:meeting-redis-1", "part-redis-1")
     mock_redis.delete.assert_awaited_once_with("presence:meeting:meeting-redis-1:part-redis-1")

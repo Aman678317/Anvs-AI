@@ -17,12 +17,14 @@
     "typecheck": "turbo run typecheck",
     "test": "turbo run test",
     "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md,yml,yaml}\"",
-    "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,json,md,yml,yaml}\""
+    "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,json,md,yml,yaml}\"",
+    "postinstall": "prisma skills sync || exit 0"
   },
   "devDependencies": {
     "prettier": "^3.2.5",
     "turbo": "^1.13.3",
-    "typescript": "^5.4.5"
+    "typescript": "^5.4.5",
+    "prisma": "8.0.0-rc.15"
   },
   "engines": {
     "node": ">=20.0.0",

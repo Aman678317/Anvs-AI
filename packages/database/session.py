@@ -23,12 +23,30 @@ def get_async_engine(database_url: str | None = None) -> AsyncEngine:
     global _engine
     if _engine is None:
         target_url = database_url or settings.database_url
+        if target_url.startswith("postgresql://"):
+            target_url = "postgresql+asyncpg://" + target_url[len("postgresql://") :]
+
         engine_kwargs: dict[str, Any] = {
             "echo": settings.debug,
             "future": True,
         }
         # Connection pooling parameters for PostgreSQL (asyncpg)
         if "postgresql" in target_url:
+            is_pgbouncer = (
+                "pgbouncer=true" in target_url
+                or ":6543" in target_url
+                or "pooler.supabase.com" in target_url
+            )
+            # Remove pgbouncer query parameter so asyncpg.connect does not raise unexpected kwarg
+            clean_url = (
+                target_url.replace("?pgbouncer=true&", "?")
+                .replace("&pgbouncer=true", "")
+                .replace("?pgbouncer=true", "")
+            )
+            connect_args: dict[str, Any] = {}
+            if is_pgbouncer:
+                connect_args["statement_cache_size"] = 0
+
             engine_kwargs.update(
                 {
                     "pool_size": 20,
@@ -36,6 +54,10 @@ def get_async_engine(database_url: str | None = None) -> AsyncEngine:
                     "pool_pre_ping": True,
                 }
             )
+            if connect_args:
+                engine_kwargs["connect_args"] = connect_args
+            target_url = clean_url
+
         _engine = create_async_engine(target_url, **engine_kwargs)
     return _engine
 
