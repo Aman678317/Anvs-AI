@@ -82,7 +82,7 @@ Write-Host "4. Staging, Committing, and Force-Pushing to $Branch..." -Foreground
 Write-Host "=====================================================" -ForegroundColor Cyan
 
 git add -A
-git commit -m "style: format smoke test with ruff" -q
+git commit -m "feat: implement LiveKit egress integration test, latency budget CI job, doc refresh and ADRs" -q
 Write-Host "Force-pushing to origin $Branch..." -ForegroundColor Cyan
 git push --force origin "$Branch"
 

@@ -78,3 +78,66 @@ jobs:
 
       - name: Run Bandit Security Scan
         run: bandit -r services packages -ll -ii || true
+
+  livekit-egress-integration:
+    name: LiveKit Egress Integration Test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev]"
+
+      - name: Download & Run LiveKit Server
+        run: |
+          curl -sSL https://get.livekit.io | bash
+          sudo mv livekit-server /usr/local/bin/ || true
+
+      - name: Run LiveKit Egress Tests
+        run: |
+          pytest tests/integration/test_egress_live_livekit.py -v
+
+  e2e-latency-budget:
+    name: E2E Latency Budget (docker-compose)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Start Redis Container
+        run: |
+          docker run -d --name meeting_redis -p 6379:6379 redis:7.2-alpine
+
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev]" redis numpy scipy
+
+      - name: Run Smoke Assertion (PCM reaches Redis & Watermark Drop)
+        run: |
+          python infrastructure/docker/smoke/run_smoke.py
+        env:
+          REDIS_URL: redis://localhost:6379/0
+          APP_ENV: development
+
+      - name: Run Latency Budget Check
+        run: |
+          python scripts/ci_latency_budget.py
+        env:
+          REDIS_URL: redis://localhost:6379/0
+          LATENCY_BUDGET_MS: 5000
+

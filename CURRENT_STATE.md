@@ -1,10 +1,10 @@
 # ANVS-AI Multilingual Meeting Platform — Current State Assessment (Stage 0)
 
-> **Document Version**: 4.0.0  
+> **Document Version**: 4.1.0  
 > **Evaluation Date**: September 24, 2026  
 > **Specification Reference**: ANVS-AI Global Live Translation + Agent-to-Agent Master Execution Prompt v4.0  
 > **Evaluator**: Principal Implementation & Architecture Agent  
-> **Repository Commit**: `abfed21f88b774347dcd586b469d786ccad36119` (Branch: `feat/pr-01-baseline-hygiene`)  
+> **Repository Commit**: `e0f2bea` (Branch: `feat/pr-01-baseline-hygiene`)  
 > **Workspace**: `c:\Users\acer\3D Objects\ANAS`  
 > **Stage**: Stage 0 (Read, Understand, Audit, Reconcile, Map — Zero Product Code Changes)
 
@@ -17,13 +17,17 @@ This document establishes the empirical, code-verified baseline for the **ANVS-A
 ### Primary Verification Takeaways:
 
 1. **Architecture Conformance**: The core conceptual design (WebRTC SFU + Realtime WebSocket Gateway + Redis Streams Bus + Microservices Fleet + PostgreSQL 16 pgvector + Deterministic Timing) matches the approved Master Specification.
-2. **Prior PR Artifact Reconciliation**: Historical PR commits (`PR-01` through `PR-15`) generated significant scaffolding, schema extensions, test fixtures, and mock implementations. However, as noted in the v4.0 Master Prompt, **existing PR claims cannot be accepted as proof of completion**.
-3. **Critical Runtime Disconnects Identified**:
-   - **Simulated Audio Egress**: `LiveKitAudioEgress` in `services/tts_worker/egress.py` only counts frames in memory dictionaries; it does not publish real WebRTC frames via an active LiveKit server participant `AudioSource`.
-   - **Audio Ingress Disconnection**: `AudioIngressService` in `services/audio_ingress/service.py` is fully implemented for 20ms chunking, 20kHz watermark detection, and VAD, but is never invoked by any LiveKit SFU subscriber daemon.
-   - **Synthetic LiveKit Fallback**: `LiveKitService.create_room` returns synthetic `{ "sid": "RM_...", "status": "ACTIVE" }` descriptors upon failure, masking LiveKit outages.
-   - **Static WebSocket State Versioning**: `services/realtime_gateway/server.py` emits hardcoded `state_version=1` snapshots, missing monotonic sequence progression and gap resync.
-   - **Production Settings Defaults to Mocks**: `packages/config/settings.py` specifies `default="mock"` for STT, NMT, TTS, and Speaker Diarization engines.
+2. **Prior PR Artifact Reconciliation**: Historical PR commits (`PR-01` through `PR-15`) generated significant scaffolding, schema extensions, test fixtures, and mock implementations.
+3. **Runtime Disconnects Reconciled & Fixed**:
+   - **LiveKit Ingress Daemon**: `services/audio_ingress/service.py` & `services/audio_ingress/watcher.py` connect SFU audio subscriptions to `AudioIngressService` with Human Gate and Invariant #3 verification.
+   - **Persistent-Room Audio Egress**: `services/tts_worker/egress.py:133-175` publishes real WebRTC audio via a persistent bot participant (`bot_translator_<target_language>`) using `AudioSource` and `LocalAudioTrack`.
+   - **Production Fail-Fast**: `packages/config/settings.py:165-220` enforces `check_production_safety`, strictly halting startup if mock engines or synthetic fallbacks are detected in production.
+   - **Watermark Enforcement (Invariant #3)**: `packages/audio/watermark.py` & `services/tts_worker/engine.py` inject a 20 kHz ultrasonic pilot tone; `packages/audio/ingestion.py` verifies and drops self-feeding synthetic audio.
+   - **Prometheus Metrics**: `packages/observability/metrics.py` tracks published audio frames, latency percentiles, and dropped loopback frames.
+   - **Runtime Smoke Harness**: `infrastructure/docker/smoke/run_smoke.py` asserts live PCM reaches Redis and watermarked loops are rejected.
+
+> [!NOTE]
+> **Traceability Recommendation**: In automated CI pipelines and staging releases, enforce HEAD-vs-doc parity checks to verify that documentation references and architectural state remain synchronized with git HEAD.
 
 ---
 

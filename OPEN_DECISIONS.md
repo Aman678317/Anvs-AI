@@ -24,7 +24,7 @@
   1. _Option A_: Use the official Python `livekit` and `livekit.rtc` package: join the room as a headless bot participant (`identity="bot_translator_en"`), initialize an `AudioSource`, create a `LocalAudioTrack`, and push 20ms PCM frames.
   2. _Option B_: Use LiveKit Egress/Ingress service via RTMP/GStreamer.
 - **Recommended Path**: **Option A**. Joining as a dedicated server-side bot participant with an `AudioSource` provides direct programmatic frame-level control, lowest latency (<50ms pipeline overhead), and audience-scoped track subscription metadata.
-- **Status**: **PROPOSED FOR PR-12**.
+- **Status**: **DECIDED WITH ADR** (Accepted — see [`docs/adr/ADR-001-livekit-bot-publication.md`](docs/adr/ADR-001-livekit-bot-publication.md)).
 
 ### DEC-03: Piper ONNX vs Coqui XTTS-v2 for Production Speech Synthesis
 
@@ -33,7 +33,7 @@
   1. _Option A_: Standardize on Piper ONNX as the primary real-time TTS engine, using XTTS-v2 strictly for optional high-fidelity voice cloning when requested with user consent.
   2. _Option B_: Retain XTTS-v2 as the only engine.
 - **Recommended Path**: **Option A**. Piper ONNX guarantees the 1.5s–2.5s end-to-end latency budget and high concurrency without requiring prohibitive multi-GPU infrastructure.
-- **Status**: **PROPOSED FOR PR-12**.
+- **Status**: **PROPOSED WITH ADR** (Option A — see [`docs/adr/ADR-002-piper-vs-xtts.md`](docs/adr/ADR-002-piper-vs-xtts.md)).
 
 ### DEC-04: Nyquist-Compliant Ultrasonic Watermark Detection Strategy
 
