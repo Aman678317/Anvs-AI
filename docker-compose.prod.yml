@@ -102,6 +102,70 @@ services:
     networks:
       - meeting_prod_net
 
+  # --- Media Ingress Tier (P0 runtime wiring) ---
+  audio-ingress:
+    build:
+      context: .
+      dockerfile: services/audio_ingress/Dockerfile
+    container_name: meeting_prod_audio_ingress
+    restart: always
+    environment:
+      APP_ENV: production
+      REDIS_URL: redis://redis:6379/0
+      LIVEKIT_URL: ws://livekit:7880
+      LIVEKIT_API_KEY: ${LIVEKIT_API_KEY:?set LIVEKIT_API_KEY in .env}
+      LIVEKIT_API_SECRET: ${LIVEKIT_API_SECRET:?set LIVEKIT_API_SECRET in .env}
+      MEETING_ID: ${SMOKE_MEETING_ID:-default_meeting}
+      INGRESS_API_URL: http://api:8000
+      INGRESS_API_TOKEN: ${INGRESS_API_TOKEN:-}
+      INGRESS_DISCOVERY_INTERVAL_SEC: "10"
+      # Fail-fast guard (P0): the ingress daemon performs no AI inference, so
+      # pin engine selectors to non-mock sentinels. This makes the container
+      # crash at startup if the operator forgot to configure real engines for
+      # the fleet instead of silently running a mock-only pipeline elsewhere.
+      STT_ENGINE_TYPE: ${STT_ENGINE_TYPE:?set STT_ENGINE_TYPE in .env}
+      NMT_ENGINE_TYPE: ${NMT_ENGINE_TYPE:?set NMT_ENGINE_TYPE in .env}
+      TTS_ENGINE_TYPE: ${TTS_ENGINE_TYPE:?set TTS_ENGINE_TYPE in .env}
+      SPEAKER_ENGINE_TYPE: ${SPEAKER_ENGINE_TYPE:?set SPEAKER_ENGINE_TYPE in .env}
+      ASSISTANT_ENGINE_TYPE: ${ASSISTANT_ENGINE_TYPE:?set ASSISTANT_ENGINE_TYPE in .env}
+      API_SECRET_KEY: ${API_SECRET_KEY:?set API_SECRET_KEY in .env}
+      SUPABASE_JWT_SECRET: ${SUPABASE_JWT_SECRET:?set SUPABASE_JWT_SECRET in .env}
+    depends_on:
+      redis:
+        condition: service_healthy
+      livekit:
+        condition: service_started
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 1024M
+    networks:
+      - meeting_prod_net
+
+  # --- Compose Smoke Test Harness (CI: asserts PCM reaches Redis) ---
+  # Runs synthetic human speech through AudioIngressService against the real
+  # redis container and fails non-zero unless the source-segment stream depth
+  # for the meeting becomes > 0. Enable with: docker compose --profile smoke ...
+  smoke:
+    profiles: ["smoke"]
+    build:
+      context: .
+      dockerfile: infrastructure/docker/smoke/Dockerfile
+    container_name: meeting_prod_smoke
+    restart: "no"
+    environment:
+      APP_ENV: development
+      REDIS_URL: redis://redis:6379/0
+      MEETING_ID: ${SMOKE_MEETING_ID:-smoke_meeting}
+    depends_on:
+      redis:
+        condition: service_healthy
+      audio-ingress:
+        condition: service_started
+    networks:
+      - meeting_prod_net
+
   # --- Application Services ---
   api:
     build:
@@ -114,8 +178,15 @@ services:
       DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-prod_secure_password}@postgres:5432/${POSTGRES_DB:-meeting_platform}
       REDIS_URL: redis://redis:6379/0
       LIVEKIT_URL: http://livekit:7880
-      LIVEKIT_API_KEY: ${LIVEKIT_API_KEY:-devkey}
-      LIVEKIT_API_SECRET: ${LIVEKIT_API_SECRET:-secret}
+      LIVEKIT_API_KEY: ${LIVEKIT_API_KEY:?set LIVEKIT_API_KEY in .env}
+      LIVEKIT_API_SECRET: ${LIVEKIT_API_SECRET:?set LIVEKIT_API_SECRET in .env}
+      API_SECRET_KEY: ${API_SECRET_KEY:?set API_SECRET_KEY in .env}
+      SUPABASE_JWT_SECRET: ${SUPABASE_JWT_SECRET:?set SUPABASE_JWT_SECRET in .env}
+      STT_ENGINE_TYPE: ${STT_ENGINE_TYPE:?set STT_ENGINE_TYPE in .env}
+      NMT_ENGINE_TYPE: ${NMT_ENGINE_TYPE:?set NMT_ENGINE_TYPE in .env}
+      TTS_ENGINE_TYPE: ${TTS_ENGINE_TYPE:?set TTS_ENGINE_TYPE in .env}
+      SPEAKER_ENGINE_TYPE: ${SPEAKER_ENGINE_TYPE:?set SPEAKER_ENGINE_TYPE in .env}
+      ASSISTANT_ENGINE_TYPE: ${ASSISTANT_ENGINE_TYPE:?set ASSISTANT_ENGINE_TYPE in .env}
     ports:
       - "8000:8000"
     depends_on:

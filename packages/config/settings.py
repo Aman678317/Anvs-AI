@@ -61,6 +61,14 @@ class Settings(BaseSettings):
     livekit_api_key: str = Field(default="devkey", alias="LIVEKIT_API_KEY")
     livekit_api_secret: str = Field(default="secret", alias="LIVEKIT_API_SECRET")
 
+    # Runtime Daemon Wiring (P0)
+    meeting_id: str = Field(
+        default="default_meeting",
+        alias="MEETING_ID",
+        description="Static meeting/room id used by single-room daemons "
+        "(audio-ingress watcher bot, compose smoke harness).",
+    )
+
     # Audio Pipeline Invariants
     audio_sample_rate: int = Field(default=16000, alias="AUDIO_INCOMING_SAMPLE_RATE")
     audio_channels: int = Field(default=1, alias="AUDIO_CHANNELS")
@@ -223,6 +231,15 @@ class Settings(BaseSettings):
                 raise ValueError(
                     "Production environment cannot use default SUPABASE_JWT_SECRET. "
                     "Provide a secure secret of at least 32 characters."
+                )
+            # Prohibit placeholder LiveKit SFU credentials in production (P0 wiring):
+            # every daemon (api, audio-ingress, tts egress) shares these values and
+            # must be able to authenticate against the real SFU.
+            if self.livekit_api_key == "devkey" or self.livekit_api_secret == "secret":
+                raise ValueError(
+                    "Production environment cannot use placeholder LIVEKIT_API_KEY / "
+                    "LIVEKIT_API_SECRET defaults ('devkey'/'secret'). Provide real "
+                    "LiveKit Server API credentials."
                 )
         return self
 
