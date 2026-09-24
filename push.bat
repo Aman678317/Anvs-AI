@@ -71,7 +71,7 @@ echo 4. Staging, Committing, and Force Pushing to feat/pr-01-baseline-hygiene...
 echo =====================================================
 
 git add -A
-git commit -m "style: format files with prettier and configure prettierignore for agent skills"
+git commit -m "style: format smoke test with ruff"
 git push --force origin feat/pr-01-baseline-hygiene
 
 echo =====================================================
