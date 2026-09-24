@@ -1,5 +1,23 @@
 @echo off
 echo =====================================================
+echo 0. Eradicating Legacy Duplicate Trees & Dead Artifacts...
+echo =====================================================
+
+if exist "services\assistant-worker" rd /s /q "services\assistant-worker"
+if exist "services\realtime-gateway" rd /s /q "services\realtime-gateway"
+if exist "services\speaker-worker" rd /s /q "services\speaker-worker"
+if exist "services\stt-worker" rd /s /q "services\stt-worker"
+if exist "services\translation-worker" rd /s /q "services\translation-worker"
+if exist "services\tts-worker" rd /s /q "services\tts-worker"
+if exist "services\voice-worker" rd /s /q "services\voice-worker"
+if exist "packages\event-schema" rd /s /q "packages\event-schema"
+if exist "packages\language-registry" rd /s /q "packages\language-registry"
+if exist "packages\contracts\models.py" del /f /q "packages\contracts\models.py"
+if exist "apps\web\src\index.ts" del /f /q "apps\web\src\index.ts"
+if exist "apps\admin\src\index.ts" del /f /q "apps\admin\src\index.ts"
+if exist "ai-content-agent.db" del /f /q "ai-content-agent.db"
+
+echo =====================================================
 echo 1. Auto-formatting with Prettier (TS/JS/MD/JSON/YAML)...
 echo =====================================================
 
@@ -56,7 +74,7 @@ echo 5. Staging, Committing, and Pushing to HEAD...
 echo =====================================================
 
 git add -A
-git commit -m "feat(pr-15): production hardening ga certification vertical slices and realtime lifecycle suites"
+git commit -m "feat(pr-15): production hardening ga certification, vertical slices and ponytail cleanup"
 git push origin HEAD
 
 echo.

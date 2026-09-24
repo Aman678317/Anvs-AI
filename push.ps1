@@ -1,4 +1,30 @@
 Write-Host "=====================================================" -ForegroundColor Cyan
+Write-Host "0. Eradicating Legacy Duplicate Trees & Dead Artifacts..." -ForegroundColor Cyan
+Write-Host "=====================================================" -ForegroundColor Cyan
+
+$DeadPaths = @(
+    "services/assistant-worker",
+    "services/realtime-gateway",
+    "services/speaker-worker",
+    "services/stt-worker",
+    "services/translation-worker",
+    "services/tts-worker",
+    "services/voice-worker",
+    "packages/event-schema",
+    "packages/language-registry",
+    "packages/contracts/models.py",
+    "apps/web/src/index.ts",
+    "apps/admin/src/index.ts",
+    "ai-content-agent.db"
+)
+foreach ($p in $DeadPaths) {
+    if (Test-Path $p) {
+        Remove-Item -Recurse -Force $p
+        Write-Host "Pruned dead path: $p" -ForegroundColor Green
+    }
+}
+
+Write-Host "=====================================================" -ForegroundColor Cyan
 Write-Host "1. Auto-formatting with Prettier (TS/JS/MD/JSON/YAML)..." -ForegroundColor Cyan
 Write-Host "=====================================================" -ForegroundColor Cyan
 
@@ -51,7 +77,7 @@ Write-Host "5. Staging, Committing, and Pushing to HEAD..." -ForegroundColor Cya
 Write-Host "=====================================================" -ForegroundColor Cyan
 
 git add -A
-git commit -m "feat(pr-15): production hardening ga certification vertical slices and realtime lifecycle suites"
+git commit -m "feat(pr-15): production hardening ga certification, vertical slices and ponytail cleanup"
 git push origin HEAD
 
 Write-Host "=====================================================" -ForegroundColor Green
