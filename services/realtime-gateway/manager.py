@@ -1,1 +1,0 @@
-"""Realtime Gateway Connection Manager."""

@@ -1,4 +1,30 @@
 Write-Host "=====================================================" -ForegroundColor Cyan
+Write-Host "0. Eradicating Legacy Duplicate Trees & Dead Artifacts..." -ForegroundColor Cyan
+Write-Host "=====================================================" -ForegroundColor Cyan
+
+$DeadPaths = @(
+    "services/assistant-worker",
+    "services/realtime-gateway",
+    "services/speaker-worker",
+    "services/stt-worker",
+    "services/translation-worker",
+    "services/tts-worker",
+    "services/voice-worker",
+    "packages/event-schema",
+    "packages/language-registry",
+    "packages/contracts/models.py",
+    "apps/web/src/index.ts",
+    "apps/admin/src/index.ts",
+    "ai-content-agent.db"
+)
+foreach ($p in $DeadPaths) {
+    if (Test-Path $p) {
+        Remove-Item -Recurse -Force $p
+        Write-Host "Pruned dead path: $p" -ForegroundColor Green
+    }
+}
+
+Write-Host "=====================================================" -ForegroundColor Cyan
 Write-Host "1. Auto-formatting with Prettier (TS/JS/MD/JSON/YAML)..." -ForegroundColor Cyan
 Write-Host "=====================================================" -ForegroundColor Cyan
 
@@ -40,7 +66,7 @@ Write-Host "=====================================================" -ForegroundCo
 Write-Host "4. Running Unit and Contract Test Suites..." -ForegroundColor Cyan
 Write-Host "=====================================================" -ForegroundColor Cyan
 
-pytest tests/unit/test_settings.py tests/unit/test_event_schemas.py tests/unit/test_websocket_gateway.py tests/unit/test_livekit_service.py tests/contract/test_event_contracts.py tests/unit/test_livekit_audio_subscriber.py tests/unit/test_audio_ingress_service.py tests/unit/test_audio_ingestion.py tests/unit/test_stt_worker.py tests/unit/test_translation_worker.py tests/contract/test_translation_contracts.py tests/unit/test_tts_worker.py tests/contract/test_tts_contracts.py tests/chaos/test_pipeline_chaos_resilience.py tests/unit/test_assistant_worker.py tests/unit/test_assistant_memory.py tests/contract/test_assistant_contracts.py tests/realtime/test_websocket_realtime_lifecycle.py tests/integration/test_platform_integration.py tests/integration/test_vertical_slices.py tests/security/test_security_audit.py -v
+pytest tests/unit/test_settings.py tests/unit/test_event_schemas.py tests/unit/test_websocket_gateway.py tests/unit/test_livekit_service.py tests/unit/test_livekit_webhooks.py tests/contract/test_event_contracts.py tests/unit/test_livekit_audio_subscriber.py tests/unit/test_audio_ingress_service.py tests/unit/test_audio_ingestion.py tests/unit/test_stt_worker.py tests/unit/test_translation_worker.py tests/contract/test_translation_contracts.py tests/unit/test_tts_worker.py tests/contract/test_tts_contracts.py tests/chaos/test_pipeline_chaos_resilience.py tests/load/test_load_concurrency.py tests/unit/test_assistant_worker.py tests/unit/test_assistant_memory.py tests/contract/test_assistant_contracts.py tests/realtime/test_websocket_realtime_lifecycle.py tests/integration/test_platform_integration.py tests/integration/test_vertical_slices.py tests/security/test_security_audit.py -v
 if ($LASTEXITCODE -ne 0) {
     Write-Host "❌ Tests failed! Aborting git commit and push." -ForegroundColor Red
     exit $LASTEXITCODE
@@ -51,7 +77,7 @@ Write-Host "5. Staging, Committing, and Pushing to HEAD..." -ForegroundColor Cya
 Write-Host "=====================================================" -ForegroundColor Cyan
 
 git add -A
-git commit -m "feat(pr-15): production hardening ga certification vertical slices and realtime lifecycle suites"
+git commit -m "feat(pr-15): production hardening ga certification, vertical slices and ponytail cleanup"
 git push origin HEAD
 
 Write-Host "=====================================================" -ForegroundColor Green
