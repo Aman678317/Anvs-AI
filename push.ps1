@@ -1,3 +1,7 @@
+param(
+    [string]$Branch = "general-improvement-suggestions-8f49d"
+)
+
 Write-Host "=====================================================" -ForegroundColor Cyan
 Write-Host "0. Eradicating Legacy Duplicate Trees & Dead Artifacts..." -ForegroundColor Cyan
 Write-Host "=====================================================" -ForegroundColor Cyan
@@ -79,13 +83,18 @@ if ($LASTEXITCODE -ne 0) {
 }
 
 Write-Host "=====================================================" -ForegroundColor Cyan
-Write-Host "5. Staging, Committing, and Pushing to HEAD..." -ForegroundColor Cyan
+Write-Host "5. Staging, Committing, and Pushing to $Branch..." -ForegroundColor Cyan
 Write-Host "=====================================================" -ForegroundColor Cyan
 
 git add -A
 git commit -m "style: format files with prettier and configure prettierignore for agent skills"
-git push origin HEAD
+Write-Host "Pushing to origin $Branch..." -ForegroundColor Cyan
+git push origin HEAD:$Branch
+if ($LASTEXITCODE -ne 0) {
+    Write-Host "⚠️ Direct ref push to $Branch exited with code $LASTEXITCODE. Trying git push origin HEAD..." -ForegroundColor Yellow
+    git push origin HEAD
+}
 
 Write-Host "=====================================================" -ForegroundColor Green
-Write-Host "Process complete! Successfully formatted, tested, and pushed to origin HEAD." -ForegroundColor Green
+Write-Host "Process complete! Successfully formatted, tested, and pushed to origin $Branch." -ForegroundColor Green
 Write-Host "=====================================================" -ForegroundColor Green
