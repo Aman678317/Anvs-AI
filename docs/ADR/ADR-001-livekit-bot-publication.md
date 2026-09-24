@@ -32,6 +32,7 @@ To satisfy **Invariant #3** and production requirements, synthesized audio must 
 **Chosen Option: Option A**
 
 The platform standardizes on persistent per-meeting bot participants joining via native `livekit.rtc`:
+
 1. **Single Publishing Path**: Handled exclusively in [`services/tts_worker/egress.py`](../../services/tts_worker/egress.py) by `LiveKitAudioEgress`.
 2. **Dedicated Track Ownership**: The bot participant connects to `room_{meeting_id}`, provisions an `AudioSource(sample_rate=48000, num_channels=1)`, and publishes a `LocalAudioTrack` named `live_translation_{target_language}`.
 3. **Graceful Fallback Outside Production**: When running in development or unit tests without an active LiveKit server, the engine degrades to a simulated metrics tracker. In production (`APP_ENV=production`), any connection or publishing failure immediately raises `ConnectionError`.

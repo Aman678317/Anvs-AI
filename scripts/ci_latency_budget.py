@@ -10,6 +10,7 @@ Exits 0 if latency is within budget; exits 1 if budget exceeded.
 """
 
 import asyncio
+import contextlib
 import os
 import sys
 import time
@@ -17,7 +18,6 @@ import uuid
 
 from packages.event_schema.bus import (
     STREAM_SYNTHESIZED_AUDIO,
-    STREAM_TRANSLATIONS,
     STREAM_TRANSCRIPTS,
     RedisStreamBus,
     get_stream_key,
@@ -34,10 +34,8 @@ async def measure_pipeline_latency(bus: RedisStreamBus, meeting_id: str) -> floa
     synthesized_stream = get_stream_key(meeting_id, STREAM_SYNTHESIZED_AUDIO)
 
     # Clean existing streams if present
-    try:
+    with contextlib.suppress(Exception):
         await bus.client.delete(transcripts_stream, synthesized_stream)
-    except Exception:
-        pass
 
     segment_id = str(uuid.uuid4())
     event = SourceSegmentEvent(
@@ -82,10 +80,14 @@ async def main() -> int:
         print(f"Measured speak-to-playable latency: {latency_ms:.2f} ms")
 
         if latency_ms <= LATENCY_BUDGET_MS:
-            print(f"SUCCESS: Pipeline latency ({latency_ms:.1f}ms) within budget ({LATENCY_BUDGET_MS}ms).")
+            print(
+                f"SUCCESS: Pipeline latency ({latency_ms:.1f}ms) within budget ({LATENCY_BUDGET_MS}ms)."
+            )
             return 0
         else:
-            print(f"FAILURE: Pipeline latency ({latency_ms:.1f}ms) exceeded budget ({LATENCY_BUDGET_MS}ms)!")
+            print(
+                f"FAILURE: Pipeline latency ({latency_ms:.1f}ms) exceeded budget ({LATENCY_BUDGET_MS}ms)!"
+            )
             return 1
     except Exception as exc:
         print(f"Latency test error: {exc}")

@@ -11,6 +11,7 @@ Skips gracefully if the livekit-server binary is not present in the runtime envi
 """
 
 import asyncio
+import contextlib
 import shutil
 import uuid
 
@@ -55,15 +56,14 @@ async def livekit_test_server():
         yield
     finally:
         if proc:
-            try:
+            with contextlib.suppress(Exception):
                 proc.terminate()
                 await proc.wait()
-            except Exception:
-                pass
 
 
 @pytest.mark.asyncio
-async def test_livekit_egress_bot_joins_and_publishes_track(livekit_test_server) -> None:
+@pytest.mark.usefixtures("livekit_test_server")
+async def test_livekit_egress_bot_joins_and_publishes_track() -> None:
     """Asserts bot participant connects to room, publishes track, and handles audio segments."""
     meeting_id = f"test_live_{uuid.uuid4().hex[:8]}"
     target_language = "spa"
@@ -118,7 +118,8 @@ async def test_livekit_egress_bot_joins_and_publishes_track(livekit_test_server)
 
 
 @pytest.mark.asyncio
-async def test_livekit_egress_teardown_clean_disconnect(livekit_test_server) -> None:
+@pytest.mark.usefixtures("livekit_test_server")
+async def test_livekit_egress_teardown_clean_disconnect() -> None:
     """Asserts meeting cleanup disconnects the persistent bot participant and removes tracks."""
     meeting_id = f"test_live_{uuid.uuid4().hex[:8]}"
 

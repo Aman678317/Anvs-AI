@@ -11,6 +11,7 @@
 ## Context and Problem Statement
 
 The speech synthesis layer converts translated text into natural audio for listener playback. Two primary model families were evaluated:
+
 1. **Coqui XTTS-v2**: Autoregressive neural voice cloning with ~4GB VRAM footprint per worker, ~800ms time-to-first-chunk latency, and an archived upstream repository.
 2. **Piper TTS**: Fast local neural text-to-speech optimized for ONNX Runtime with CPU/GPU execution, <150ms synthesis latency, and 40+ supported languages.
 

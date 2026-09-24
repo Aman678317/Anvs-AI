@@ -39,9 +39,10 @@ if %ERRORLEVEL% NEQ 0 (
 )
 
 echo =====================================================
-echo 2. Auto-formatting Python Code with Ruff...
+echo 2. Auto-fixing & Auto-formatting Python Code with Ruff...
 echo =====================================================
 
+call ruff check --fix .
 call ruff format .
 
 echo =====================================================
@@ -71,7 +72,7 @@ echo 4. Staging, Committing, and Force Pushing to feat/pr-01-baseline-hygiene...
 echo =====================================================
 
 git add -A
-git commit -m "feat: implement LiveKit egress integration test, latency budget CI job, doc refresh and ADRs"
+git commit -m "fix: remove invalid livekit-server-sdk dependency, resolve 500 room creation, and configure Render"
 git push --force origin feat/pr-01-baseline-hygiene
 
 echo =====================================================

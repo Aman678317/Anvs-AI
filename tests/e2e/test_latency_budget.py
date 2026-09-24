@@ -5,6 +5,7 @@ completes within the configured latency budget (LATENCY_BUDGET_MS, default 5000m
 """
 
 import asyncio
+import contextlib
 import uuid
 
 import pytest
@@ -58,8 +59,6 @@ async def test_e2e_pipeline_latency_budget_compliance() -> None:
 
         assert measured_latency <= budget_ms
     finally:
-        try:
+        with contextlib.suppress(Exception):
             await bus.client.delete(transcripts_stream, synthesized_stream)
-        except Exception:
-            pass
         await bus.disconnect()

@@ -50,9 +50,10 @@ if ($LASTEXITCODE -ne 0) {
 }
 
 Write-Host "=====================================================" -ForegroundColor Cyan
-Write-Host "2. Auto-formatting Python Code with Ruff..." -ForegroundColor Cyan
+Write-Host "2. Auto-fixing & Auto-formatting Python Code with Ruff..." -ForegroundColor Cyan
 Write-Host "=====================================================" -ForegroundColor Cyan
 
+ruff check --fix .
 ruff format .
 
 Write-Host "=====================================================" -ForegroundColor Cyan
@@ -82,7 +83,7 @@ Write-Host "4. Staging, Committing, and Force-Pushing to $Branch..." -Foreground
 Write-Host "=====================================================" -ForegroundColor Cyan
 
 git add -A
-git commit -m "feat: implement LiveKit egress integration test, latency budget CI job, doc refresh and ADRs" -q
+git commit -m "fix: remove invalid livekit-server-sdk dependency, resolve 500 room creation, and configure Render" -q
 Write-Host "Force-pushing to origin $Branch..." -ForegroundColor Cyan
 git push --force origin "$Branch"
 
