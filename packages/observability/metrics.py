@@ -98,6 +98,13 @@ watermark_detections_total = Counter(
     registry=REGISTRY,
 )
 
+egress_publish_errors_total = Counter(
+    "egress_publish_errors_total",
+    "LiveKit SFU egress publication/connection errors routed to the DLQ",
+    ["stage"],
+    registry=REGISTRY,
+)
+
 # -----------------------------------------------------------------------------
 # 3. Queue Depth & Liveness Gauges
 # -----------------------------------------------------------------------------

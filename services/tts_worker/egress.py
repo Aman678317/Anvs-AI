@@ -24,6 +24,7 @@ from typing import Any
 from packages.audio.framing import AudioChunker, float32_to_pcm_s16le, pcm_s16le_to_float32
 from packages.config.settings import settings
 from packages.event_schema import AudioSegmentEvent
+from packages.observability.metrics import egress_publish_errors_total
 
 logger = logging.getLogger(__name__)
 
@@ -155,6 +156,8 @@ class LiveKitAudioEgress:
                     )
                     return room
                 except Exception as exc:
+                    self.metrics["errors_count"] += 1
+                    egress_publish_errors_total.labels(stage="room_connect").inc()
                     logger.error("LiveKit egress room connect failed for %s: %s", meeting_id, exc)
                     if _is_production():
                         raise ConnectionError(
@@ -234,6 +237,8 @@ class LiveKitAudioEgress:
                         meeting_id,
                     )
                 except Exception as exc:
+                    self.metrics["errors_count"] += 1
+                    egress_publish_errors_total.labels(stage="track_publish").inc()
                     logger.error(
                         "Native LiveKit track publication failed for %s: %s", track_name, exc
                     )
@@ -285,15 +290,26 @@ class LiveKitAudioEgress:
         frame_bytes = float32_to_pcm_s16le(frame)
         source = track.get("audio_source")
         if source is not None and hasattr(source, "capture_frame"):
-            import livekit.rtc as lk_rtc
+            try:
+                import livekit.rtc as lk_rtc
 
-            audio_frame = lk_rtc.AudioFrame(
-                data=frame_bytes,
-                sample_rate=sample_rate,
-                num_channels=self.num_channels,
-                samples_per_channel=len(frame),
-            )
-            source.capture_frame(audio_frame)
+                audio_frame = lk_rtc.AudioFrame(
+                    data=frame_bytes,
+                    sample_rate=sample_rate,
+                    num_channels=self.num_channels,
+                    samples_per_channel=len(frame),
+                )
+                source.capture_frame(audio_frame)
+            except Exception as exc:
+                self.metrics["errors_count"] += 1
+                egress_publish_errors_total.labels(stage="frame_capture").inc()
+                logger.error(
+                    "LiveKit AudioSource frame capture failed (meeting=%s lang=%s): %s",
+                    track.get("meeting_id"),
+                    track.get("target_language"),
+                    exc,
+                )
+                raise
         return frame_bytes
 
     async def publish_audio_segment(
@@ -378,24 +394,47 @@ class LiveKitAudioEgress:
         """Publishes raw audio samples directly to the audience egress track.
 
         This is the single canonical low-level push API used by vertical-slice
-        tests and direct producers; it routes through the same published
-        AudioSource as :meth:`publish_audio_segment` (no separate simulated
-        accounting path exists).
+        tests and direct producers; it routes through the exact same
+        :class:`AudioChunker` + published ``AudioSource`` capture path as
+        :meth:`publish_audio_segment` — there is no separate simulated
+        accounting path.
+
+        Returns:
+            Number of 20ms WebRTC frames captured into the published track
+            (0 for empty input). Truthy/falsy semantics match the historical
+            boolean contract used by callers.
         """
-        track = await self.get_or_create_track(meeting_id, target_language)
         num_samples = len(audio_pcm) if hasattr(audio_pcm, "__len__") else 0
-        if num_samples > 0:
-            frame_bytes = self._capture_frame_to_source(track, audio_pcm, sample_rate)
-            self.metrics["bytes_published"] += len(frame_bytes)
-        track.frames_published = track.frames_published + 1
-        self.metrics["frames_published"] += 1
+        if num_samples == 0:
+            return False
+        track = await self.get_or_create_track(meeting_id, target_language)
+
+        # Chunk into standard 20ms WebRTC frames, identical to segment publishing.
+        chunker = AudioChunker(sample_rate=sample_rate, frame_duration_ms=20)
+        frames_pushed = 0
+        for frame, _, _ in chunker.push(audio_pcm):
+            if len(frame) > 0:
+                frame_bytes = self._capture_frame_to_source(track, frame, sample_rate)
+                self.metrics["bytes_published"] += len(frame_bytes)
+                frames_pushed += 1
+        tail = chunker.flush()
+        if tail is not None:
+            tail_frame, _, _ = tail
+            if len(tail_frame) > 0:
+                tail_bytes = self._capture_frame_to_source(track, tail_frame, sample_rate)
+                self.metrics["bytes_published"] += len(tail_bytes)
+                frames_pushed += 1
+
+        track.frames_published = track.frames_published + frames_pushed
+        self.metrics["frames_published"] += frames_pushed
         logger.debug(
-            "Pushed %d samples (%d Hz) to track %s",
+            "Pushed %d samples (%d Hz, %d frames) to track %s",
             num_samples,
             sample_rate,
+            frames_pushed,
             target_language,
         )
-        return True
+        return frames_pushed
 
     async def cleanup_meeting(self, meeting_id: str) -> int:
         """Unpublishes tracks and disconnects the bot participant for a completed meeting."""
