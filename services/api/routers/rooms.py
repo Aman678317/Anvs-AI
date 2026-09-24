@@ -92,6 +92,35 @@ async def create_room(
 
 
 @router.get(
+    "/active",
+    summary="List active meeting rooms (audio-ingress watcher discovery)",
+)
+async def list_active_rooms(
+    _current_user: AuthenticatedUser = Depends(get_current_user),
+    session: AsyncSession = Depends(get_authenticated_tenant_session),
+) -> dict[str, Any]:
+    """Returns meetings in ACTIVE status for the current tenant.
+
+    Consumed by the audio-ingress daemon (P0 runtime wiring) to discover
+    which LiveKit rooms it should join as a subscribe-only watcher bot.
+    """
+    stmt = select(Meeting).where(Meeting.status == MeetingStatus.ACTIVE.value)
+    res = await session.execute(stmt)
+    meetings = res.scalars().all()
+    return {
+        "meetings": [
+            {
+                "meeting_id": str(m.id),
+                "title": m.title,
+                "status": MeetingStatus(m.status).value,
+                "created_at": m.created_at.isoformat() if m.created_at else None,
+            }
+            for m in meetings
+        ]
+    }
+
+
+@router.get(
     "/{meeting_id}",
     response_model=GetMeetingResponse,
     status_code=status.HTTP_200_OK,
