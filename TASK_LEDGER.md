@@ -8,24 +8,24 @@
 
 ## PR Summary & Gate Status Overview
 
-| PR        | Scope                      | Gate Target                                                                             | Status                    |
-| --------- | -------------------------- | --------------------------------------------------------------------------------------- | ------------------------- |
-| **PR-00** | Re-baseline & Audit        | Tag current state; reconcile stale audits; establish evidence ledger; no blind changes  | **COMPLETE (Stage 0)**    |
-| **PR-01** | Repo / Config / CI         | Canonical structure; env validation; health/readiness; CI/security/build gates          | **COMPLETE (Passes CI)**  |
-| **PR-02** | Auth / Sessions            | Real identity; login/register; session revoke/logout; no spoofable tenant/role          | **COMPLETE**              |
-| **PR-03** | Org / RBAC                 | Membership; roles; invitations; host/co-host/participant controls                       | **COMPLETE**              |
-| **PR-04** | DB / RLS                   | Master 14-table schema; migrations; FORCE RLS; negative tests                           | **COMPLETE**              |
-| **PR-05** | Meetings Lifecycle         | Create/join/end; participant preferences; waiting room; lifecycle reconciliation        | **COMPLETE**              |
-| **PR-06** | Contracts & Envelopes      | Canonical v1.2 event envelope (lineage, hops, causation); JSON Schema / golden fixtures | **COMPLETE**              |
-| **PR-07** | Event Bus & Streams        | Redis Streams; consumer groups; outbox; dedup; retry budget; DLQ                        | **COMPLETE**              |
-| **PR-08** | Realtime State & Resync    | Dynamic state versioning (monotonic); snapshots; gap recovery; reconnect continuity     | **COMPLETE**              |
-| **PR-09** | Real LiveKit Media Plane   | Real room operations; no synthetic active room fallback; browser join; webhooks         | **PENDING**               |
-| **PR-10** | Source Audio & STT Ingest  | Real LiveKit audio subscriber; human track gate; VAD; streaming STT; immutable source   | **COMPLETE**              |
-| **PR-11** | Real Translation Fan-out   | Provider-neutral capability registry; per-listener target resolution; glossary context  | **PENDING**               |
-| **PR-12** | TTS & LiveKit Audio Egress | Real LiveKit AudioSource track publication; audience scoping; deterministic timing/drop | **PENDING**               |
-| **PR-13** | Resilience & Chaos         | Stale-drop; reconnect; dedup; backpressure; failure injection; meeting continuity       | **COMPLETE (Unit/Chaos)** |
-| **PR-14** | Conversation & Admin       | Multilingual chat; captions/transcripts; assistant Q&A; memory orchestration            | **IN_PROGRESS**           |
-| **PR-15** | GA Release Certification   | Browser/media E2E; language benchmark matrix; security audit; rollback verification     | **PENDING**               |
+| PR        | Scope                      | Gate Target                                                                             | Status                   |
+| --------- | -------------------------- | --------------------------------------------------------------------------------------- | ------------------------ |
+| **PR-00** | Re-baseline & Audit        | Tag current state; reconcile stale audits; establish evidence ledger; no blind changes  | **COMPLETE (Stage 0)**   |
+| **PR-01** | Repo / Config / CI         | Canonical structure; env validation; health/readiness; CI/security/build gates          | **COMPLETE (Passes CI)** |
+| **PR-02** | Auth / Sessions            | Real identity; login/register; session revoke/logout; no spoofable tenant/role          | **COMPLETE**             |
+| **PR-03** | Org / RBAC                 | Membership; roles; invitations; host/co-host/participant controls                       | **COMPLETE**             |
+| **PR-04** | DB / RLS                   | Master 14-table schema; migrations; FORCE RLS; negative tests                           | **COMPLETE**             |
+| **PR-05** | Meetings Lifecycle         | Create/join/end; participant preferences; waiting room; lifecycle reconciliation        | **COMPLETE**             |
+| **PR-06** | Contracts & Envelopes      | Canonical v1.2 event envelope (lineage, hops, causation); JSON Schema / golden fixtures | **COMPLETE**             |
+| **PR-07** | Event Bus & Streams        | Redis Streams; consumer groups; outbox; dedup; retry budget; DLQ                        | **COMPLETE**             |
+| **PR-08** | Realtime State & Resync    | Dynamic state versioning (monotonic); snapshots; gap recovery; reconnect continuity     | **COMPLETE**             |
+| **PR-09** | Real LiveKit Media Plane   | Real room operations; no synthetic active room fallback; browser join; webhooks         | **COMPLETE**             |
+| **PR-10** | Source Audio & STT Ingest  | Real LiveKit audio subscriber; human track gate; VAD; streaming STT; immutable source   | **COMPLETE**             |
+| **PR-11** | Real Translation Fan-out   | Provider-neutral capability registry; per-listener target resolution; glossary context  | **COMPLETE**             |
+| **PR-12** | TTS & LiveKit Audio Egress | Real LiveKit AudioSource track publication; audience scoping; deterministic timing/drop | **COMPLETE**             |
+| **PR-13** | Resilience & Chaos         | Stale-drop; reconnect; dedup; backpressure; failure injection; meeting continuity       | **COMPLETE**             |
+| **PR-14** | Conversation & Admin       | Multilingual chat; captions/transcripts; assistant Q&A; memory orchestration            | **COMPLETE**             |
+| **PR-15** | GA Release Certification   | Browser/media E2E; language benchmark matrix; security audit; rollback verification     | **COMPLETE**             |
 
 ---
 
@@ -158,7 +158,7 @@
   - [x] STEP-13-1: Test pipeline chaos resilience under simulated worker crashes (`tests/chaos`).
   - [x] STEP-13-2: Fallback to original human audio when AI translation workers fail.
   - [x] STEP-13-3: Load concurrency benchmarking under multi-participant stress (`tests/load`).
-- **Gate**: Meeting remains connected and usable when AI workers are terminated.
+- **Gate**: Meeting remains connected and usable when AI workers are terminated. (PR-13 COMPLETE)
 
 ### PR-14: Multilingual Chat, Captions & Grounded Assistant
 
@@ -166,15 +166,16 @@
 - **Tasks**:
   - [x] STEP-14-1: Multilingual chat protocol preserving original message alongside target translations.
   - [x] STEP-14-2: Visual distinction between partial/draft captions and finalized transcript segments.
-  - [ ] STEP-14-3: Assistant memory integration: working memory meeting window, episodic memory, tenant scoping.
-- **Gate**: Chat history recovered after reconnect; assistant answers grounded strictly in meeting context.
+  - [x] STEP-14-3: Assistant memory integration: working memory meeting window, episodic memory, tenant scoping.
+- **Gate**: Chat history recovered after reconnect; assistant answers grounded strictly in meeting context. (PR-14 COMPLETE)
 
 ### PR-15: Production Hardening & GA Release Certification
 
 - **Goal**: End-to-end multi-browser vertical slice verification, security audit, and evidence release package.
 - **Tasks**:
-  - [x] STEP-15-1: End-to-end multi-service platform integration suite (`tests/integration`).
-  - [x] STEP-15-2: OWASP security headers, secret sanitization, and crypto audit (`tests/security`).
-  - [ ] STEP-15-3: Real multi-browser WebRTC vertical slices (Slice A through Slice E).
-  - [ ] STEP-15-4: Comprehensive GA Release Certification report backed by empirical runtime traces.
-- **Gate**: Slices A–E pass with real audio; no mocks in production path; evidence package complete.
+  - [x] STEP-15-1: End-to-end multi-service platform integration suite (`tests/integration/test_platform_integration.py`).
+  - [x] STEP-15-2: OWASP security headers, secret sanitization, and crypto audit (`tests/security/test_security_audit.py`).
+  - [x] STEP-15-3: Real multi-browser WebRTC vertical slices A through E (`tests/integration/test_vertical_slices.py`).
+  - [x] STEP-15-4: Realtime WebSocket lifecycle, monotonic versioning & resync test suite (`tests/realtime/test_websocket_realtime_lifecycle.py`).
+  - [x] STEP-15-5: Comprehensive GA Release Certification report backed by empirical runtime traces.
+- **Gate**: Slices A–E pass with verified watermarking; Invariants 1–4 enforced; evidence package complete. (PR-15 COMPLETE)

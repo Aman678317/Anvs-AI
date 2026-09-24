@@ -1,7 +1,7 @@
 """Text-to-Speech (TTS) Worker Service adhering to Document 14."""
 
 from .consumer import TTSConsumer
-from .egress import LiveKitAudioEgress
+from .egress import LiveKitAudioEgress, LiveKitAudioPublisher
 from .engine import (
     BaseTTSEngine,
     MockTTSEngine,
@@ -14,6 +14,7 @@ from .types import TTSResult
 __all__ = [
     "BaseTTSEngine",
     "LiveKitAudioEgress",
+    "LiveKitAudioPublisher",
     "MockTTSEngine",
     "PiperTTSEngine",
     "TTSConsumer",

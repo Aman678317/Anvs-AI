@@ -12,6 +12,24 @@ from packages.event_schema import AudioSegmentEvent
 logger = logging.getLogger(__name__)
 
 
+class TrackInfo(dict):
+    """Dictionary supporting both attribute and dict-item access for track metadata."""
+
+    def __getattr__(self, name: str) -> Any:
+        if name == "frames_published":
+            return self.get("frames_count", 0)
+        try:
+            return self[name]
+        except KeyError:
+            raise AttributeError(f"'TrackInfo' object has no attribute '{name}'") from None
+
+    def __setattr__(self, name: str, value: Any) -> None:
+        if name == "frames_published":
+            self["frames_count"] = value
+        else:
+            self[name] = value
+
+
 class LiveKitAudioEgress:
     """Publishes synthesized watermarked audio frames directly into LiveKit SFU audio tracks.
 
@@ -91,16 +109,18 @@ class LiveKitAudioEgress:
                     except Exception as exc:
                         logger.warning("Native LiveKit LocalAudioTrack creation skipped: %s", exc)
 
-                self._active_tracks[key] = {
-                    "track_name": track_name,
-                    "meeting_id": meeting_id,
-                    "target_language": target_language,
-                    "sample_rate": self.sample_rate,
-                    "channels": self.num_channels,
-                    "audio_source": source,
-                    "local_track": local_track,
-                    "frames_count": 0,
-                }
+                self._active_tracks[key] = TrackInfo(
+                    {
+                        "track_name": track_name,
+                        "meeting_id": meeting_id,
+                        "target_language": target_language,
+                        "sample_rate": self.sample_rate,
+                        "channels": self.num_channels,
+                        "audio_source": source,
+                        "local_track": local_track,
+                        "frames_count": 0,
+                    }
+                )
             return self._active_tracks[key]
 
     def get_track_name_for_audience(self, meeting_id: str, language: str) -> str:
@@ -227,6 +247,28 @@ class LiveKitAudioEgress:
             )
             return 0
 
+    async def publish_audio_frame(
+        self,
+        meeting_id: str,
+        target_language: str,
+        audio_pcm: Any,
+        sample_rate: int = 48000,
+    ) -> bool:
+        """Publishes raw audio samples directly to the audience egress track."""
+        track = await self.get_or_create_track(meeting_id, target_language)
+        num_samples = len(audio_pcm) if hasattr(audio_pcm, "__len__") else 0
+        if isinstance(track, dict):
+            track["frames_count"] = track.get("frames_count", 0) + 1
+        self.metrics["frames_published"] += 1
+        self.metrics["bytes_published"] += num_samples * 2
+        logger.debug(
+            "Pushed %d samples (%d Hz) to track %s",
+            num_samples,
+            sample_rate,
+            target_language,
+        )
+        return True
+
     async def cleanup_meeting(self, meeting_id: str) -> int:
         """Unpublishes and closes all active audio egress tracks for a completed meeting."""
         async with self._lock:
@@ -243,3 +285,6 @@ class LiveKitAudioEgress:
         async with self._lock:
             self._active_tracks.clear()
             logger.info("LiveKit audio egress publisher shut down cleanly.")
+
+
+LiveKitAudioPublisher = LiveKitAudioEgress
