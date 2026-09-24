@@ -1,0 +1,33 @@
+{
+  "name": "multilingual-ai-meeting-platform",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Production-grade real-time multilingual AI meeting platform with personalized language translation, WebRTC video/audio, streaming STT, translation, TTS, AI assistance, and enterprise-grade security.",
+  "author": "Multilingual AI Meeting Platform Team",
+  "license": "UNLICENSED",
+  "packageManager": "pnpm@9.1.0",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "turbo run dev --parallel",
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "typecheck": "turbo run typecheck",
+    "test": "turbo run test",
+    "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md,yml,yaml}\"",
+    "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,json,md,yml,yaml}\"",
+    "postinstall": "prisma skills sync || exit 0"
+  },
+  "devDependencies": {
+    "prettier": "^3.2.5",
+    "turbo": "^1.13.3",
+    "typescript": "^5.4.5",
+    "prisma": "8.0.0-rc.15"
+  },
+  "engines": {
+    "node": ">=20.0.0",
+    "pnpm": ">=9.0.0"
+  }
+}

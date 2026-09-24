@@ -151,3 +151,13 @@ services/*-worker/
 services/realtime-gateway/
 packages/event-schema/
 packages/language-registry/
+
+# AI Agent Skills (dynamically populated by prisma skills sync)
+.agents/
+.claude/
+.cursor/
+.devin/
+.windsurf/
+.qodo/
+.storage/
+

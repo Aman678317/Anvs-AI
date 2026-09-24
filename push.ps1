@@ -15,7 +15,13 @@ $DeadPaths = @(
     "packages/contracts/models.py",
     "apps/web/src/index.ts",
     "apps/admin/src/index.ts",
-    "ai-content-agent.db"
+    "ai-content-agent.db",
+    ".agents",
+    ".claude",
+    ".cursor",
+    ".devin",
+    ".windsurf",
+    ".qodo"
 )
 foreach ($p in $DeadPaths) {
     if (Test-Path $p) {
@@ -77,7 +83,7 @@ Write-Host "5. Staging, Committing, and Pushing to HEAD..." -ForegroundColor Cya
 Write-Host "=====================================================" -ForegroundColor Cyan
 
 git add -A
-git commit -m "feat: integrate Supabase/NVIDIA NIM, fix error propagation, strengthen ticket verification, and refresh audit docs"
+git commit -m "style: format files with prettier and configure prettierignore for agent skills"
 git push origin HEAD
 
 Write-Host "=====================================================" -ForegroundColor Green
