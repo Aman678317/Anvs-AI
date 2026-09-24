@@ -132,7 +132,7 @@ export default function MeetingsPage() {
   );
 
   const activeSegments: MockTranscriptSegment[] = selectedMeeting
-    ? (SAMPLE_SEGMENTS[selectedMeeting.meetingId] ?? SAMPLE_SEGMENTS.meet_001 ?? [])
+    ? SAMPLE_SEGMENTS[selectedMeeting.meetingId] ?? SAMPLE_SEGMENTS.meet_001 ?? []
     : [];
 
   const handleExportJson = () => {

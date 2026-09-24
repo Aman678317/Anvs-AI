@@ -60,7 +60,9 @@ async def main() -> int:
         async def feed(samples: np.ndarray, participant: str) -> None:
             for i in range(0, len(samples), chunk_samples):
                 chunk = samples[i : i + chunk_samples]
-                await service.ingest_audio_pcm(MEETING_ID, participant, _to_pcm16(chunk))
+                await service.ingest_audio_pcm(
+                    MEETING_ID, participant, _to_pcm16(chunk)
+                )
                 await asyncio.sleep(0.005)
             await service.stop_track(MEETING_ID, participant)
 

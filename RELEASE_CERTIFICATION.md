@@ -62,6 +62,7 @@ tests/e2e/         ................................................... [PASS]
 ## 4. Production Artifacts & Deployment Deliverables
 
 1. **Multi-Stage Container Fleet**:
+
    - `services/api/Dockerfile`: Minimal, non-root, Python 3.11 FastAPI Control Plane.
    - `services/realtime_gateway/Dockerfile`: Low-latency WebSocket gateway image.
    - `services/orchestrator/Dockerfile`: Pipeline orchestrator & DLQ retry manager.
@@ -71,9 +72,11 @@ tests/e2e/         ................................................... [PASS]
    - `docker-compose.prod.yml`: Hardened production compose profile with resource limits.
 
 2. **Cloud Infrastructure as Code (Terraform)**:
+
    - `infrastructure/terraform/`: Modular cloud provisioning for VPC networking, EKS/GKE Kubernetes cluster, managed PostgreSQL 16 (`pgvector`), ElastiCache Redis 7.2 replication group, and S3 media storage.
 
 3. **Kubernetes Production Helm Chart**:
+
    - `infrastructure/helm/multilingual-meeting-platform/`: Production chart with Ingress TLS termination, WebSocket upgrades, Horizontal Pod Autoscaling (HPA), and security contexts.
 
 4. **Standard Operating Runbooks**:

@@ -124,6 +124,12 @@ class AudioIngestionPipeline:
 
             if is_watermarked:
                 self.watermarked_frames_dropped += 1
+                try:
+                    from packages.observability.metrics import watermark_detections_total
+
+                    watermark_detections_total.labels(status="dropped").inc()
+                except Exception:  # pragma: no cover - telemetry must never break audio flow
+                    pass
                 logger.warning(
                     "Invariant #3: Dropped 20 kHz synthetic watermarked audio frame "
                     "from participant %s in meeting %s",
