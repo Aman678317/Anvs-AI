@@ -17,14 +17,15 @@ class TrackInfo(dict):
 
     def __getattr__(self, name: str) -> Any:
         if name == "frames_published":
-            return self.get("frames_count", 0)
+            return self.get("frames_published", self.get("frames_count", 0))
         try:
             return self[name]
         except KeyError:
             raise AttributeError(f"'TrackInfo' object has no attribute '{name}'") from None
 
     def __setattr__(self, name: str, value: Any) -> None:
-        if name == "frames_published":
+        if name in ("frames_published", "frames_count"):
+            self["frames_published"] = value
             self["frames_count"] = value
         else:
             self[name] = value
@@ -110,16 +111,14 @@ class LiveKitAudioEgress:
                         logger.warning("Native LiveKit LocalAudioTrack creation skipped: %s", exc)
 
                 self._active_tracks[key] = TrackInfo(
-                    {
-                        "track_name": track_name,
-                        "meeting_id": meeting_id,
-                        "target_language": target_language,
-                        "sample_rate": self.sample_rate,
-                        "channels": self.num_channels,
-                        "audio_source": source,
-                        "local_track": local_track,
-                        "frames_count": 0,
-                    }
+                    track_name=track_name,
+                    meeting_id=meeting_id,
+                    target_language=target_language,
+                    sample_rate=self.sample_rate,
+                    channels=self.num_channels,
+                    audio_source=source,
+                    local_track=local_track,
+                    frames_published=0,
                 )
             return self._active_tracks[key]
 
@@ -257,7 +256,9 @@ class LiveKitAudioEgress:
         """Publishes raw audio samples directly to the audience egress track."""
         track = await self.get_or_create_track(meeting_id, target_language)
         num_samples = len(audio_pcm) if hasattr(audio_pcm, "__len__") else 0
-        if isinstance(track, dict):
+        if hasattr(track, "frames_published"):
+            track.frames_published += 1
+        elif isinstance(track, dict):
             track["frames_count"] = track.get("frames_count", 0) + 1
         self.metrics["frames_published"] += 1
         self.metrics["bytes_published"] += num_samples * 2
