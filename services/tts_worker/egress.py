@@ -161,7 +161,9 @@ class LiveKitAudioEgress:
                             f"LiveKit SFU egress room connection failed in production "
                             f"for meeting {meeting_id}: {exc}"
                         ) from exc
-                    logger.warning("Falling back to simulated egress mode for meeting %s", meeting_id)
+                    logger.warning(
+                        "Falling back to simulated egress mode for meeting %s", meeting_id
+                    )
 
             mock_room = {
                 "meeting_id": meeting_id,
@@ -218,7 +220,9 @@ class LiveKitAudioEgress:
                         num_channels=self.num_channels,
                     )
                     local_track = lk_rtc.LocalAudioTrack.create_audio_track(track_name, source)
-                    publish_options = lk_rtc.TrackPublishOptions(source=lk_rtc.TrackSource.SOURCE_MICROPHONE)
+                    publish_options = lk_rtc.TrackPublishOptions(
+                        source=lk_rtc.TrackSource.SOURCE_MICROPHONE
+                    )
                     publication = await room.local_participant.publish_track(
                         local_track, publish_options
                     )

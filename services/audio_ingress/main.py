@@ -17,6 +17,7 @@ Runtime wiring (P0): this module is the container entrypoint referenced by
 """
 
 import asyncio
+import contextlib
 import json
 import logging
 import os
@@ -28,7 +29,7 @@ import httpx
 from jose import jwt
 
 from packages.config.settings import settings
-from packages.event_schema import RedisStreamBus, STREAM_AUDIO, get_stream_key
+from packages.event_schema import STREAM_AUDIO, RedisStreamBus, get_stream_key
 from services.audio_ingress.service import AudioIngressService
 from services.audio_ingress.subscriber import LiveKitAudioSubscriber
 
@@ -86,9 +87,7 @@ async def discover_active_meetings() -> list[str]:
             data = resp.json()
             meetings = data if isinstance(data, list) else data.get("meetings", [])
             return [
-                str(m["meeting_id"])
-                for m in meetings
-                if isinstance(m, dict) and "meeting_id" in m
+                str(m["meeting_id"]) for m in meetings if isinstance(m, dict) and "meeting_id" in m
             ]
     except Exception as exc:
         logger.warning("Meeting discovery failed: %s", exc)
@@ -153,10 +152,8 @@ async def main() -> None:
                 subscriber.get_metrics(),
             )
 
-            try:
+            with contextlib.suppress(TimeoutError):
                 await asyncio.wait_for(stop_event.wait(), timeout=DISCOVERY_INTERVAL_SEC)
-            except asyncio.TimeoutError:
-                pass
     finally:
         for meeting_id in list(joined):
             await subscriber.unsubscribe_from_room(meeting_id)
