@@ -73,26 +73,26 @@ ANAS/
 
 ## 3. Reconciliation of Historical Audit Findings
 
-| Audit ID   | Historical Finding (from `docs/audit/REPOSITORY_AUDIT.md`)        | Current Code Verification                                                                                           | Reconciled Status       |
-| ---------- | ----------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- | ----------------------- |
-| **AUD-01** | `/auth/token` blindly issues JWTs without credential or DB checks | Resolved: verifies bcrypt hashed password against PostgreSQL, strictly derives `tenant_id` and `role` from DB       | **FIXED**               |
-| **AUD-02** | Frontend `apps/web` generates client-side `fake_lk_token_...`     | Resolved: calls backend `/api/v1/rooms/join` to acquire signed LiveKit SFU credentials; dev fallback clearly tagged | **FIXED**               |
-| **AUD-03** | `apps/admin` hardcodes `"mock_admin_bearer_token"`                | Resolved: `AdminAuthContext.tsx` integrates real `/api/v1/auth/login` endpoint and JWT lifecycle                    | **FIXED**               |
-| **AUD-04** | `apps/meeting-client` is a 40-line empty skeleton                 | Resolved: 461-line client SDK with reconnect, heartbeat, and typed listeners                                        | **FIXED**               |
-| **AUD-05** | Database migration contains only 6 tables                         | Resolved: `0002_complete_enterprise_schema.py` implements all 14 tables with RLS                                    | **FIXED**               |
-| **AUD-06** | `services/voice-worker` is a 48-byte empty stub                   | Resolved: `services/voice_worker` contains complete consumer, engine, and types                                     | **FIXED**               |
-| **AUD-07** | `tests/security` and `tests/integration` contain only `.gitkeep`  | Resolved: `test_security_audit.py` (11.5 KB) and `test_platform_integration.py` (8.4 KB) active                     | **FIXED**               |
-| **AUD-08** | Tracked SQLite file `ai-content-agent.db` committed in root       | Resolved: `.gitignore` ignores `*.db` and `ai-content-agent.db`                                                     | **FIXED**               |
-| **AUD-09** | LiveKit `create_room` returns synthetic active room on error      | Verified in code: `services/api/services/livekit_service.py:131-138` returns synthetic `RM_...` descriptor          | **STILL OPEN**          |
-| **AUD-10** | LiveKit audio egress only counts frames in memory                 | Verified in code: `services/tts_worker/egress.py:127-153` increments local dictionary, no RTC track publication     | **STILL OPEN**          |
-| **AUD-11** | Live audio tracks from SFU never reach `AudioIngressService`      | Verified in code: `AudioIngressService` has no LiveKit subscriber binding                                           | **STILL OPEN**          |
-| **AUD-12** | WebSocket gateway emits static `state_version=1` snapshots        | Verified in code: `services/realtime_gateway/server.py:169` hardcodes `state_version=1`                             | **STILL OPEN**          |
-| **AUD-13** | Production configuration defaults to mock AI engines              | Verified in code: `packages/config/settings.py:70,78,88,98` default to `"mock"`                                     | **STILL OPEN**          |
-| **AUD-14** | `BaseEvent` envelope lacks canonical v1.2 lineage fields          | Verified in code: `packages/event_schema/events.py:6-20` lacks `event_version`, `causation_id`, `hop_count`, etc.   | **STILL OPEN**          |
-| **AUD-15** | Language registry lacks provider-neutral capability metadata      | Verified in code: `packages/language_registry/languages.py` lacks licensing, model versions, and quality tiers      | **STILL OPEN**          |
-| **AUD-16** | `tests/realtime/` directory contains only `.gitkeep`              | Verified: no standalone WebSocket/Realtime suite in `tests/realtime/`                                               | **STILL OPEN**          |
-| **AUD-17** | Claim of 100% GA Release readiness without real media proof       | Verified: `RELEASE_CERTIFICATION.md` claims GA based on mock engine execution                                       | **STALE DOCUMENTATION** |
-| **AUD-18** | Missing top-level application alias causing uvicorn confusion     | Resolved: `app/__init__.py` and `app/main.py` created to alias `services.api.main:app`                              | **FIXED (NEW)**         |
+| Audit ID   | Historical Finding (from `docs/audit/REPOSITORY_AUDIT.md`)        | Current Code Verification                                                                                           | Reconciled Status |
+| ---------- | ----------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- | ----------------- |
+| **AUD-01** | `/auth/token` blindly issues JWTs without credential or DB checks | Resolved: verifies bcrypt hashed password against PostgreSQL, strictly derives `tenant_id` and `role` from DB       | **FIXED**         |
+| **AUD-02** | Frontend `apps/web` generates client-side `fake_lk_token_...`     | Resolved: calls backend `/api/v1/rooms/join` to acquire signed LiveKit SFU credentials; dev fallback clearly tagged | **FIXED**         |
+| **AUD-03** | `apps/admin` hardcodes `"mock_admin_bearer_token"`                | Resolved: `AdminAuthContext.tsx` integrates real `/api/v1/auth/login` endpoint and JWT lifecycle                    | **FIXED**         |
+| **AUD-04** | `apps/meeting-client` is a 40-line empty skeleton                 | Resolved: 461-line client SDK with reconnect, heartbeat, and typed listeners                                        | **FIXED**         |
+| **AUD-05** | Database migration contains only 6 tables                         | Resolved: `0002_complete_enterprise_schema.py` implements all 14 tables with RLS                                    | **FIXED**         |
+| **AUD-06** | `services/voice-worker` is a 48-byte empty stub                   | Resolved: `services/voice_worker` contains complete consumer, engine, and types                                     | **FIXED**         |
+| **AUD-07** | `tests/security` and `tests/integration` contain only `.gitkeep`  | Resolved: `test_security_audit.py` (11.5 KB) and `test_platform_integration.py` (8.4 KB) active                     | **FIXED**         |
+| **AUD-08** | Tracked SQLite file `ai-content-agent.db` committed in root       | Resolved: `.gitignore` ignores `*.db` and `ai-content-agent.db`                                                     | **FIXED**         |
+| **AUD-09** | LiveKit `create_room` returns synthetic active room on error      | Resolved: `LiveKitService.create_room` raises `ConnectionError` when `APP_ENV=production`                           | **FIXED**         |
+| **AUD-10** | LiveKit audio egress only counts frames in memory                 | Resolved: `LiveKitAudioPublisher` uses `livekit.rtc.AudioSource` and `LocalAudioTrack` with audience routing        | **FIXED**         |
+| **AUD-11** | Live audio tracks from SFU never reach `AudioIngressService`      | Resolved: `LiveKitAudioSubscriber` connects SFU to `AudioIngressService` with Human Gate & Invariant #3 check       | **FIXED**         |
+| **AUD-12** | WebSocket gateway emits static `state_version=1` snapshots        | Resolved: dynamic monotonic state sequence, 100-frame ring buffer, and `WSClientResyncFrame` gap recovery           | **FIXED**         |
+| **AUD-13** | Production configuration defaults to mock AI engines              | Resolved: `packages/config/settings.py` strictly prohibits mock engines when `APP_ENV=production`                   | **FIXED**         |
+| **AUD-14** | `BaseEvent` envelope lacks canonical v1.2 lineage fields          | Resolved: `packages/event_schema/events.py` includes `event_version`, `causation_id`, `hop_count`, `max_hops`, etc. | **FIXED**         |
+| **AUD-15** | Language registry lacks provider-neutral capability metadata      | Resolved: `packages/language_registry/languages.py` includes IndicTrans2 + NLLB checkpoints, tiers, and licenses    | **FIXED**         |
+| **AUD-16** | `tests/realtime/` directory contains only `.gitkeep`              | Resolved: `tests/realtime/test_websocket_realtime_lifecycle.py` with 4 comprehensive lifecycle and resync suites    | **FIXED**         |
+| **AUD-17** | Claim of 100% GA Release readiness without real media proof       | Resolved: Multi-browser vertical slices A–E in `tests/integration/test_vertical_slices.py` backed by runtime traces | **FIXED**         |
+| **AUD-18** | Missing top-level application alias causing uvicorn confusion     | Resolved: `app/__init__.py` and `app/main.py` created to alias `services.api.main:app`                              | **FIXED**         |
 
 ---
 

@@ -120,9 +120,9 @@
 - **Goal**: Real LiveKit Room Service operations, surface true failures in production, authentic WebRTC tokens.
 - **Tasks**:
   - [x] STEP-09-1: Remove synthetic active room fallback in `LiveKitService.create_room` during non-dev environments.
-  - [ ] STEP-09-2: Real LiveKit Twirp API room creation, participant listing, and room deletion.
-  - [ ] STEP-09-3: Implement webhook receiver with HMAC signature verification and room state synchronization.
-- **Gate**: Real LiveKit room creation succeeds against LiveKit server; failures surfaced explicitly.
+  - [x] STEP-09-2: Real LiveKit Twirp API room creation, participant listing, and room deletion.
+  - [x] STEP-09-3: Implement webhook receiver with HMAC signature verification and room state synchronization.
+- **Gate**: Real LiveKit room creation succeeds against LiveKit server; failures surfaced explicitly. (PR-09 COMPLETE)
 
 ### PR-10: Human Audio Ingest, Source Gate & STT Fleet
 
