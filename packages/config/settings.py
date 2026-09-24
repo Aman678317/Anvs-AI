@@ -1,6 +1,6 @@
 """Unified Application Configuration Loader using Pydantic Settings."""
 
-from pydantic import Field, model_validator
+from pydantic import Field, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -43,12 +43,31 @@ class Settings(BaseSettings):
         default="postgresql+asyncpg://postgres:postgrespassword@localhost:5432/meeting_platform",
         alias="DATABASE_URL",
     )
+    direct_url: str | None = Field(default=None, alias="DIRECT_URL")
     redis_url: str = Field(default="redis://localhost:6379/0", alias="REDIS_URL")
+
+    @field_validator("database_url", "direct_url", mode="before")
+    @classmethod
+    def normalize_database_url(cls, v: str | None) -> str | None:
+        if not v:
+            return v
+        url = v.strip()
+        if url.startswith("postgresql://"):
+            url = "postgresql+asyncpg://" + url[len("postgresql://") :]
+        return url
 
     # LiveKit WebRTC SFU
     livekit_url: str = Field(default="ws://localhost:7880", alias="LIVEKIT_URL")
     livekit_api_key: str = Field(default="devkey", alias="LIVEKIT_API_KEY")
     livekit_api_secret: str = Field(default="secret", alias="LIVEKIT_API_SECRET")
+
+    # Runtime Daemon Wiring (P0)
+    meeting_id: str = Field(
+        default="default_meeting",
+        alias="MEETING_ID",
+        description="Static meeting/room id used by single-room daemons "
+        "(audio-ingress watcher bot, compose smoke harness).",
+    )
 
     # Audio Pipeline Invariants
     audio_sample_rate: int = Field(default=16000, alias="AUDIO_INCOMING_SAMPLE_RATE")
@@ -129,6 +148,12 @@ class Settings(BaseSettings):
         default=0.60,
         alias="ASSISTANT_SIMILARITY_THRESHOLD",
     )
+    nvidia_api_key: str | None = Field(default=None, alias="NVIDIA_API_KEY")
+    nvidia_base_url: str = Field(
+        default="https://integrate.api.nvidia.com/v1", alias="NVIDIA_BASE_URL"
+    )
+    openai_api_key: str | None = Field(default=None, alias="OPENAI_API_KEY")
+    openai_base_url: str | None = Field(default=None, alias="OPENAI_BASE_URL")
 
     # Pipeline Orchestrator & Backpressure (PR-16)
     orchestrator_queue_high_threshold: int = Field(
@@ -206,6 +231,15 @@ class Settings(BaseSettings):
                 raise ValueError(
                     "Production environment cannot use default SUPABASE_JWT_SECRET. "
                     "Provide a secure secret of at least 32 characters."
+                )
+            # Prohibit placeholder LiveKit SFU credentials in production (P0 wiring):
+            # every daemon (api, audio-ingress, tts egress) shares these values and
+            # must be able to authenticate against the real SFU.
+            if self.livekit_api_key == "devkey" or self.livekit_api_secret == "secret":
+                raise ValueError(
+                    "Production environment cannot use placeholder LIVEKIT_API_KEY / "
+                    "LIVEKIT_API_SECRET defaults ('devkey'/'secret'). Provide real "
+                    "LiveKit Server API credentials."
                 )
         return self
 

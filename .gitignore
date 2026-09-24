@@ -1,24 +1,3 @@
-# ==============================================================================
-# Multilingual AI Meeting Platform - Root .gitignore
-# ==============================================================================
-
-# Node / Frontend
-node_modules/
-.pnpm-store/
-.npm/
-.yarn/
-.next/
-out/
-build/
-dist/
-.turbo/
-*.tsbuildinfo
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
-
-# Python
 __pycache__/
 *.py[cod]
 *$py.class
@@ -151,3 +130,13 @@ services/*-worker/
 services/realtime-gateway/
 packages/event-schema/
 packages/language-registry/
+
+# AI Agent Skills (dynamically populated by prisma skills sync)
+.agents/
+.claude/
+.cursor/
+.devin/
+.windsurf/
+.qodo/
+.storage/
+node_modules

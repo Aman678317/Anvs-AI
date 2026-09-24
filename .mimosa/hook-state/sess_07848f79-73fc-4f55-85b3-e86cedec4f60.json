@@ -1,0 +1,977 @@
+{
+  "touched": [],
+  "bashMutation": false,
+  "reportedFindings": [],
+  "findingEvents": [],
+  "baseline": {
+    "storageId": "mufch0wx-7612-90d4ff1ee8",
+    "createdAt": "2026-09-24T09:43:42.561Z",
+    "files": {
+      "package.json": {
+        "existed": true,
+        "snapshot": "7ae45ad102eab3b6d7e7896acd08c427a9b25b346470d7bc6507b6481575d519.source"
+      },
+      "pnpm-lock.yaml": {
+        "existed": true,
+        "snapshot": "32824c984905bb02bc7ffcef96a77addd1f1602cff71a11fbbfdd7f53ee026bb.source"
+      },
+      "prisma.config.ts": {
+        "existed": true,
+        "snapshot": "c96950ab4b66f64a7a92db38b944cc2f9ba2b5a122969252d565586ed4e73e55.source"
+      },
+      "tests/conftest.py": {
+        "existed": true,
+        "snapshot": "e52e4ddd58b7ef887ab03c04116e676f6280b824ab7469d5d3080e5cba4f2128.source"
+      },
+      "tests/__init__.py": {
+        "existed": true,
+        "snapshot": "001e61d97d9dee27d0c5aa1f23ba6c1972cd8a2e8320bac839656b0ab935b84d.source"
+      },
+      "tests/unit/test_admin_router.py": {
+        "existed": true,
+        "snapshot": "ff9e01aaa6861bd3a1a27a9878481cab99cb673f2e3183ea58745dd872e3eb5e.source"
+      },
+      "tests/unit/test_assistant_memory.py": {
+        "existed": true,
+        "snapshot": "ff14b54d91d7e8d7d939da295ff5a5c33c5b16372544a7c04a0e80a612d4c78a.source"
+      },
+      "tests/unit/test_assistant_worker.py": {
+        "existed": true,
+        "snapshot": "0e97efa7ebe1a65f065f925f65d16e373385e3783b87f3b30c4398ead94c48b3.source"
+      },
+      "tests/unit/test_audio_framing.py": {
+        "existed": true,
+        "snapshot": "cd95239b14080e57c37636623ac6a6c0b551c84a85909883837dbf20bc6fd6fa.source"
+      },
+      "tests/unit/test_audio_ingestion.py": {
+        "existed": true,
+        "snapshot": "c81d231826fad3fb76217bc4ce190737a21deb2a3b50e9525a80ddae3a7c7bb6.source"
+      },
+      "tests/unit/test_audio_ingress_service.py": {
+        "existed": true,
+        "snapshot": "c0765b7b17c94474e37e224c876a59bca44c44c227e489ed366d5ab1fbf649f7.source"
+      },
+      "tests/unit/test_auth_router.py": {
+        "existed": true,
+        "snapshot": "d75a0d4c51061a18211c08389e46cbff5eb573c74a43045124754d5cd84a27d7.source"
+      },
+      "tests/unit/test_auth_tokens.py": {
+        "existed": true,
+        "snapshot": "9c8e69d7b3ac8680db5c3463d18e9342ba1825bc6df7689cd59b7f6128226d7a.source"
+      },
+      "tests/unit/test_database_models.py": {
+        "existed": true,
+        "snapshot": "154b80ad1acee975a7ca6b16a825c373e0316b087be2fa3274daef6bbb9541de.source"
+      },
+      "tests/unit/test_database_session.py": {
+        "existed": true,
+        "snapshot": "2fd4a9cd46aeba52a1f0b979af799f7cf0de3fd0828d3a9b007d17da53a3657d.source"
+      },
+      "tests/unit/test_event_bus.py": {
+        "existed": true,
+        "snapshot": "fa83d0fca5ed20b52160dd928544ec18b3baf42907007e2578503a7e8f91aff4.source"
+      },
+      "tests/unit/test_event_schemas.py": {
+        "existed": true,
+        "snapshot": "e56a650df5cd0c590ef0e26a5c98b6d50a005aa9a3b653b44f3ea8bf6b5897a6.source"
+      },
+      "tests/unit/test_health_router.py": {
+        "existed": true,
+        "snapshot": "f5c2d40ced7bdebfacd9899937db69fb9c4b2dae6a2f9b6016ad9206797c5c84.source"
+      },
+      "tests/unit/test_languages.py": {
+        "existed": true,
+        "snapshot": "2f657e0b061cfd6db187a1ce4788bfef5cde72ea2db3f4fb16b76c80321f8c88.source"
+      },
+      "tests/unit/test_language_registry.py": {
+        "existed": true,
+        "snapshot": "1210a76417071a4d2d0bb1ee959c1d69aa4bfc3e8a6a3a2b5308c4789f81d85b.source"
+      },
+      "tests/unit/test_livekit_audio_subscriber.py": {
+        "existed": true,
+        "snapshot": "4d260e02344f3c495654007dd360233ebf0b77dcb3437815500519d51d84e4fb.source"
+      },
+      "tests/unit/test_livekit_service.py": {
+        "existed": true,
+        "snapshot": "e907b88c4e01619a4860a236b7f84ded8525702042858cd6fa34ef557096ca06.source"
+      },
+      "tests/unit/test_livekit_webhooks.py": {
+        "existed": true,
+        "snapshot": "cdcc2be0eb428bf96ee0fc97179be16405719bcfc2717b811b5ce9b42c3a445f.source"
+      },
+      "tests/unit/test_observability.py": {
+        "existed": true,
+        "snapshot": "2305c029081152e0d7c33b585b2c44dc0647974d1ad83add72427efba61dee24.source"
+      },
+      "tests/unit/test_orchestrator.py": {
+        "existed": true,
+        "snapshot": "f9892bc24dc281f5ec4ae031c0f36dda5c795595f69126df8afb39de11e0578a.source"
+      },
+      "tests/unit/test_rbac_guards.py": {
+        "existed": true,
+        "snapshot": "6cff07a8b8cd6482197e988a5d29e3a8cab8c7aa7638e8fbf85e2065cd3d398e.source"
+      },
+      "tests/unit/test_redis_subscriber.py": {
+        "existed": true,
+        "snapshot": "8defbe283132b1196b9c44c08d99e9689f08b586cebb7b39c99470167678e0d6.source"
+      },
+      "tests/unit/test_room_manager.py": {
+        "existed": true,
+        "snapshot": "6c5a5c9ee24fc2723ef1590f41e7aa936f1b263a82682a9cbdb6544d220b781d.source"
+      },
+      "tests/unit/test_security_crypto.py": {
+        "existed": true,
+        "snapshot": "187af48c777c351ad04bfa3540a75c58f267ca77ddc31fc7e38b016fb770f292.source"
+      },
+      "tests/unit/test_security_middleware.py": {
+        "existed": true,
+        "snapshot": "958d67b8acd577c901ef5d6b089934eccc67682ad9d21bad4b95b06b233565e5.source"
+      },
+      "tests/unit/test_settings.py": {
+        "existed": true,
+        "snapshot": "1c830f903243dc807fc71e6fe319b97fbbcd6a7fc57e472b69a2565d2c620763.source"
+      },
+      "tests/unit/test_speaker_worker.py": {
+        "existed": true,
+        "snapshot": "ba445e4eb8a25181baddb45ae16b7ccc3f24ff945c512e98ec426e1803a25a4d.source"
+      },
+      "tests/unit/test_stt_worker.py": {
+        "existed": true,
+        "snapshot": "d212eb49fc6f4ffbbf1e944eec4ec303eed6969f5124d36c85c27d69587a9bb8.source"
+      },
+      "tests/unit/test_tenant_middleware.py": {
+        "existed": true,
+        "snapshot": "3fbeda21b9d8773b396defb63e1a32f9d3e10c6b6a60191c891a32dd70d4ee3d.source"
+      },
+      "tests/unit/test_translation_worker.py": {
+        "existed": true,
+        "snapshot": "ce7aa59c66286f64544e26b55be6c736da9d82db1150bab01035dadeb8846426.source"
+      },
+      "tests/unit/test_tts_worker.py": {
+        "existed": true,
+        "snapshot": "47afa2d70dcf9c5fc5bd3ad275e4b2271308960e919ff5445307782bcfec1461.source"
+      },
+      "tests/unit/test_vad.py": {
+        "existed": true,
+        "snapshot": "a6e5f837ca2d5782bfdf6ac4ad79ef278b2728f2c6d77f78cc12fd821efafa0e.source"
+      },
+      "tests/unit/test_voice_worker.py": {
+        "existed": true,
+        "snapshot": "56afdd6bb0e264e38c61dbf17426bc8beb8def3d8fdd2040085eedfd1d6a77b3.source"
+      },
+      "tests/unit/test_watermark.py": {
+        "existed": true,
+        "snapshot": "5196967aa01a8f5dabb22b74a81b052247831be11974c72141e2068daa3f7e0a.source"
+      },
+      "tests/unit/test_websocket_gateway.py": {
+        "existed": true,
+        "snapshot": "b3809cfad6dd0a9d0980a4bcaf9f78310593f5a1f6205898cc6aa78e9e38d96f.source"
+      },
+      "tests/unit/test_websocket_manager.py": {
+        "existed": true,
+        "snapshot": "37f3fb31eb1c6dacf97b7602f641a3ce1f4fc7783321374eede7f81ab444e428.source"
+      },
+      "tests/security/test_security_audit.py": {
+        "existed": true,
+        "snapshot": "80b53876f4effb9edb7b07a4a88e343da05b28bacdc125a4538f8015a014aece.source"
+      },
+      "tests/realtime/test_websocket_realtime_lifecycle.py": {
+        "existed": true,
+        "snapshot": "29c7de7d5725fbc3c7bc5a2b17a3482c7a4f6300738175676355fee82e05e502.source"
+      },
+      "tests/load/locustfile.py": {
+        "existed": true,
+        "snapshot": "6a3b2b872fc5d98ce2c845f3996067289cca1f9ae8e82467374ec6a32a38dcba.source"
+      },
+      "tests/load/test_load_concurrency.py": {
+        "existed": true,
+        "snapshot": "3aee17b92ba5fb917e3431946a85a1d958519cc9b295406f7198e8f6ab04e36e.source"
+      },
+      "tests/integration/test_platform_integration.py": {
+        "existed": true,
+        "snapshot": "0a0a618664122a9a4402b16ca9649ba528a4e1f7e6ff25b50a6763f54324ee45.source"
+      },
+      "tests/integration/test_vertical_slices.py": {
+        "existed": true,
+        "snapshot": "a943392a87bdf9bfc8451517b745d90f79af9f0ae8b521ee19c5de0306f19620.source"
+      },
+      "tests/e2e/test_multiuser_meeting_lifecycle.py": {
+        "existed": true,
+        "snapshot": "cb0e7f9fadbfbb328acc4fafeca6e0b513c90cc1a9c7f1b9d9d98cb97c7194c2.source"
+      },
+      "tests/contract/test_admin_contracts.py": {
+        "existed": true,
+        "snapshot": "4c2bf742031f11e12dcd04fc9a2060331d11f263242d04ccdfadb7216e63bd1f.source"
+      },
+      "tests/contract/test_assistant_contracts.py": {
+        "existed": true,
+        "snapshot": "ad4a09d80e18244f211678ac2850b7f7a296df386127dc0fae093cb0fa95631e.source"
+      },
+      "tests/contract/test_auth_contracts.py": {
+        "existed": true,
+        "snapshot": "3137dd708de56d7d25a01b3440e9d1b830f379399e2918896db07e57a96f1d69.source"
+      },
+      "tests/contract/test_contracts.py": {
+        "existed": true,
+        "snapshot": "34d2240c9bde2bd87580a8aed8e4140b30502e1aa72dd67c809a1892ee3fbba9.source"
+      },
+      "tests/contract/test_database_contracts.py": {
+        "existed": true,
+        "snapshot": "ea8facb5b225849f91aa7b17cdd0d8dd83c6094904f64a4bdade3532c1761153.source"
+      },
+      "tests/contract/test_event_contracts.py": {
+        "existed": true,
+        "snapshot": "7046ed803cf8bf4634e2f94b50debaff3b58f4a4841e06525059b6349d46f7ca.source"
+      },
+      "tests/contract/test_orchestrator_contracts.py": {
+        "existed": true,
+        "snapshot": "c3c2255e0c55b9c405317a193b3e3748246a2f8c7a04f70c1a179f8cd95b1c8f.source"
+      },
+      "tests/contract/test_rest_contracts.py": {
+        "existed": true,
+        "snapshot": "61bcda386bd32ab6584251b09dc4638e475707acb813c67e39f4dc3225d7c52e.source"
+      },
+      "tests/contract/test_room_contracts.py": {
+        "existed": true,
+        "snapshot": "6c1e26e65197b44cfd4f61ef95b7d8dc9e49065e9dbf09b31be445c3fb5989fb.source"
+      },
+      "tests/contract/test_security_contracts.py": {
+        "existed": true,
+        "snapshot": "f1d14f63d6a5c213869e21368f9b373d7bf17ffc551203167c2a294cfc46b6ea.source"
+      },
+      "tests/contract/test_speaker_contracts.py": {
+        "existed": true,
+        "snapshot": "bc83db809ab69bc39a00f2367bbe0bae7538eaa067255e8fc4e1bfa937be935f.source"
+      },
+      "tests/contract/test_stt_contracts.py": {
+        "existed": true,
+        "snapshot": "2740abb15cb96e6f200800fb497ff7cfd5d38c5e7a924b27c624bb2e6da0fd7f.source"
+      },
+      "tests/contract/test_translation_contracts.py": {
+        "existed": true,
+        "snapshot": "5639c428a6da6e3254d1b9a533e5fafe01896c3a7c2c58ae663f9e17ee9ddd8b.source"
+      },
+      "tests/contract/test_tts_contracts.py": {
+        "existed": true,
+        "snapshot": "c38aa6cff94b3d71ed4f9ddae833d8eda6680f7d65effe260930ee011e917246.source"
+      },
+      "tests/contract/test_voice_contracts.py": {
+        "existed": true,
+        "snapshot": "0c177ad32c7c06f9d9f5097288ed36dd30846f32051bd9ac094342e8e0bd8a3c.source"
+      },
+      "tests/contract/test_websocket_contracts.py": {
+        "existed": true,
+        "snapshot": "ca82058c7156e14cf313ec1c39cc1e09a626167e9f642626aebe353301e2125c.source"
+      },
+      "tests/contract/test_websocket_gateway_contracts.py": {
+        "existed": true,
+        "snapshot": "aed20890ea653b4e79df8a641b94898f16c3e61fadbe8a777708f95739a3626e.source"
+      },
+      "tests/chaos/test_pipeline_chaos_resilience.py": {
+        "existed": true,
+        "snapshot": "9989864ac739a3c515c2d60067a3b0a047d270c85aa89b2c6793fc6e54f21aae.source"
+      },
+      "tests/ai/test_ai_model_regression.py": {
+        "existed": true,
+        "snapshot": "fd294082964aeedd4abc7c6824a7e54bb9a7c8bedc4bc1876ed526ac6ffc4fe8.source"
+      },
+      "services/voice_worker/consumer.py": {
+        "existed": true,
+        "snapshot": "e5883ab240f3c0ed8347140691e964de66a09d67b981b7eacfdcaa97f44edb7e.source"
+      },
+      "services/voice_worker/engine.py": {
+        "existed": true,
+        "snapshot": "a9cb8456bd28081935ea3818e2511ce692ca7c7ef8622f22b17a034e0aa81fe8.source"
+      },
+      "services/voice_worker/main.py": {
+        "existed": true,
+        "snapshot": "41361b857ef5f079d4728dcf4212640f9b92673ec53d4a06f85a0e9b5ef299c3.source"
+      },
+      "services/voice_worker/types.py": {
+        "existed": true,
+        "snapshot": "a7f27e85295dfe50ab570aa58a2185cabab6816a0bbf03facca5ba341fecea8c.source"
+      },
+      "services/voice_worker/__init__.py": {
+        "existed": true,
+        "snapshot": "bd5fbc5a57bcae5f728cddd0f148a8e3682a8e116cbc3fb31d3eb4eeb7b636ac.source"
+      },
+      "services/tts_worker/consumer.py": {
+        "existed": true,
+        "snapshot": "f897f972e8feef5fb9f6bfb83792f45f891137464dfdebdd181b9234ea95f5b9.source"
+      },
+      "services/tts_worker/egress.py": {
+        "existed": true,
+        "snapshot": "27046da8e9d878ce984f72e77902ef33dab783d407392e158b2f25b0d54e9f9d.source"
+      },
+      "services/tts_worker/engine.py": {
+        "existed": true,
+        "snapshot": "d7c66f6a93757aeb12dd01a4af6be7bc5111baa94b52aea33744271fa513af6b.source"
+      },
+      "services/tts_worker/main.py": {
+        "existed": true,
+        "snapshot": "f7469f375ef489982617bc8ec87d870cc74bbcd22f3b9c8c788e26b4a410b9b0.source"
+      },
+      "services/tts_worker/types.py": {
+        "existed": true,
+        "snapshot": "a3fee1daaf90cef7eaeefe866eaea952f5d8db2ae82ab3cf8480a8e05328c661.source"
+      },
+      "services/tts_worker/__init__.py": {
+        "existed": true,
+        "snapshot": "9d4fd596ede54596c1c8e4c91d0f0de3eee7cf6b8b182b510d317b930e76de7d.source"
+      },
+      "services/translation_worker/consumer.py": {
+        "existed": true,
+        "snapshot": "30f6eddfc7f7ddeb1fb4578c8b2065b20c6902b17badac1bd146243fbb53bd8c.source"
+      },
+      "services/translation_worker/context.py": {
+        "existed": true,
+        "snapshot": "d1dc054e24d2ca991db688283c73fdbb88a0a3d73ad466f3e77c1d6bb5a29598.source"
+      },
+      "services/translation_worker/engine.py": {
+        "existed": true,
+        "snapshot": "18502e0bfc2bd9403f7ff64630394b62a9a2374baa408581c3690804bd4559e9.source"
+      },
+      "services/translation_worker/glossary.py": {
+        "existed": true,
+        "snapshot": "38397f9a11a7ab319fdc7fcd95397e215dfbaa10b4d5c641e4443b18fb219155.source"
+      },
+      "services/translation_worker/languages.py": {
+        "existed": true,
+        "snapshot": "3e85b82959114d0ff50c62d3beef4ab9813e3c09b6e717b0b132c6ea4a115548.source"
+      },
+      "services/translation_worker/main.py": {
+        "existed": true,
+        "snapshot": "f8597159540dfcdcf1c8bc729acbc63f5d96102ce062f2570eaa1657e47dad1b.source"
+      },
+      "services/translation_worker/types.py": {
+        "existed": true,
+        "snapshot": "00d51a67336730b29092272b076944826c3a42a75eb6f0a47597f09848ccb54b.source"
+      },
+      "services/translation_worker/__init__.py": {
+        "existed": true,
+        "snapshot": "6bbd6eaa5697803be9df6e88b974877dc917fa2c0a9ed7885f0401d085c6624b.source"
+      },
+      "services/stt_worker/consumer.py": {
+        "existed": true,
+        "snapshot": "778f8d9f1d0179aa553706ae68eb63ce55045d4b9519b9bbd12ed38674a5e91a.source"
+      },
+      "services/stt_worker/engine.py": {
+        "existed": true,
+        "snapshot": "50574bd69ebd9ebbc66d6793cf8cf59e12581213ff99fff956e11729a59e6f07.source"
+      },
+      "services/stt_worker/language.py": {
+        "existed": true,
+        "snapshot": "8ba0a7503bfe086251ec6d9bf1ad9026242d3b59ead99fa27c27d4b4e1e1db21.source"
+      },
+      "services/stt_worker/main.py": {
+        "existed": true,
+        "snapshot": "2d8417c19adb826c8b35d0ba0151aff3a29be446bf3a5e4c6c2d641fd85feda7.source"
+      },
+      "services/stt_worker/types.py": {
+        "existed": true,
+        "snapshot": "a03c38b5a50f5d998dd9a1035bd2c3baebdd46bee305e789899667186be8640e.source"
+      },
+      "services/stt_worker/__init__.py": {
+        "existed": true,
+        "snapshot": "a71dffa251e212c7e692f12a623595538bdc020cabca6bc32b845e1102b33c50.source"
+      },
+      "services/speaker_worker/consumer.py": {
+        "existed": true,
+        "snapshot": "4c10f3ab7c5d2cfb0f4db0ff6a698ff8c0bf499962c89444b29f36345379edbe.source"
+      },
+      "services/speaker_worker/engine.py": {
+        "existed": true,
+        "snapshot": "2dce271246ac8b08f44cc4f10b66be4ec21bcfbe1b910f970c7677e919642239.source"
+      },
+      "services/speaker_worker/main.py": {
+        "existed": true,
+        "snapshot": "e3cbd1d907aba3068c4091bbf6d9933c1d2ab2571dc3b8e7e049c86ee64b6744.source"
+      },
+      "services/speaker_worker/profiles.py": {
+        "existed": true,
+        "snapshot": "46e5df33bea5192e4de4c598b666ce13d0b76bba7e699fa12838a7d167a1140d.source"
+      },
+      "services/speaker_worker/types.py": {
+        "existed": true,
+        "snapshot": "75a8876c920257e26d70adfc79325754781a842e18523386a23ee17ce4a6f73b.source"
+      },
+      "services/speaker_worker/__init__.py": {
+        "existed": true,
+        "snapshot": "72527c5b45ed5019faa2f90eb0d23ad04ffa4de46ba83353d2837659b0b4b92e.source"
+      },
+      "services/realtime_gateway/main.py": {
+        "existed": true,
+        "snapshot": "a52335de1e4f675f29d0cf7305f7ea843e60de82a23b03c882f46f3295941530.source"
+      },
+      "services/realtime_gateway/manager.py": {
+        "existed": true,
+        "snapshot": "36b2ed6739208a28cf2ce01ec2e63733ec5589bfe57046a8bff283cece44ce19.source"
+      },
+      "services/realtime_gateway/server.py": {
+        "existed": true,
+        "snapshot": "4f7d99e175453c4c40e096a59ecba114a2414b99f192f537442f47781f583864.source"
+      },
+      "services/realtime_gateway/subscriber.py": {
+        "existed": true,
+        "snapshot": "64c17cc7ef07b15201f52bdc1b10502325a217fdec4e6a78ed4dd84b8bab5798.source"
+      },
+      "services/realtime_gateway/__init__.py": {
+        "existed": true,
+        "snapshot": "6686d236c9cab52dd21d5d5dc22f20f818d4a56ba70e9080944f9eb271696fcd.source"
+      },
+      "services/orchestrator/backpressure.py": {
+        "existed": true,
+        "snapshot": "25d313e217c81e0c585766ef1b2a85aedfb0d2b7e117edf34c21c379006bc8dd.source"
+      },
+      "services/orchestrator/dlq_retry.py": {
+        "existed": true,
+        "snapshot": "456bc83e653b02fb174883d842afb2159c07931cacd63d2c3f6c19c8b1ec7a27.source"
+      },
+      "services/orchestrator/heartbeat.py": {
+        "existed": true,
+        "snapshot": "ec587810a08f4c644c6ab9825fa7943c8b7e5713d9656c0c8405a0429b73ffae.source"
+      },
+      "services/orchestrator/main.py": {
+        "existed": true,
+        "snapshot": "2cd73a3b9e959622fb4fb3a09b3e48db264441cab3ffb156974819cace8be2cd.source"
+      },
+      "services/orchestrator/pipeline.py": {
+        "existed": true,
+        "snapshot": "e5b22a165c4653584e2828fafa957bfd4a08aa397ee814e2503557a02f7835cd.source"
+      },
+      "services/orchestrator/__init__.py": {
+        "existed": true,
+        "snapshot": "fb92c284b3097a4f8e9f457dd451ff143fd6460f89ba9343a7d0ef16d72303eb.source"
+      },
+      "services/audio_ingress/main.py": {
+        "existed": true,
+        "snapshot": "47fdb769e0067204402cab2b2f2d5af97c60d29193fc21d449f05b8ec5714bcf.source"
+      },
+      "services/audio_ingress/service.py": {
+        "existed": true,
+        "snapshot": "80ce44f29feefc1f7eeb3064109dcddfb261135c613b08090a03f6abf5f6c84f.source"
+      },
+      "services/audio_ingress/subscriber.py": {
+        "existed": true,
+        "snapshot": "fbc16ae30842b1cf0484ce930db2643eadcddf18afd87d7a073ec1a537f56d13.source"
+      },
+      "services/audio_ingress/__init__.py": {
+        "existed": true,
+        "snapshot": "1cdac70ccfe5e7f6ef8282de3d64a6bf5655b1326c4182662bc8fc28c9a61b09.source"
+      },
+      "services/assistant_worker/consumer.py": {
+        "existed": true,
+        "snapshot": "2873931ab3af8714acab5c05b4726f623f0f73f26e69bc578d24129c6b79fa1b.source"
+      },
+      "services/assistant_worker/engine.py": {
+        "existed": true,
+        "snapshot": "b94ae40d2cb187c3daf7f23346464805623347fdcc242ae815e8686bb0f497b3.source"
+      },
+      "services/assistant_worker/main.py": {
+        "existed": true,
+        "snapshot": "727f03f7488dd4f3573c1526795b4d19b627812fdeaae04e2358adbb7f000d8b.source"
+      },
+      "services/assistant_worker/memory.py": {
+        "existed": true,
+        "snapshot": "3a0faec3185ce816eb3afff5d2f7cc479288d9e0a1de24d88af72bfb28e19809.source"
+      },
+      "services/assistant_worker/query_router.py": {
+        "existed": true,
+        "snapshot": "0923034e7c15f4a91ee093dd5adcbc8df44b36187e01f49e802333715bd48ce8.source"
+      },
+      "services/assistant_worker/stream_summarizer.py": {
+        "existed": true,
+        "snapshot": "d6e3ad5c97d7d525e37d5147143d595761e5a111d39b426d7e581665c555705e.source"
+      },
+      "services/assistant_worker/types.py": {
+        "existed": true,
+        "snapshot": "9060387d2db13bc1a5c377426863d767da629a6b4bcae8b0dd490ec34c661fbf.source"
+      },
+      "services/assistant_worker/vector_store.py": {
+        "existed": true,
+        "snapshot": "da7d652d22b07f43b215c5203e61fbeb830c07980fc01281059a5f642b71baaa.source"
+      },
+      "services/assistant_worker/__init__.py": {
+        "existed": true,
+        "snapshot": "e2112f68a8cfd7a5c49782b5d5659876c0c6583cea1b936de052ea0f2860e49e.source"
+      },
+      "services/api/main.py": {
+        "existed": true,
+        "snapshot": "080ca9c2dfd04ef6edcbfbafcbaf88f2c46fbe4ae41c60494226621b83c879de.source"
+      },
+      "services/api/__init__.py": {
+        "existed": true,
+        "snapshot": "533cde6cc9bf1db7190a8eec3a61437cb02d10539788560cf23ecbf5af1a8889.source"
+      },
+      "services/api/services/livekit_service.py": {
+        "existed": true,
+        "snapshot": "cd151c42d41b3ef3c2a2cc7abde76834802ac29487ee0903fc5b697cf2576008.source"
+      },
+      "services/api/services/__init__.py": {
+        "existed": true,
+        "snapshot": "27c59230d2c50832823b2addb3f6f707903434c8b6f232a616da3bfddfe7ee1a.source"
+      },
+      "services/api/routers/admin.py": {
+        "existed": true,
+        "snapshot": "5681463eab4a8d172610777950cac5657491e63f7f25b9d9cd52740f6a2bb01a.source"
+      },
+      "services/api/routers/auth.py": {
+        "existed": true,
+        "snapshot": "4a2d0d39126f35e65edbdc51aa474fbff5315c4ee415defdd6561df5a6f9675a.source"
+      },
+      "services/api/routers/health.py": {
+        "existed": true,
+        "snapshot": "c3a5b3e0ab0fb79eccf850b4b93ed609732d999c7bb8f30967b774e05105ae7d.source"
+      },
+      "services/api/routers/rooms.py": {
+        "existed": true,
+        "snapshot": "fa7faf839f837834e6f78dca104d6160fe5d9ffe5eda197bcc3b0615e475dece.source"
+      },
+      "services/api/routers/__init__.py": {
+        "existed": true,
+        "snapshot": "839d8834dc09088e2a6c676b7bc24c65cf54e5858a9de1df115fa47a83404add.source"
+      },
+      "services/api/middleware/rate_limit.py": {
+        "existed": true,
+        "snapshot": "1e6a09e84156a6cb9bd1325afe94327096967f403310fd47fdab0cdf13d080b3.source"
+      },
+      "services/api/middleware/security_headers.py": {
+        "existed": true,
+        "snapshot": "a31e6b28468c21431f8ae93531a2fe4f0890f629c90d11b6758312fcc79e53b7.source"
+      },
+      "services/api/middleware/tenant.py": {
+        "existed": true,
+        "snapshot": "70dc84622f5bba507e30bc497814f336bdf2e581200f435964b297977e28f7a9.source"
+      },
+      "services/api/middleware/__init__.py": {
+        "existed": true,
+        "snapshot": "0049ad2cffe9fa32cf6c9e41485c51b5175d61791fa0f3f553d77c5e7270a3d1.source"
+      },
+      "services/ai_workers/runner.py": {
+        "existed": true,
+        "snapshot": "6d4bd9b891fa5359612c0b173664797c6000fd147016027822f46caa0fedc28b.source"
+      },
+      "packages/security/compliance.py": {
+        "existed": true,
+        "snapshot": "4d0838d0e51cbe94c777e76ec601cdda2c57112f44ae666ab05f7ee54da8929c.source"
+      },
+      "packages/security/crypto.py": {
+        "existed": true,
+        "snapshot": "119b86c8c0af86bead77599b41999b400793f3c005e0cc954866ae453637005a.source"
+      },
+      "packages/security/rate_limit.py": {
+        "existed": true,
+        "snapshot": "82d4c15f4e780c4254e41a5325390fe1bf4f7e02205a6ac5769bf7e144ae7841.source"
+      },
+      "packages/security/sanitizer.py": {
+        "existed": true,
+        "snapshot": "3c3b476ac3dfc73ca5639be1e2b0e3a3f98028d0ac052446287275ec3900165d.source"
+      },
+      "packages/security/__init__.py": {
+        "existed": true,
+        "snapshot": "38348a802067dd9e33a2653e306fae2882e37afe82f008e0e932a99818353eaa.source"
+      },
+      "packages/observability/logging.py": {
+        "existed": true,
+        "snapshot": "1af63914cc29919799d0a966f41daa2de44446df60fe7303deb04caed730f6a1.source"
+      },
+      "packages/observability/metrics.py": {
+        "existed": true,
+        "snapshot": "d32ff0abc272b18b76ba1c71920c9e7fb6555faab242b0fd11c253695ace915a.source"
+      },
+      "packages/observability/tracer.py": {
+        "existed": true,
+        "snapshot": "c1071a82eff731619bc1e042fc742d50e662e5b4ecf601289c5ed982b3e8adca.source"
+      },
+      "packages/observability/__init__.py": {
+        "existed": true,
+        "snapshot": "656ae9d7854a590e3b4368437abc0ab4c0cc7f642c68c2726b4ea7c2cf849592.source"
+      },
+      "packages/language_registry/languages.py": {
+        "existed": true,
+        "snapshot": "ae38a24aada27563c0d7654123557a682d9cbcbda4b97c2f94447fea957e293f.source"
+      },
+      "packages/language_registry/__init__.py": {
+        "existed": true,
+        "snapshot": "2f71d70a86cfcc4165b7614482666dd6afec0e770467b97034d4ceb452df3595.source"
+      },
+      "packages/event_schema/bus.py": {
+        "existed": true,
+        "snapshot": "69a22840ee30b015bb276a6bb467ed546376c7aa178f14c11b30cf0c6ee17f41.source"
+      },
+      "packages/event_schema/events.py": {
+        "existed": true,
+        "snapshot": "d5d502ee4b8659b199c41ac52313ca16137c05082d1ab972ef32ea02e85a614f.source"
+      },
+      "packages/event_schema/__init__.py": {
+        "existed": true,
+        "snapshot": "cf33a7ce8e20d55727d9effd6f4000b0d4f1287bef55c2575b1747b54a45d582.source"
+      },
+      "packages/database/base.py": {
+        "existed": true,
+        "snapshot": "137799f35cd52059a917dda744e9f74beb34dce56f8fcac7e378078d0e618543.source"
+      },
+      "packages/database/seed.py": {
+        "existed": true,
+        "snapshot": "7ed0e89b427470a83bc33439d615e22aadc5d7790c577d11d6489b7911d1eb7e.source"
+      },
+      "packages/database/session.py": {
+        "existed": true,
+        "snapshot": "9a2a1a1af917639eaf1e766da80770d6136025053d7e62f9a1e678cfa7ac0dfa.source"
+      },
+      "packages/database/__init__.py": {
+        "existed": true,
+        "snapshot": "fc662c1c4fe59f1117eaf10040b4503006d7fea8c586859aab6beb52e6e3bf21.source"
+      },
+      "packages/database/models/embedding.py": {
+        "existed": true,
+        "snapshot": "6514bd46c5c53e0595af000d52e4ffb4888afae4f45d03217bcb07e7dc2aed99.source"
+      },
+      "packages/database/models/idempotency_key.py": {
+        "existed": true,
+        "snapshot": "cb50bdaf277b3c6e082a7bd34d53c3a45cfc52955b3ede90b58b51869a7fac6c.source"
+      },
+      "packages/database/models/meeting.py": {
+        "existed": true,
+        "snapshot": "56f8eae875637bc7776f62f5425c82b90ce34eb2ce110e7cddf7b3d4b4988a27.source"
+      },
+      "packages/database/models/meeting_chat.py": {
+        "existed": true,
+        "snapshot": "d95513bd98c266b32a73a8047b2d6a8f17484bb57b383ee2bdd8b03b143f927d.source"
+      },
+      "packages/database/models/meeting_setting.py": {
+        "existed": true,
+        "snapshot": "6416a39e428d78e1aef6cc6c9d161d29c997a52ce25f4358c7b9ed39d7eabb37.source"
+      },
+      "packages/database/models/organization.py": {
+        "existed": true,
+        "snapshot": "7e6a997233c76576c322570a5ded49ef187d03849b29f3204b647d400bcc96d3.source"
+      },
+      "packages/database/models/organization_member.py": {
+        "existed": true,
+        "snapshot": "7c11ba695ee4376ffcfe10aa251e2691fca55f4d58242c17474c322bc1521005.source"
+      },
+      "packages/database/models/outbox_event.py": {
+        "existed": true,
+        "snapshot": "ef0a3e8c5b827e873c0fe2d5481e4cf90f38ae2a88134216a32722a935c6e933.source"
+      },
+      "packages/database/models/participant.py": {
+        "existed": true,
+        "snapshot": "df12d15c530311da75b3c1c4a056aa95447eb81e86e11c31eef6dfecc5964fe2.source"
+      },
+      "packages/database/models/source_segment.py": {
+        "existed": true,
+        "snapshot": "ff02993d6281f108dbc37ede19b784ebecc872333ac6f3b41d4e66509006c7de.source"
+      },
+      "packages/database/models/transcript.py": {
+        "existed": true,
+        "snapshot": "b54adca95827db37888d120954c3b68d232010a7bdd9a75740c5228326806612.source"
+      },
+      "packages/database/models/user.py": {
+        "existed": true,
+        "snapshot": "56efe67cb01716ffd8a6dd7e66e354bce245f210c04ba696a4254a80c24baab4.source"
+      },
+      "packages/database/models/user_session.py": {
+        "existed": true,
+        "snapshot": "ee6e38318963a0a39a1459c77870f7283ff9708a93a769c21bda2ee0f2e30c83.source"
+      },
+      "packages/database/models/voice_profile.py": {
+        "existed": true,
+        "snapshot": "6c096cc832a6eaa0012b84289fc1a39ee1ca94c61df29a6373996c4b1da7e282.source"
+      },
+      "packages/database/models/__init__.py": {
+        "existed": true,
+        "snapshot": "9accf10588c550392c6682261f5eee2ec5a7d431b508407738046556bb6af700.source"
+      },
+      "packages/contracts/enums.py": {
+        "existed": true,
+        "snapshot": "03a6a5df044fd63fe08a9e0c0e6cc7a9e9d96a29e85e87d392f74979717dac73.source"
+      },
+      "packages/contracts/package.json": {
+        "existed": true,
+        "snapshot": "ebaa48c3dfa5e3d13db1ec0d4053e23f01f6c4fd8e07606f4e426495412300a3.source"
+      },
+      "packages/contracts/rest.py": {
+        "existed": true,
+        "snapshot": "568e790baac328f4c285caa9d23f2f1378ba28baf781e9789f268fd9cc6b22cb.source"
+      },
+      "packages/contracts/websocket.py": {
+        "existed": true,
+        "snapshot": "88bd88cc228e22eb47246fc8f806c7130c8949d01abeb4b7aa8199896dd49538.source"
+      },
+      "packages/contracts/__init__.py": {
+        "existed": true,
+        "snapshot": "c68db41269dfe377ad915103fc5fae145e5311aaa62e24f9d9fbb6b8fd58a1dd.source"
+      },
+      "packages/contracts/src/enums.ts": {
+        "existed": true,
+        "snapshot": "b4cf2c6321844d675d6b4044a6e834c0ca7344a7ce9175dd3a72cd49942a7d3c.source"
+      },
+      "packages/contracts/src/events.ts": {
+        "existed": true,
+        "snapshot": "a72c622944b8a0418bcfbef7ea643eeab3bcde3d403cc6676a027ba387e1dc6f.source"
+      },
+      "packages/contracts/src/index.ts": {
+        "existed": true,
+        "snapshot": "722a504697e1cc88698401fe02b607e41d1cf68015c8995469bc650f8bf2b0d4.source"
+      },
+      "packages/contracts/src/languages.ts": {
+        "existed": true,
+        "snapshot": "4106e8012ed2f6d0b5e96fba035df75b0c0d43a5011146104a7855049610a434.source"
+      },
+      "packages/contracts/src/rest.ts": {
+        "existed": true,
+        "snapshot": "e8a0ff7e201f8b3d19689111215db629cb52c39723b3f64fcd7077d7d294947c.source"
+      },
+      "packages/contracts/src/websocket.ts": {
+        "existed": true,
+        "snapshot": "767ce6d3e36d4766818d5357a900c8044c4dad96212871fb44eeb343af2ac4c6.source"
+      },
+      "packages/config/settings.py": {
+        "existed": true,
+        "snapshot": "ff40169993acf18aa5b20c79105af933ecdfc9729cfeeff084a4ffffec059776.source"
+      },
+      "packages/config/__init__.py": {
+        "existed": true,
+        "snapshot": "2780149e1728411f0719671b6ebbf1f64df8e87cda4e215bd86af4e72e474e37.source"
+      },
+      "packages/auth/models.py": {
+        "existed": true,
+        "snapshot": "0b8f90940dbe371891fb3cb647c65196d9720d02d03157238274d6779a39c2e2.source"
+      },
+      "packages/auth/passwords.py": {
+        "existed": true,
+        "snapshot": "9a5d690dfc89f00526fe5b8572bbd655ac950905f82915dfb26c4d03d1afcb96.source"
+      },
+      "packages/auth/rbac.py": {
+        "existed": true,
+        "snapshot": "13daee9d239527fa0982d056a55da3e39e9b91a77a4623c5452180307233b0e7.source"
+      },
+      "packages/auth/tokens.py": {
+        "existed": true,
+        "snapshot": "e2150c116fe956ffb8188f355042a69d1033f965bc198c7757638bd7e4b5443e.source"
+      },
+      "packages/auth/__init__.py": {
+        "existed": true,
+        "snapshot": "fafeacc956869681739e866f83b5042137d438f1ef9cee2e8954aae66710c3b8.source"
+      },
+      "packages/audio/framing.py": {
+        "existed": true,
+        "snapshot": "bf5e100e54266117bda30cc6f23b03ca76137ca02e6772ec2cccfaae8906fbae.source"
+      },
+      "packages/audio/ingestion.py": {
+        "existed": true,
+        "snapshot": "e8629a3f03cb4595d54b6cce5d52803a3198c4391963d6dd9eabe471e29f315a.source"
+      },
+      "packages/audio/vad.py": {
+        "existed": true,
+        "snapshot": "7e0b1294eec4bf4f8ff8960137699ceb237cbb4929247338a4d252806ab825b8.source"
+      },
+      "packages/audio/watermark.py": {
+        "existed": true,
+        "snapshot": "71a676cb4c7a57159b81b8cdb40d2fc058402459ebcc6ef39d17dfacb4e5dab1.source"
+      },
+      "packages/audio/__init__.py": {
+        "existed": true,
+        "snapshot": "8bdbb787f16914067586d8d0ee7e8391674b8018ebaf568b3b07131fd1176e5a.source"
+      },
+      "migrations/env.py": {
+        "existed": true,
+        "snapshot": "a68d34631cfd735a0301ce04a1fe500b5244a54c878fc249268fc063c78cc0ea.source"
+      },
+      "migrations/versions/0001_initial_schema_and_rls.py": {
+        "existed": true,
+        "snapshot": "48b4e91b58b3706a8835e537d47e5909b9326a1d2ad169a15859d6739a9b443d.source"
+      },
+      "migrations/versions/0002_complete_enterprise_schema.py": {
+        "existed": true,
+        "snapshot": "8f16df6660756c7473dad04367b8eb3d667b7c481f2eff4e8dfad57b9e5549bb.source"
+      },
+      "apps/web/next-env.d.ts": {
+        "existed": true,
+        "snapshot": "026858141189f41e794dd3c978742827a0d1b2f922cdfc437817f1a20324e3de.source"
+      },
+      "apps/web/package.json": {
+        "existed": true,
+        "snapshot": "14b60f636e1a2b0061da57aaf231cb1ed15a5dc0c592425ed82e58fec95d42d8.source"
+      },
+      "apps/web/postcss.config.js": {
+        "existed": true,
+        "snapshot": "3b796ee60f23452633e221824c98f3f8d841af92757d7e7df35cc4a59b24f600.source"
+      },
+      "apps/web/tailwind.config.js": {
+        "existed": true,
+        "snapshot": "df052405b2349c3be710bb0c2b16bdbab0b0c6a26dc6a6c4443803636cd0bdad.source"
+      },
+      "apps/web/src/types/meeting.ts": {
+        "existed": true,
+        "snapshot": "3059437abb7b950a5ff90bc45c4323044e0c1e9074c43489a8891178194fcce8.source"
+      },
+      "apps/web/src/stores/useMeetingStore.ts": {
+        "existed": true,
+        "snapshot": "212a3f521e66af48844b360fa20dd0e653952f9796edb570c9fe3a27ac073c98.source"
+      },
+      "apps/web/src/lib/api.ts": {
+        "existed": true,
+        "snapshot": "09429fab69d76246ac8724abcf99b3b34fb2d51f6ac465ed838bfcefa0173a69.source"
+      },
+      "apps/web/src/hooks/useAudioRouter.ts": {
+        "existed": true,
+        "snapshot": "5fc8a7864f7e26f322c701f80e4723f1be43e2aa67664f05f22fc462e8d04c19.source"
+      },
+      "apps/web/src/hooks/useLiveKitRoom.ts": {
+        "existed": true,
+        "snapshot": "88d27d10c9ae67fa5003e91c867bd76048eb41d3d5f6abcab673dc192d3214ff.source"
+      },
+      "apps/web/src/hooks/useRealtimeGateway.ts": {
+        "existed": true,
+        "snapshot": "1df3b2db35d80488a7d009271b7d7ac120b95cb6a3b7bed5fd327e7d1bea7965.source"
+      },
+      "apps/web/src/components/AssistantPanel.tsx": {
+        "existed": true,
+        "snapshot": "723b068c7c704bb56dcccc5277a19d6d864e62c9a99a2a902c4c28963577e7ee.source"
+      },
+      "apps/web/src/components/CaptionOverlay.tsx": {
+        "existed": true,
+        "snapshot": "6622439fbb7cd0d10ad3228fad1e277a0bebc4e74856f754c726ca3567bf3d8a.source"
+      },
+      "apps/web/src/components/ChatPanel.tsx": {
+        "existed": true,
+        "snapshot": "ba6910d3d7d26e86557ea113b3897ae51120b8e350a17e0b0f9c3dcf4ff7d383.source"
+      },
+      "apps/web/src/components/Header.tsx": {
+        "existed": true,
+        "snapshot": "64ce7606f6fb56196221e2d1cc68db2cc4499ea000001b1cfef63c462bb995b4.source"
+      },
+      "apps/web/src/components/LanguageSelectorModal.tsx": {
+        "existed": true,
+        "snapshot": "030e0e04bdc49aeacb324e271364d06c2d1b2a11200b0d367b030155b8b8e93f.source"
+      },
+      "apps/web/src/components/MeetingControls.tsx": {
+        "existed": true,
+        "snapshot": "93eaee15e6e62be79349b4dc7b59661505cbdf33c9a2090d022f756d7c241ac6.source"
+      },
+      "apps/web/src/components/ParticipantsPanel.tsx": {
+        "existed": true,
+        "snapshot": "2385ccf7a7b48c339c46c02e94b0e470e65dff1b7b1ebf7d00232afac12ca1d4.source"
+      },
+      "apps/web/src/components/ParticipantTile.tsx": {
+        "existed": true,
+        "snapshot": "591ccb8b0c5f7ea94050023e550381d42325849834b6b25ce3f8eab08918dc60.source"
+      },
+      "apps/web/src/components/ShareMeetingModal.tsx": {
+        "existed": true,
+        "snapshot": "cc54444947ff6b21804d2a2b0fdd64f8f723996de94f226e83a4e47f78fbf637.source"
+      },
+      "apps/web/src/components/VideoGrid.tsx": {
+        "existed": true,
+        "snapshot": "879cee8eeefd6b45af69d9efe934a83273d44aeda99373e235ad44029a1ab568.source"
+      },
+      "apps/web/src/app/layout.tsx": {
+        "existed": true,
+        "snapshot": "111ec756d646fc7ecca7118cc675dedf7fde956e903db45ed91fbfd0fc111419.source"
+      },
+      "apps/web/src/app/page.tsx": {
+        "existed": true,
+        "snapshot": "938e7f0bd43c2bd57de5c1764a620c59bc7deea9b9cab3705a5eafac46839c8c.source"
+      },
+      "apps/web/src/app/meeting/[id]/page.tsx": {
+        "existed": true,
+        "snapshot": "e7470bb2df066a47dc7e3cdf437ec112a3fcff2fb809f1fda84b09da255485a3.source"
+      },
+      "apps/meeting-client/package.json": {
+        "existed": true,
+        "snapshot": "61dc9c0607788886ae2b88e3fa50c537a9fc86c1ab9d20e55193851241cde71b.source"
+      },
+      "apps/meeting-client/src/index.ts": {
+        "existed": true,
+        "snapshot": "8b963084f24b5d6a1228ea40af10dd2788efeeab8b9e36e73df0ed018a6e42b9.source"
+      },
+      "apps/admin/next-env.d.ts": {
+        "existed": true,
+        "snapshot": "1560de445e90c7c5f1591252c9581795bdc2fa4df0d00bd252895b9b04843460.source"
+      },
+      "apps/admin/package.json": {
+        "existed": true,
+        "snapshot": "09446fbce2950f344fb4df3c46f5c9417abeccdbefecee1266c6762206108221.source"
+      },
+      "apps/admin/postcss.config.js": {
+        "existed": true,
+        "snapshot": "a2c1049bcf758cc00fdb80d31c7155d21712bf2b751418c75248d871a04f8f39.source"
+      },
+      "apps/admin/tailwind.config.js": {
+        "existed": true,
+        "snapshot": "115720ef594efe30f5ce3a0c4148a4d121df18e035412f8241ba3f96e33d6f74.source"
+      },
+      "apps/admin/src/context/AdminAuthContext.tsx": {
+        "existed": true,
+        "snapshot": "b706703b6c771312ec67f9e4dae774049d1554daa60c2afdb2501b6b6b4e478a.source"
+      },
+      "apps/admin/src/components/AdminHeader.tsx": {
+        "existed": true,
+        "snapshot": "62ec2fd2e15eb349db9fe300ba3a0092116b90c40401a5ad14dda9d621b36478.source"
+      },
+      "apps/admin/src/components/RoleBadge.tsx": {
+        "existed": true,
+        "snapshot": "12acb8daf89367833cd6136c5a47f3942e9aa5e7979d87ba9518bc21219d13ff.source"
+      },
+      "apps/admin/src/components/Sidebar.tsx": {
+        "existed": true,
+        "snapshot": "2fc3bc54f03b4f94a0c6996e3afe0b842ad0c1d6b7d58b4d27988cf1f607a2d6.source"
+      },
+      "apps/admin/src/app/layout.tsx": {
+        "existed": true,
+        "snapshot": "578d570ceffd0d49a9fb0617fb809416fb56f968b92edef51d39a9ca495f34cb.source"
+      },
+      "apps/admin/src/app/page.tsx": {
+        "existed": true,
+        "snapshot": "240b6ab060e3a3874f8079824a900c8c552e7d9385506deb91c287f01e98c4cc.source"
+      },
+      "apps/admin/src/app/settings/page.tsx": {
+        "existed": true,
+        "snapshot": "6b59feadfd94ee24ee2fde6f226ae418943706cfc22c9993e8c9a4e13c29d6a6.source"
+      },
+      "apps/admin/src/app/members/page.tsx": {
+        "existed": true,
+        "snapshot": "f3c06abe4c8f49e0c7dc9b9f22a15a542bc0915b3756c02d5f1c7cdc9d536686.source"
+      },
+      "apps/admin/src/app/meetings/page.tsx": {
+        "existed": true,
+        "snapshot": "633ec584572ba5e50ab28bdd63fadf02be62c2fb2b60f9707859fe73e3f9b7c8.source"
+      },
+      "apps/admin/src/app/audit-logs/page.tsx": {
+        "existed": true,
+        "snapshot": "260682e08813572c83fc2a2b2b52654b2429e07e3172efc80a0de57d4ed793aa.source"
+      },
+      "apps/admin/src/app/analytics/page.tsx": {
+        "existed": true,
+        "snapshot": "646e06d0ed8ce7c373a6f41a6aba27f79d7c922479ae0fd094d73a4426d845f2.source"
+      },
+      "app/main.py": {
+        "existed": true,
+        "snapshot": "990f7e4140fab1ad82afc787505090b64d4024e63a891405cd9085e7e6b249dd.source"
+      },
+      "app/__init__.py": {
+        "existed": true,
+        "snapshot": "9cec7b11237bc29d77a439e81c9b7acfac003d8e8855731eb6bc130b5a8ce602.source"
+      },
+      ".github/workflows/ci.yml": {
+        "existed": true,
+        "snapshot": "b803fcb7f17ed9235f1e5cb1fcd2f5d3b2838429d4368ae4c57ce4436577f03f.source"
+      }
+    },
+    "complete": true,
+    "candidateLimit": 5000,
+    "discoveredFiles": 238,
+    "capturedFiles": 238,
+    "truncated": false,
+    "omittedAtLeast": 0,
+    "firstOmitted": "",
+    "errors": []
+  },
+  "stateErrors": [],
+  "omittedReportedFindings": 0,
+  "omittedFindingEvents": 0,
+  "processing": null,
+  "updatedAt": "2026-09-24T09:43:45.214Z"
+}

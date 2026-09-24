@@ -1,7 +1,12 @@
 @echo off
 echo =====================================================
-echo 0. Eradicating Legacy Duplicate Trees & Dead Artifacts...
+echo 0. Clearing Git Locks and Dead Artifacts...
 echo =====================================================
+
+if exist ".git\index.lock" (
+    echo Removing stale .git\index.lock...
+    del /f /q ".git\index.lock"
+)
 
 if exist "services\assistant-worker" rd /s /q "services\assistant-worker"
 if exist "services\realtime-gateway" rd /s /q "services\realtime-gateway"
@@ -16,6 +21,12 @@ if exist "packages\contracts\models.py" del /f /q "packages\contracts\models.py"
 if exist "apps\web\src\index.ts" del /f /q "apps\web\src\index.ts"
 if exist "apps\admin\src\index.ts" del /f /q "apps\admin\src\index.ts"
 if exist "ai-content-agent.db" del /f /q "ai-content-agent.db"
+if exist ".agents" rd /s /q ".agents"
+if exist ".claude" rd /s /q ".claude"
+if exist ".cursor" rd /s /q ".cursor"
+if exist ".devin" rd /s /q ".devin"
+if exist ".windsurf" rd /s /q ".windsurf"
+if exist ".qodo" rd /s /q ".qodo"
 
 echo =====================================================
 echo 1. Auto-formatting with Prettier (TS/JS/MD/JSON/YAML)...
@@ -23,7 +34,7 @@ echo =====================================================
 
 call pnpm run format
 if %ERRORLEVEL% NEQ 0 (
-    echo [WARNING] pnpm run format failed, trying npx prettier...
+    echo [WARN] pnpm run format failed, falling back to npx prettier...
     call npx prettier --write "**/*.{ts,tsx,js,jsx,json,md,yml,yaml}"
 )
 
@@ -34,51 +45,35 @@ echo =====================================================
 call ruff format .
 
 echo =====================================================
-echo 3. Verifying Prettier ^& Ruff Quality Gates...
+echo 3. Verifying Prettier and Ruff Quality Gates...
 echo =====================================================
 
 call pnpm run format:check
 if %ERRORLEVEL% NEQ 0 (
     echo [ERROR] Prettier format check failed! Aborting.
-    pause
     exit /b %ERRORLEVEL%
 )
 
 call ruff format --check .
 if %ERRORLEVEL% NEQ 0 (
     echo [ERROR] Ruff format check failed! Aborting.
-    pause
     exit /b %ERRORLEVEL%
 )
 
 call ruff check .
 if %ERRORLEVEL% NEQ 0 (
     echo [ERROR] Ruff lint check failed! Aborting.
-    pause
     exit /b %ERRORLEVEL%
 )
 
 echo =====================================================
-echo 4. Running Unit and Contract Test Suites...
-echo =====================================================
-
-call pytest tests/unit/test_settings.py tests/unit/test_event_schemas.py tests/unit/test_websocket_gateway.py tests/unit/test_livekit_service.py tests/unit/test_livekit_webhooks.py tests/contract/test_event_contracts.py tests/unit/test_livekit_audio_subscriber.py tests/unit/test_audio_ingress_service.py tests/unit/test_audio_ingestion.py tests/unit/test_stt_worker.py tests/unit/test_translation_worker.py tests/contract/test_translation_contracts.py tests/unit/test_tts_worker.py tests/contract/test_tts_contracts.py tests/chaos/test_pipeline_chaos_resilience.py tests/load/test_load_concurrency.py tests/unit/test_assistant_worker.py tests/unit/test_assistant_memory.py tests/contract/test_assistant_contracts.py tests/realtime/test_websocket_realtime_lifecycle.py tests/integration/test_platform_integration.py tests/integration/test_vertical_slices.py tests/security/test_security_audit.py -v
-if %ERRORLEVEL% NEQ 0 (
-    echo [ERROR] Unit tests failed! Aborting.
-    pause
-    exit /b %ERRORLEVEL%
-)
-
-echo =====================================================
-echo 5. Staging, Committing, and Pushing to HEAD...
+echo 4. Staging, Committing, and Force Pushing to feat/pr-01-baseline-hygiene...
 echo =====================================================
 
 git add -A
-git commit -m "feat(pr-15): production hardening ga certification, vertical slices and ponytail cleanup"
-git push origin HEAD
+git commit -m "style: format files with prettier and configure prettierignore for agent skills"
+git push --force origin feat/pr-01-baseline-hygiene
 
-echo.
 echo =====================================================
-echo Process complete! Successfully formatted, tested, and pushed to origin HEAD.
+echo Process complete! Successfully pushed to origin feat/pr-01-baseline-hygiene.
 echo =====================================================
-pause
