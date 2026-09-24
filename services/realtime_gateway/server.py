@@ -293,8 +293,24 @@ def create_realtime_gateway_app(
                 elif msg_type == WSClientMessageType.CHAT_MESSAGE:
                     session.last_heartbeat_at = time.time()
                     chat_frame = WSClientChatMessageFrame.model_validate(payload)
+                    msg_id = f"chat-{uuid.uuid4()}"
+                    timestamp_now = int(time.time() * 1000)
+
+                    # Persist multilingual chat message (STEP-14-1)
+                    chat_record = {
+                        "message_id": msg_id,
+                        "timestamp_ms": timestamp_now,
+                        "meeting_id": meeting_id,
+                        "sender_id": session.participant_id,
+                        "sender_name": session.display_name or session.participant_id,
+                        "content": chat_frame.text,
+                        "language": session.spoken_language,
+                        "translated_content": {},
+                    }
+                    ws_manager.record_chat_message(meeting_id, chat_record)
+
                     caption_msg = WSServerCaptionFrame(
-                        source_segment_id=f"chat-{uuid.uuid4()}",
+                        source_segment_id=msg_id,
                         speaker_id=session.participant_id,
                         source_language=session.spoken_language,
                         target_language=session.listening_language,

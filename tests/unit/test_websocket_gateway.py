@@ -255,7 +255,7 @@ def test_websocket_chat_message_broadcast(
     test_client: tuple[TestClient, ConnectionManager],
     auth_user: AuthenticatedUser,
 ) -> None:
-    client, _ = test_client
+    client, manager = test_client
     meeting_id = "meeting_test_chat"
     valid_ticket = create_session_ticket(auth_user, meeting_id=meeting_id)
 
@@ -280,6 +280,12 @@ def test_websocket_chat_message_broadcast(
         msg = json.loads(msg_raw)
         assert msg["type"] == WSServerMessageType.CAPTION_UPDATE
         assert "Hello real-time team!" in msg["text"]
+
+        # STEP-14-1 Assertion: Persistent chat history recorded
+        chat_hist = manager.get_chat_history(meeting_id)
+        assert len(chat_hist) == 1
+        assert chat_hist[0]["content"] == "Hello real-time team!"
+        assert chat_hist[0]["sender_id"] == "part_chat_user"
 
 
 @pytest.mark.unit

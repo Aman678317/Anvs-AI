@@ -66,6 +66,10 @@ class MeetingStreamSummarizer:
         return len(self._state.all_segments)
 
     @property
+    def tenant_id(self) -> str:
+        return self._state.tenant_id
+
+    @property
     def summaries_generated(self) -> int:
         return self._state.summaries_generated
 

@@ -18,6 +18,7 @@ from packages.event_schema import (
     get_stream_key,
 )
 from services.assistant_worker.engine import BaseAssistantEngine, create_assistant_engine
+from services.assistant_worker.memory import EpisodicRecord, SevenTypeMemoryManager
 from services.assistant_worker.query_router import QueryRouter
 from services.assistant_worker.stream_summarizer import MeetingStreamSummarizer
 from services.assistant_worker.types import IndexedSegment, MeetingSummary
@@ -34,12 +35,14 @@ class AssistantConsumer:
         stream_bus: RedisStreamBus,
         engine: BaseAssistantEngine | None = None,
         vector_store: TranscriptVectorStore | None = None,
+        memory: SevenTypeMemoryManager | None = None,
         group_name: str | None = None,
         consumer_name: str | None = None,
     ) -> None:
         self.stream_bus = stream_bus
         self.engine = engine or create_assistant_engine()
         self.vector_store = vector_store or TranscriptVectorStore()
+        self.memory = memory or SevenTypeMemoryManager(vector_store=self.vector_store)
         self.group_name = group_name or settings.assistant_consumer_group
         self.consumer_name = consumer_name or f"assistant-worker-{uuid.uuid4().hex[:8]}"
         self.query_router = QueryRouter()
@@ -87,17 +90,37 @@ class AssistantConsumer:
             )
         return self._summarizers[meeting_id]
 
-    async def finalize_meeting_summary(self, meeting_id: str) -> MeetingSummary | None:
-        """Generates the final executive summary for a meeting and evicts its summarizer."""
+    async def finalize_meeting_summary(
+        self,
+        meeting_id: str,
+        consent_granted: bool = True,
+    ) -> MeetingSummary | None:
+        """Generates the final executive summary for a meeting and persists in episodic memory."""
         summarizer = self._summarizers.get(meeting_id)
         if summarizer is None:
             all_segs = self.vector_store.get_transcript(meeting_id)
             if not all_segs:
                 return None
-            return await self.engine.generate_summary(all_segs, meeting_id)
+            summary = await self.engine.generate_summary(all_segs, meeting_id)
+            tenant_id = all_segs[0].tenant_id if all_segs else "default"
+        else:
+            summary = await summarizer.finalize()
+            tenant_id = getattr(summarizer, "tenant_id", "default")
 
-        summary = await summarizer.finalize()
-        self.metrics["summaries_generated"] += 1
+        if summary is not None:
+            self.metrics["summaries_generated"] += 1
+            # Persist into durable episodic memory if consent granted (DEC-05)
+            self.memory.store_episodic_summary(
+                EpisodicRecord(
+                    meeting_id=meeting_id,
+                    tenant_id=tenant_id,
+                    summary=summary.summary,
+                    key_decisions=summary.key_decisions,
+                    action_items=summary.action_items,
+                    consent_granted=consent_granted,
+                )
+            )
+
         self._summarizers.pop(meeting_id, None)
         return summary
 
@@ -137,6 +160,7 @@ class AssistantConsumer:
             )
 
             self.vector_store.add_segment(indexed_seg)
+            self.memory.add_working_segment(indexed_seg)
             self.metrics["transcripts_indexed"] += 1
 
             # Notify per-meeting rolling summarizer
@@ -210,13 +234,16 @@ class AssistantConsumer:
             # 2. Embed query text
             query_emb = self.engine.embed_text(query_event.question)
 
-            # 3. Semantic search over meeting transcript segments using intent-tuned params
-            retrieved = self.vector_store.similarity_search(
+            # 3. Retrieve multi-memory context bundle (Working + Retrieval + Semantic)
+            context_bundle = self.memory.get_context_for_query(
+                query=query_event.question,
                 query_embedding=query_emb,
                 meeting_id=meeting_id,
+                tenant_id=query_event.tenant_id,
                 top_k=top_k,
                 threshold=threshold,
             )
+            retrieved = context_bundle["retrieved_segments"]
 
             # 4. Formulate grounded answer with Invariant #2 citation lineage
             answer_res = await self.engine.answer_query(
@@ -224,6 +251,17 @@ class AssistantConsumer:
                 retrieved_segments=retrieved,
                 query_id=query_event.query_id,
             )
+
+            # Record prospective action items (DEC-05)
+            for item in answer_res.action_items:
+                self.memory.add_action_item(
+                    meeting_id=meeting_id,
+                    tenant_id=query_event.tenant_id,
+                    task=item,
+                    source_segment_id=(
+                        answer_res.citations[0] if answer_res.citations else "unknown"
+                    ),
+                )
 
             # 5. Construct and publish AssistantResponseEvent
             assistant_stream = get_stream_key(meeting_id, STREAM_ASSISTANT)
@@ -359,3 +397,8 @@ class AssistantConsumer:
                 await asyncio.sleep(0.5)
 
         logger.info("Assistant consumer %s shutdown cleanly.", self.consumer_name)
+
+    def clear_meeting(self, meeting_id: str) -> None:
+        """Purges memory and summarizer for a concluded meeting."""
+        self._summarizers.pop(meeting_id, None)
+        self.memory.clear_meeting(meeting_id)

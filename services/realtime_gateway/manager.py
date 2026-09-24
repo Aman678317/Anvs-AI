@@ -46,9 +46,74 @@ class ConnectionManager:
         self._rooms: dict[str, dict[str, ClientSession]] = {}
         self._room_state_versions: dict[str, int] = {}
         self._room_history: dict[str, list[dict[str, Any]]] = {}
+        self._chat_history: dict[str, list[dict[str, Any]]] = {}
         self._max_history_per_room: int = 100
         self._lock = asyncio.Lock()
         self.redis_client = redis_client
+
+    def record_chat_message(
+        self,
+        meeting_id: str,
+        message: dict[str, Any] | None = None,
+        **kwargs: Any,
+    ) -> dict[str, Any]:
+        """Stores persistent chat message with original text and translations (STEP-14-1)."""
+        if meeting_id not in self._chat_history:
+            self._chat_history[meeting_id] = []
+        msg = dict(message) if message is not None else dict(kwargs)
+        if kwargs and message is not None:
+            msg.update(kwargs)
+        self._chat_history[meeting_id].append(msg)
+        if len(self._chat_history[meeting_id]) > self._max_history_per_room:
+            self._chat_history[meeting_id] = self._chat_history[meeting_id][
+                -self._max_history_per_room :
+            ]
+
+        # Buffer chat message as room state change for client resync recovery
+        chat_frame = {
+            "type": "CHAT_MESSAGE",
+            "message_id": msg.get("message_id", f"chat_{len(self._chat_history[meeting_id])}"),
+            "content": msg.get("content", ""),
+            "sender_id": msg.get("sender_id", ""),
+            "sender_name": msg.get("sender_name", ""),
+        }
+        self.record_state_change(meeting_id, chat_frame)
+        return msg
+
+    def record_state_change(
+        self,
+        meeting_id: str,
+        frame_data: dict[str, Any],
+    ) -> int:
+        """Buffers a dictionary frame into the room's history, incrementing monotonic state version."""
+        version = self.next_state_version(meeting_id)
+        if meeting_id not in self._room_history:
+            self._room_history[meeting_id] = []
+        payload = dict(frame_data)
+        payload["state_version"] = version
+        self._room_history[meeting_id].append(payload)
+        if len(self._room_history[meeting_id]) > self._max_history_per_room:
+            self._room_history[meeting_id] = self._room_history[meeting_id][
+                -self._max_history_per_room :
+            ]
+        return version
+
+    def get_current_state_version(self, meeting_id: str) -> int:
+        """Returns the current state version for a meeting."""
+        return self.get_state_version(meeting_id)
+
+    def get_frames_since(
+        self,
+        meeting_id: str,
+        since_version: int,
+    ) -> list[dict[str, Any]]:
+        """Returns frames buffered since since_version."""
+        history = self._room_history.get(meeting_id, [])
+        return [f for f in history if f.get("state_version", 0) > since_version]
+
+    def get_chat_history(self, meeting_id: str) -> list[dict[str, Any]]:
+        """Returns all persistent chat messages for a meeting session (STEP-14-1)."""
+        return list(self._chat_history.get(meeting_id, []))
 
     def next_state_version(self, meeting_id: str) -> int:
         """Increments and returns the next monotonic state version for the meeting."""
