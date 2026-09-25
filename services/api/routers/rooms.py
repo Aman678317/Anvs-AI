@@ -20,7 +20,7 @@ from packages.contracts import (
     MeetingStatus,
     ParticipantRole,
 )
-from packages.database.models import Meeting, Participant
+from packages.database.models import Meeting, Organization, Participant
 from services.api.middleware.tenant import (
     get_authenticated_tenant_session,
     get_current_user,
@@ -28,6 +28,34 @@ from services.api.middleware.tenant import (
 from services.api.services import livekit_service
 
 router = APIRouter(prefix="/api/v1/rooms", tags=["Rooms & LiveKit"])
+
+DEFAULT_TENANT_UUID = uuid.UUID("00000000-0000-0000-0000-000000000001")
+
+
+async def _resolve_or_create_tenant(session: AsyncSession, raw_tenant_id: str | None) -> uuid.UUID:
+    """Safely resolves or provisions an Organization tenant UUID from string identifier."""
+    if not raw_tenant_id or raw_tenant_id.strip() == "" or raw_tenant_id == "default":
+        tenant_uuid = DEFAULT_TENANT_UUID
+    else:
+        try:
+            tenant_uuid = uuid.UUID(raw_tenant_id)
+        except (ValueError, TypeError):
+            tenant_uuid = uuid.uuid5(uuid.NAMESPACE_DNS, raw_tenant_id)
+
+    # Ensure Organization exists in DB to satisfy foreign key constraints
+    org_stmt = select(Organization).where(Organization.id == tenant_uuid)
+    org_res = await session.execute(org_stmt)
+    if not org_res.scalar_one_or_none():
+        slug_suffix = str(tenant_uuid)[:8]
+        org = Organization(
+            id=tenant_uuid,
+            name=f"Tenant {slug_suffix}",
+            slug=f"org-{slug_suffix}",
+        )
+        session.add(org)
+        await session.flush()
+
+    return tenant_uuid
 
 
 @router.post(
@@ -49,7 +77,7 @@ async def create_room(
 ) -> CreateMeetingResponse:
     """Provisions a meeting in the database and creates an associated LiveKit SFU room."""
     meeting_id = uuid.uuid4()
-    tenant_uuid = uuid.UUID(current_user.tenant_id)
+    tenant_uuid = await _resolve_or_create_tenant(session, current_user.tenant_id)
     try:
         creator_uuid: uuid.UUID | None = uuid.UUID(current_user.user_id)
     except (ValueError, TypeError):
@@ -187,10 +215,7 @@ async def join_room(
 
     if not meeting:
         now = datetime.now(UTC)
-        try:
-            tenant_uuid = uuid.UUID(current_user.tenant_id)
-        except (ValueError, TypeError):
-            tenant_uuid = uuid.uuid4()
+        tenant_uuid = await _resolve_or_create_tenant(session, current_user.tenant_id)
 
         meeting = Meeting(
             id=target_uuid,
@@ -302,11 +327,8 @@ async def end_room(
 
     try:
         target_uuid = uuid.UUID(meeting_id)
-    except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid meeting ID",
-        ) from e
+    except ValueError:
+        target_uuid = uuid.uuid5(uuid.NAMESPACE_DNS, meeting_id)
 
     stmt = select(Meeting).where(Meeting.id == target_uuid)
     res = await session.execute(stmt)

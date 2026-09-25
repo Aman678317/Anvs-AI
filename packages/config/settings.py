@@ -57,9 +57,23 @@ class Settings(BaseSettings):
         return url
 
     # LiveKit WebRTC SFU
-    livekit_url: str = Field(default="ws://localhost:7880", alias="LIVEKIT_URL")
+    livekit_url: str = Field(default="wss://localhost:7880", alias="LIVEKIT_URL")
     livekit_api_key: str = Field(default="devkey", alias="LIVEKIT_API_KEY")
     livekit_api_secret: str = Field(default="secret", alias="LIVEKIT_API_SECRET")
+
+    @field_validator("livekit_url", mode="before")
+    @classmethod
+    def normalize_livekit_url(cls, v: str | None) -> str:
+        if not v:
+            return "wss://localhost:7880"
+        url = v.strip()
+        if url.startswith("ws://"):
+            url = "wss://" + url[len("ws://") :]
+        elif url.startswith("http://"):
+            url = "wss://" + url[len("http://") :]
+        elif not (url.startswith("wss://") or url.startswith("ws://")):
+            url = f"wss://{url}"
+        return url
 
     # Runtime Daemon Wiring (P0)
     meeting_id: str = Field(

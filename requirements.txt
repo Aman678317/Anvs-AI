@@ -1,0 +1,26 @@
+# Multilingual AI Meeting Platform Dependencies (Render & Production Deployment)
+fastapi>=0.111.0
+uvicorn[standard]>=0.29.0
+pydantic>=2.7.0
+pydantic-settings>=2.2.0
+sqlalchemy[asyncio]>=2.0.29
+asyncpg>=0.29.0
+alembic>=1.13.1
+redis[hiredis]>=5.0.3
+livekit-api>=0.6.0
+websockets>=12.0
+httpx>=0.27.0
+python-jose[cryptography]>=3.3.0
+bcrypt>=4.0.0
+opentelemetry-api>=1.24.0
+opentelemetry-sdk>=1.24.0
+opentelemetry-instrumentation-fastapi>=0.45b0
+opentelemetry-exporter-otlp>=1.24.0
+prometheus-client>=0.20.0
+structlog>=24.1.0
+numpy>=1.26.4
+scipy>=1.13.0
+python-multipart>=0.0.9
+
+# Install local monorepo packages into Python site-packages
+-e .
